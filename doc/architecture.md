@@ -481,10 +481,32 @@ clx.ai/
 
 | Phase | Scope | Key packages |
 |-------|-------|--------------|
-| **Phase 1 — Core Engine** | Parser, env detection, rule engine, generator, basic executor | `parser`, `intent`, `environment`, `capabilities`, `generator`, `executor` |
+| **Phase 1 — Core Engine** | Rules-first deterministic pipeline (no AI, no policy enforcement) — see [§6.1](#61-phase-1-sub-phases) for breakdown | `config`, `logging`, `environment`, `parser`, `intent` (rules path), `skills` (loader), `capabilities`, `generator`, `executor` (basic), `cmd/clx` |
 | **Phase 2 — AI Integration** | Ollama + OpenAI providers, AI fallback, explanations | `providers/*`, `intent` (AI path), `cache` |
-| **Phase 3 — Safety** | Risk engine, policy engine, dry-run, confirmations | `risk`, `policy`, `executor` (safety hooks) |
-| **Phase 4 — Advanced UX** | Shell interception, auto-fix, aliases, session context | `memory`, `skills`, shell hooks |
+| **Phase 3 — Safety** | Risk engine, policy engine, dry-run, confirmations, access levels | `risk`, `policy`, `executor` (safety hooks) |
+| **Phase 4 — Advanced UX** | Shell interception, auto-fix, aliases, session context, interactive `clx init` wizard | `memory`, `skills`, shell hooks |
+
+### 6.1 Phase 1 sub-phases
+
+Phase 1 is split into six dependency-ordered slices. Each slice is independently shippable, end-to-end testable, and unblocks the next.
+
+| Sub-phase | Scope | Packages | Exit criteria |
+|-----------|-------|----------|---------------|
+| **1.1 — Foundation & Bootstrap** | Config schema + loader, structured logging, install scripts, first-run bootstrap of `~/.clx/` (config, dirs, logs). Default config baked in: `provider: ollama`, `safety.level: medium`, `dry_run: true`. No interactive prompts. | `internal/config`, `internal/logging`, `scripts/install.sh`, `scripts/install.ps1` | `clx --version` works; first run creates the full `~/.clx/` tree with `config.yaml` from `configs/config.example.yaml`. |
+| **1.2 — Environment Detection** | Detect OS, OS version, shell, shell version, terminal, package managers, installed tools, WSL state, key paths. Persist to `~/.clx/system_profile.json`. Ship `clx doctor` to refresh on demand. | `internal/environment` | `clx doctor` writes a complete, accurate `system_profile.json` on Windows (PowerShell + CMD), macOS, Linux, and WSL. |
+| **1.3 — Parser** | Normalize raw input into a `Request`. Classify as `Shell`, `NaturalLanguage`, `PartialShell`, or `CLXInvocation`. Strip the `clx` prefix and tokenize args. | `internal/parser` | Unit tests pass for all four input types across representative samples. |
+| **1.4 — Rules-First Intent Resolver** | YAML rule loader for `rules/*.yaml` and `skills/*/intents.yaml`. Match input → `ResolvedIntent` with extracted params. Skill pack loader (loader only — no AI prompts yet). **No AI fallback, no cache, no memory.** | `internal/intent` (rule path), `internal/skills` (loader) | Seed rule set (e.g. `find_file`, `search_text_in_file`, `list_dir`, `current_dir`, `disk_usage`) resolves correctly with `Source: Rule`. |
+| **1.5 — Capabilities & Generator** | Pick the best strategy for a resolved intent given the `SystemProfile` (e.g. `rg` over `grep`, `Select-String` over `findstr`). Render the chosen template into a final native command string. | `internal/capabilities`, `internal/generator` | `(ResolvedIntent + SystemProfile) → GeneratedCommand` produces the expected native command per shell for the seed rule set. |
+| **1.6 — Basic Executor & CLI Wiring** | Shell-aware execution with timeout. Implement `--explain` (no execution), `--dry-run` (preview only — full risk classification deferred to Phase 3), and proper exit codes. Wire the full pipeline in `cmd/clx`. | `internal/executor` (basic, no risk/policy hooks yet), `cmd/clx` | `clx grep errors logs.txt` runs end-to-end on Windows / Linux / macOS for every seed rule. Integration tests in `test/` green on all three. |
+
+**Notes on what is intentionally NOT in Phase 1:**
+
+- LLM provider selection and AI fallback → **Phase 2**
+- Risk classification and access-level enforcement (Safe / Moderate / Full) → **Phase 3**
+- Interactive setup wizard (`clx init`) → **Phase 4** (silent install with safe defaults is sufficient for Phase 1)
+- Cache, session memory, `clxmax` reasoning binary → later phases
+
+The full config schema (`configs/config.example.yaml`) ships in **1.1** even though several fields (`providers.*`, `safety.level`, etc.) are not yet consumed. This avoids config migrations as later phases come online — they simply start reading fields that have been quietly present since 1.1.
 
 ---
 
