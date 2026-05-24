@@ -1,0 +1,91 @@
+---
+description: CLX runtime resource budgets. RAM, ROM, handles, goroutines, startup time. Lightweight is a product requirement, not a preference.
+alwaysApply: true
+---
+
+# Runtime Footprint — Non-Negotiable
+
+CLX runs on every invocation of every command in every shell. Overhead compounds. Treat memory and resources as a budget, not a resource.
+
+## Hard Budgets (CI-enforced)
+
+| Metric | Budget | Notes |
+|---|---|---|
+| Cold start (`clx --version`) | < 50 ms | No network, no FS scan, no provider init |
+| Steady-state RSS (rules path) | < 30 MB | Pure rule resolution, no AI |
+| Peak RSS (AI path) | < 100 MB | Excluding the model process (Ollama is out-of-process) |
+| Binary size (`clx`) | < 20 MB | Built with `-ldflags="-s -w"`, no CGO |
+| Goroutines at idle | ≤ 3 | main + signal handler + (optional) log flusher |
+
+Add a CI check (`scripts/check-budgets.sh`) that fails the build on regression.
+
+## RAM — Allocations & Deallocations
+
+- **Bounded everything.** No unbounded `map`, `slice`, channel, cache, or buffer. Every cache declares a max size + eviction policy at construction.
+- **Stream, don't slurp.** Use `bufio.Scanner` (with explicit `MaxScanTokenSize`) and `io.LimitReader` for any external input. Never `io.ReadAll` an unknown source.
+- **Preallocate capacity** when length is knowable: `make([]T, 0, n)`, `strings.Builder.Grow(n)`.
+- **Reuse hot-path buffers** via `sync.Pool` (parser token slices, command-render buffers).
+- **Prefer typed structs** over `map[string]any` for JSON in hot paths (parser, intent, generator).
+- **Avoid reflection** in the pipeline. Reflection is OK only in config loading.
+- **No memoization of unbounded keys.** Cache keys must come from a closed set or be hash-bounded.
+
+## ROM — Binary & Dependencies
+
+- **Single static Go binary.** No CGO unless explicitly approved (kills cross-compile + bloats binary).
+- **Release builds:** `-trimpath -ldflags="-s -w"` (in `Makefile`).
+- **No embedded models / large assets.** AI lives in `providers/*` (Ollama out-of-process, OpenAI/Azure remote).
+- **Dependency budget:** every new direct dep in `go.mod` needs a one-line justification in the PR. Prefer stdlib.
+- **Forbidden categories:** ORMs, web frameworks, reflection-heavy serializers, anything pulling in >5 transitive deps.
+
+## Resources — Handles, Goroutines, Subprocesses
+
+- **Every `Open` / `Dial` / `http.Get` gets a `defer Close()` on the next line after the error check.** No exceptions.
+- **Every goroutine has a deterministic exit:** owned by a `context.Context` or a `done` channel. No `go func() { for {} }()`.
+- **Every long-running function takes `ctx context.Context` as its first parameter.** Honor `ctx.Done()` in loops.
+- **Subprocess execution uses `exec.CommandContext`** with an explicit timeout from `config.yaml` (`execution.timeout`).
+- **No `init()` side effects:** no network, no FS scans, no goroutines, no config loads at package init. Use explicit `New()` constructors.
+- **Lazy initialization:** AI providers, skills, and the rule engine load on first use, not at startup.
+
+## Examples
+
+```go
+// GOOD — bounded, streamed, ctx-aware, defer Close
+func ReadRules(ctx context.Context, path string) ([]Rule, error) {
+    f, err := os.Open(path)
+    if err != nil { return nil, err }
+    defer f.Close()
+
+    sc := bufio.NewScanner(io.LimitReader(f, maxRuleFileBytes))
+    sc.Buffer(make([]byte, 0, 64*1024), 1<<20) // explicit cap
+    out := make([]Rule, 0, 32)                  // preallocated
+    for sc.Scan() {
+        if ctx.Err() != nil { return nil, ctx.Err() }
+        // ...
+    }
+    return out, sc.Err()
+}
+```
+
+```go
+// BAD — unbounded read, no ctx, leaks fd on early return, no cap
+func ReadRules(path string) ([]Rule, error) {
+    data, _ := os.ReadFile(path)        // unbounded slurp
+    var out []Rule                       // zero cap
+    json.Unmarshal(data, &out)           // ignored error
+    return out, nil
+}
+```
+
+```go
+// BAD — goroutine with no exit path, no ctx
+go func() {
+    for { refreshProfile() }            // leaks forever
+}()
+```
+
+## Enforcement
+
+- `go test -bench=. -benchmem ./...` on hot paths (parser, intent, generator) — fail PRs on `allocs/op` regressions.
+- `go vet` + `staticcheck` in CI.
+- `goleak` in test teardown for any package that spawns goroutines.
+- `depguard` (golangci-lint) blocks the forbidden dependency categories.
