@@ -5,7 +5,14 @@ examples:
 strategies:
   linux:
     primary: "grep {{pattern}} {{file}}"
+  linux_rg:
+    primary: "rg {{pattern}} {{file}}"
+    requires_tool: rg
+    priority: 10
   powershell:
-    primary: "Select-String {{pattern}} {{file}}"
+    argv:
+      - Select-String
+      - {{pattern}}
+      - {{file}}
   cmd:
     primary: "findstr {{pattern}} {{file}}"

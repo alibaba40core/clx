@@ -8,7 +8,10 @@ type Rule struct {
 	Strategies map[string]Strategy
 }
 
-// Strategy holds a command template for a target OS/shell key (used in Phase 1.5).
+// Strategy holds a command template for a target OS/shell key.
 type Strategy struct {
-	Primary string
+	Primary      string
+	Argv         []string
+	RequiresTool string
+	Priority     int
 }

@@ -58,6 +58,16 @@ func mergeRules(rules []Rule) []Rule {
 	return out
 }
 
+// RuleForIntent returns the rule definition for an intent name.
+func (e *Engine) RuleForIntent(name string) (Rule, bool) {
+	for _, r := range e.rules {
+		if r.Intent == name {
+			return r, true
+		}
+	}
+	return Rule{}, false
+}
+
 // Resolve matches a parsed request to a rule-backed intent.
 func (e *Engine) Resolve(ctx context.Context, req parser.Request) (ResolvedIntent, error) {
 	if err := ctx.Err(); err != nil {

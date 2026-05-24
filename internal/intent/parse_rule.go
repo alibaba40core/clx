@@ -2,6 +2,7 @@ package intent
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/alibaba40core/clx/internal/yamlutil"
 )
@@ -44,11 +45,29 @@ func parseStrategies(node *yamlutil.Node) (map[string]Strategy, error) {
 	}
 	out := make(map[string]Strategy, len(keys))
 	for _, k := range keys {
-		primary, ok := stratNode.GetString(k, "primary")
-		if !ok {
+		child, ok := stratNode.GetChild(k)
+		if !ok || child == nil {
 			continue
 		}
-		out[k] = Strategy{Primary: primary}
+		s := Strategy{}
+		if primary, ok := child.GetString("primary"); ok && primary != "" {
+			s.Primary = primary
+		}
+		if argv, ok := child.GetStringList("argv"); ok {
+			s.Argv = argv
+		}
+		if rt, ok := child.GetString("requires_tool"); ok {
+			s.RequiresTool = rt
+		}
+		if pri, ok := child.GetString("priority"); ok && pri != "" {
+			if n, err := strconv.Atoi(pri); err == nil {
+				s.Priority = n
+			}
+		}
+		if s.Primary == "" && len(s.Argv) == 0 {
+			continue
+		}
+		out[k] = s
 	}
 	return out, nil
 }
