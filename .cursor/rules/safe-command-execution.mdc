@@ -1,0 +1,107 @@
+---
+description: CLX command execution safety. Argv-only exec, centralized quoting, path validation, mandatory risk gating, AI output is untrusted. This is the highest-stakes rule in the codebase.
+alwaysApply: true
+---
+
+# Safe Command Execution — Non-Negotiable
+
+CLX's job is to run shell commands generated from user and AI input. A single arg-quoting mistake is a remote code execution bug shipped to every user. The rules below are not stylistic — they are the trust boundary of the product.
+
+## MUST
+
+- **Argv-only execution.** Always pass arguments as a `[]string` to `exec.CommandContext`. Never build a single command string and hand it to a shell interpreter.
+- **Always use `exec.CommandContext`** with a timeout sourced from `config.yaml` (`execution.timeout`). No bare `exec.Command`.
+- **Risk gating is mandatory.** Every command must pass through `internal/risk` *before* it can be handed to `internal/executor`. The executor must hard-fail (not warn) if it receives a command without a `RiskAssessment`.
+- **Policy gating is mandatory.** Every command must pass through `internal/policy` after risk and before exec. Order: `Generate → Risk → Policy → DryRun → Confirm → Exec`. No skipping.
+- **Path inputs are validated.** Any path that came from user, AI, or rule template substitution goes through `internal/executor.CleanAndValidatePath(p)` which rejects `..`, null bytes, shell metacharacters, and absolute paths outside an explicit allowlist.
+- **Shell-specific quoting lives in exactly one place:** `internal/executor/quote.go`, with `QuotePOSIX`, `QuotePowerShell`, `QuoteCmd`. All three have a shared table-driven test matrix. No ad-hoc quoting elsewhere.
+- **AI provider output is untrusted.** Validate every `ResolvedIntent` against the rule schema (intent name in known set, params match declared types) before any substitution into a command template.
+- **Redact secrets** (matching common token/key patterns) from argv, stdout, stderr, logs, and `internal/memory` before persistence or display.
+
+## MUST NOT
+
+- No `exec.Command("sh", "-c", x)`, `exec.Command("bash", "-c", x)`, `exec.Command("powershell", "-Command", x)`, `exec.Command("cmd", "/C", x)` where `x` contains any user, AI, or template-substituted content.
+- No `os/exec` calls outside `internal/executor`. Other packages call the executor interface.
+- No string concatenation to build commands: `"git checkout " + branch` is forbidden. Use argv slices and template parameters.
+- No executing AI output verbatim. AI returns a *resolved intent*, the generator renders the template, the executor runs the argv. The LLM never writes the final command string directly.
+- No silently dropping the risk or policy step "because the command looks safe."
+- No new shell-quoting helpers. Extend `internal/executor/quote.go` or it doesn't exist.
+
+## Examples
+
+### Exec
+
+```go
+// GOOD — argv slice, ctx with timeout, no shell interpolation
+cmd := exec.CommandContext(ctx, "git", "checkout", branch)
+cmd.Stdout, cmd.Stderr = &outBuf, &errBuf
+if err := cmd.Run(); err != nil { /* ... */ }
+```
+
+```go
+// BAD — shell interpreter + interpolated input = RCE
+exec.Command("sh", "-c", "git checkout "+branch).Run()
+
+// BAD — string concat, no ctx, no timeout
+exec.Command("bash", "-c", fmt.Sprintf("rm -rf %s", target)).Run()
+```
+
+### Templates
+
+Rule templates declare parameters; the generator substitutes them as **separate argv elements**, never into a single string.
+
+```yaml
+# rules/filesystem.yaml
+intent: find_file
+strategies:
+  powershell:
+    argv: ["Get-ChildItem", "-Recurse", "-Filter", "{{filename}}"]
+```
+
+```go
+// GOOD — template params become discrete argv entries after validation
+filename, err := executor.CleanAndValidatePath(params["filename"])
+if err != nil { return nil, err }
+argv := []string{"Get-ChildItem", "-Recurse", "-Filter", filename}
+```
+
+### Pipeline ordering
+
+```go
+// GOOD — every gate runs in order, executor refuses if any are missing
+gen, err := generator.Render(ctx, intent, env)
+risk, err := riskEngine.Assess(ctx, gen)
+allowed, err := policy.Check(ctx, gen, risk)
+if !allowed { return policy.ErrBlocked }
+if err := executor.Run(ctx, gen, executor.WithRisk(risk)); err != nil { /* ... */ }
+```
+
+```go
+// BAD — bypassing risk because "it's just a read"
+gen, _ := generator.Render(ctx, intent, env)
+executor.Run(ctx, gen) // executor must reject: no RiskAssessment attached
+```
+
+### AI output handling
+
+```go
+// GOOD — provider returns ResolvedIntent, validated against schema before use
+resolved, err := provider.ResolveIntent(ctx, req)
+if err := intent.ValidateAgainstSchema(resolved); err != nil {
+    return nil, fmt.Errorf("untrusted ai output: %w", err)
+}
+// resolved.Intent is now one of the known intent names; params are typed.
+```
+
+```go
+// BAD — executing whatever the LLM emitted
+resp, _ := provider.RawCompletion(ctx, prompt)
+exec.Command("sh", "-c", resp.Text).Run() // ship-stopper
+```
+
+## Enforcement
+
+- `golangci-lint` with a custom `forbidigo` rule banning `exec.Command(` outside `internal/executor/` and banning `sh -c` / `bash -c` / `powershell -Command` / `cmd /C` string literals repo-wide.
+- `gosec` in CI with rules G204 (subprocess with variable) and G304 (file path from variable) treated as errors, not warnings.
+- A fuzz test in `internal/executor/quote_test.go` for each `Quote*` function (round-trip and shell-eval comparison where feasible).
+- An integration test in `test/` that wires a fake provider returning malicious output and asserts the pipeline rejects it before exec.

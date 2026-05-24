@@ -1,0 +1,68 @@
+---
+description: Strict memory subsystem contract for CLX (internal/memory). Session-scoped only. No long-term, agentic, or embedding-based memory.
+alwaysApply: true
+---
+
+# Memory Management — Non-Negotiable
+
+CLX memory is **session-scoped, lightweight, and disposable**. Treat it like a scratchpad, not a brain. Violating this rule changes the product category.
+
+## MUST
+
+- All persistence goes through `internal/memory`. No other package may read or write session files directly.
+- Storage path: `~/.clx/sessions/<session_id>.json` only. Resolve paths via `internal/config` — never hardcode.
+- Writes are atomic (tmp file + rename) and tolerate concurrent sessions.
+- Schema is versioned (`"schema_version": N`) and forward-compatible.
+- Bounded by default: `max_entries_per_session`, `max_sessions`, and TTL — all configurable in `config.yaml` under `memory:`.
+- Memory failures degrade gracefully. The pipeline (parser → intent → … → executor) MUST run if memory is unavailable.
+- Redact secrets, tokens, and credentials before persisting any command or output.
+- Provider layer (`internal/providers/*`) stays **stateless** — never imports `internal/memory`.
+
+## MUST NOT
+
+- No long-term / cross-session global knowledge base.
+- No embeddings, vector stores, RAG indices, or semantic search.
+- No filesystem scanning, repo indexing, or workspace state.
+- No autonomous planning state, task queues, or goal trees.
+- No background goroutines, watchers, or daemons owned by memory.
+- No external databases (SQLite, BoltDB, etc.) without an architecture review — JSON per session is the contract.
+- No remote sync, cloud backup, or telemetry of memory contents.
+
+## Allowed Contents (exhaustive)
+
+```go
+type Session struct {
+    SchemaVersion int               `json:"schema_version"`
+    SessionID     string            `json:"session_id"`
+    StartedAt     time.Time         `json:"started_at"`
+    Commands      []CommandEntry    `json:"commands"`     // bounded ring buffer
+    Aliases       map[string]string `json:"aliases"`
+    Preferences   map[string]string `json:"preferences"`
+}
+```
+
+Anything outside this struct needs a doc update **and** review before it lands.
+
+## Example — Correct
+
+```go
+// internal/intent/resolver.go
+mem, err := memory.Load(ctx, sessionID)
+if err != nil {
+    log.Warn("memory unavailable, continuing without context", "err", err)
+    mem = memory.Empty()
+}
+```
+
+## Example — Forbidden
+
+```go
+// Direct file access bypassing the memory package
+os.WriteFile("~/.clx/sessions/abc.json", data, 0644)
+
+// Cross-session global state
+var globalKnowledge = map[string]any{}
+
+// Embeddings / vector memory
+type VectorStore struct { /* ... */ }
+```
