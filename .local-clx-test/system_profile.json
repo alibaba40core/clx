@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "os": "windows",
+  "os_version": "10.0.22631",
+  "shell": "powershell",
+  "shell_version": "",
+  "terminal": "unknown",
+  "package_managers": [
+    "npm",
+    "winget"
+  ],
+  "available_tools": [
+    "curl",
+    "docker",
+    "git",
+    "kubectl",
+    "node",
+    "npm",
+    "ollama",
+    "python",
+    "python3"
+  ],
+  "wsl_enabled": true,
+  "paths": {
+    "home": "C:\\Users\\mohamman",
+    "workspace": "C:\\Users\\mohamman\\personal-sanbox\\clx.ai"
+  }
+}

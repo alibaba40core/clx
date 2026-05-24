@@ -54,3 +54,4 @@ Add-ToUserPath
 
 Write-Host "installed clx and clxmax to $Dest"
 & (Join-Path $Dest "clx.exe") --version
+& (Join-Path $Dest "clx.exe") doctor

@@ -45,6 +45,7 @@ main() {
   fi
 
   "${DEST}/clx" --version
+  "${DEST}/clx" doctor
 }
 
 main "$@"
