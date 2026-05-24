@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Build
+        run: go build -trimpath ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test (race on Unix)
+        if: runner.os != 'Windows'
+        run: go test -race ./...
+
+      - name: Test (Windows, no race — requires gcc for -race)
+        if: runner.os == 'Windows'
+        run: go test ./...
+
+      - name: Build CLI
+        shell: bash
+        run: |
+          mkdir -p bin
+          go build -trimpath -o bin/clx ./cmd/clx
+          go build -trimpath -o bin/clxmax ./cmd/clxmax
+
+      - name: Version smoke test
+        shell: bash
+        env:
+          CLX_HOME: ${{ runner.temp }}/clx-home
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            ./bin/clx.exe --version
+          else
+            ./bin/clx --version
+          fi
