@@ -1,31 +1,39 @@
-.PHONY: build test lint install clean help
+.PHONY: build test lint install clean help bootstrap-local
 
 BIN_DIR := bin
 CLX_BIN := $(BIN_DIR)/clx
 CLXMAX_BIN := $(BIN_DIR)/clxmax
 
+VERSION ?= dev
+COMMIT ?= unknown
+LDFLAGS := -s -w -X github.com/alibaba40core/clx/internal/cliversion.Version=$(VERSION) -X github.com/alibaba40core/clx/internal/cliversion.Commit=$(COMMIT)
+
+GOFLAGS := -trimpath
+
 help: ## Show available targets
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
 build: ## Build clx and clxmax binaries
 	@mkdir -p $(BIN_DIR)
-	@echo "build: stub — implement in Phase 1"
-	# go build -o $(CLX_BIN) ./cmd/clx
-	# go build -o $(CLXMAX_BIN) ./cmd/clxmax
+	go build $(GOFLAGS) -ldflags="$(LDFLAGS)" -o $(CLX_BIN) ./cmd/clx
+	go build $(GOFLAGS) -ldflags="$(LDFLAGS)" -o $(CLXMAX_BIN) ./cmd/clxmax
 
 test: ## Run unit and integration tests
-	@echo "test: stub — implement in Phase 1"
-	# go test ./...
+	go test -race ./...
 
-lint: ## Run linters
-	@echo "lint: stub — implement in Phase 1"
-	# golangci-lint run ./...
+lint: ## Run go vet
+	go vet ./...
 
-install: build ## Install binaries to GOPATH/bin
-	@echo "install: stub — implement in Phase 1"
-	# go install ./cmd/clx
-	# go install ./cmd/clxmax
+install: build ## Install via dev scripts (OS-specific)
+ifeq ($(OS),Windows_NT)
+	powershell -ExecutionPolicy Bypass -File scripts/install.ps1
+else
+	bash scripts/install.sh
+endif
 
 clean: ## Remove build artifacts
 	@rm -rf $(BIN_DIR)
 	@echo "clean: done"
+
+bootstrap-local: build ## Bootstrap ~/.clx using CLX_HOME=./.local-clx
+	CLX_HOME=./.local-clx $(CLX_BIN) --version

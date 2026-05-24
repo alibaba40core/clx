@@ -6,7 +6,7 @@ CLX is an AI-powered cross-platform command intelligence layer for developers. I
 
 ## Status
 
-> **Initial scaffold** — architecture and folder structure are in place. Core engine implementation begins in Phase 1.
+> **Phase 1.1** — Foundation & bootstrap: `clx --version`, config loader, structured logging, and first-run `~/.clx/` setup.
 
 ## What CLX does
 
@@ -38,18 +38,23 @@ test/             Integration and e2e tests
 doc/              Design and architecture docs
 ```
 
-## Quickstart (coming in Phase 1)
+## Quickstart
 
 ```bash
 # Build
 make build
 
-# Run
-./bin/clx grep errors logs.txt
+# Print version (first run also creates ~/.clx/)
+./bin/clx --version
 
-# Explain without executing
-./bin/clx --explain locate help.txt
+# Dev install (build + copy to PATH)
+make install
+
+# Local bootstrap without touching real ~/.clx/
+make bootstrap-local
 ```
+
+Command translation (`clx grep errors logs.txt`) lands in Phase 1.6.
 
 ## Configuration
 
