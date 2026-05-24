@@ -1,0 +1,12 @@
+intent: disk_usage
+examples:
+  - disk usage
+  - df {{path}}
+  - du -sh {{path}}
+strategies:
+  linux:
+    primary: "df -h {{path}}"
+  powershell:
+    primary: "Get-PSDrive"
+  cmd:
+    primary: "dir {{path}}"

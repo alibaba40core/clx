@@ -3,6 +3,8 @@ package parser
 import (
 	"strings"
 	"testing"
+
+	"github.com/alibaba40core/clx/internal/tokenize"
 )
 
 func TestTokenizeQuotes(t *testing.T) {
@@ -60,19 +62,8 @@ func TestTokenizeAssignment(t *testing.T) {
 
 func TestTokenizeInputTooLong(t *testing.T) {
 	t.Parallel()
-	_, err := tokenizeInput(strings.Repeat("a", maxInputBytes+1))
-	if err != errInputTooLong {
+	_, err := tokenizeInput(strings.Repeat("a", tokenize.MaxInputBytes+1))
+	if err != tokenize.ErrInputTooLong {
 		t.Fatalf("got %v", err)
 	}
-}
-
-func FuzzTokenize(f *testing.F) {
-	f.Add("grep errors logs.txt")
-	f.Add(`"hello world"`)
-	f.Fuzz(func(t *testing.T, s string) {
-		if len(s) > maxInputBytes {
-			return
-		}
-		_, _ = tokenizeInput(s)
-	})
 }

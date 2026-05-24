@@ -1,0 +1,13 @@
+intents:
+  - intent: list_dir
+    examples:
+      - list directory {{path}}
+      - ls {{path}}
+      - dir {{path}}
+    strategies:
+      linux:
+        primary: "ls -la {{path}}"
+      powershell:
+        primary: "Get-ChildItem {{path}}"
+      cmd:
+        primary: "dir {{path}}"
