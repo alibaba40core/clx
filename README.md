@@ -6,7 +6,7 @@ CLX is an AI-powered cross-platform command intelligence layer for developers. I
 
 ## Status
 
-> **Phase 1.5** — Capabilities + generator (`internal/capabilities`, `internal/generator`): profile-aware strategy selection (tool alternates) and argv-primary command render (`Translate` pipeline, library-only). Includes Phase 1.1–1.4.
+> **Phase 1.6** — CLI pipeline wired in `cmd/clx`: parse → intent → translate → risk/policy stubs → confirm → argv-only execution. Flags: `--explain`, `--dry-run`, `-y`. Includes Phase 1.1–1.5.
 
 ## What CLX does
 
@@ -57,7 +57,14 @@ make install
 make bootstrap-local
 ```
 
-Command translation (`clx grep errors logs.txt`) lands in Phase 1.6.
+```bash
+# Translate and run (prompts [Y/n] unless -y)
+clx grep errors logs.txt
+
+# Preview only
+clx --explain grep errors logs.txt
+clx --dry-run pwd
+```
 
 `shell_version` in the profile is filled from environment variables when present (e.g. `POWERSHELL_VERSION`); otherwise it stays empty until a later phase adds subprocess probing.
 
