@@ -41,6 +41,18 @@ func TestRunHelp(t *testing.T) {
 	}
 }
 
+func TestRunExplainGrep(t *testing.T) {
+	t.Setenv("CLX_HOME", t.TempDir())
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"--explain", "grep", "errors", "logs.txt"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("exit %d stderr=%s", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "search_text_in_file") {
+		t.Fatalf("stdout=%q", stdout.String())
+	}
+}
+
 type stderrWriter struct{ t *testing.T }
 
 func (w stderrWriter) Write(p []byte) (int, error) {
