@@ -1,0 +1,39 @@
+# Binaries
+/bin/
+/clx
+/clxmax
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go
+/vendor/
+*.test
+*.out
+coverage.out
+coverage.html
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local runtime scratch (mirrors ~/.clx/ for dev testing)
+.local-clx/
+*.local.yaml
+
+# Build artifacts
+/dist/
+/build/
+
+# Temp extracted docs
+doc/clx_*.txt
