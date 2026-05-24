@@ -52,3 +52,14 @@ jobs:
           else
             ./bin/clx --version
           fi
+
+      - name: Doctor smoke test
+        shell: bash
+        env:
+          CLX_HOME: ${{ runner.temp }}/clx-doctor
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            ./bin/clx.exe doctor
+          else
+            ./bin/clx doctor
+          fi

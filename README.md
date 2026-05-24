@@ -6,7 +6,7 @@ CLX is an AI-powered cross-platform command intelligence layer for developers. I
 
 ## Status
 
-> **Phase 1.1** — Foundation & bootstrap: `clx --version`, config loader, structured logging, and first-run `~/.clx/` setup.
+> **Phase 1.2** — Environment detection: `clx doctor` writes `~/.clx/system_profile.json` (OS, shell, tools, package managers). Phase 1.1 foundation (`--version`, config, logging) is included.
 
 ## What CLX does
 
@@ -47,6 +47,9 @@ make build
 # Print version (first run also creates ~/.clx/)
 ./bin/clx --version
 
+# Detect environment → ~/.clx/system_profile.json
+./bin/clx doctor
+
 # Dev install (build + copy to PATH)
 make install
 
@@ -55,6 +58,8 @@ make bootstrap-local
 ```
 
 Command translation (`clx grep errors logs.txt`) lands in Phase 1.6.
+
+`shell_version` in the profile is filled from environment variables when present (e.g. `POWERSHELL_VERSION`); otherwise it stays empty until a later phase adds subprocess probing.
 
 ## Configuration
 
