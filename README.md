@@ -6,7 +6,7 @@ CLX is an AI-powered cross-platform command intelligence layer for developers. I
 
 ## Status
 
-> **Phase 1.4** — Rules-first intent resolver (`internal/intent`): loads `rules/*.yaml` and `skills/*/intents.yaml`, matches `{{param}}` patterns → `ResolvedIntent` (library-only). Includes Phase 1.1–1.3.
+> **Phase 1.5** — Capabilities + generator (`internal/capabilities`, `internal/generator`): profile-aware strategy selection (tool alternates) and argv-primary command render (`Translate` pipeline, library-only). Includes Phase 1.1–1.4.
 
 ## What CLX does
 

@@ -6,6 +6,10 @@ examples:
 strategies:
   linux:
     primary: "find . -name {{filename}}"
+  linux_fd:
+    primary: "fd . -t f -g {{filename}}"
+    requires_tool: fd
+    priority: 10
   powershell:
     primary: "Get-ChildItem -Recurse -Filter {{filename}}"
   cmd:
