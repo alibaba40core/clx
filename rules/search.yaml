@@ -1,0 +1,11 @@
+intent: search_text_in_file
+examples:
+  - grep {{pattern}} {{file}}
+  - search {{pattern}} in {{file}}
+strategies:
+  linux:
+    primary: "grep {{pattern}} {{file}}"
+  powershell:
+    primary: "Select-String {{pattern}} {{file}}"
+  cmd:
+    primary: "findstr {{pattern}} {{file}}"

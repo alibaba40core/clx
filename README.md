@@ -6,7 +6,7 @@ CLX is an AI-powered cross-platform command intelligence layer for developers. I
 
 ## Status
 
-> **Phase 1.3** — Parser package (`internal/parser`): classifies input as shell, natural language, partial shell, or CLX invocation (library-only; CLI wiring in Phase 1.6). Includes Phase 1.1–1.2 (`--version`, `clx doctor`, bootstrap).
+> **Phase 1.4** — Rules-first intent resolver (`internal/intent`): loads `rules/*.yaml` and `skills/*/intents.yaml`, matches `{{param}}` patterns → `ResolvedIntent` (library-only). Includes Phase 1.1–1.3.
 
 ## What CLX does
 

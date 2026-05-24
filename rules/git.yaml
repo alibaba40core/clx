@@ -1,0 +1,11 @@
+# Placeholder domain rules — expanded in later phases.
+intent: git_status
+examples:
+  - git status
+strategies:
+  linux:
+    primary: "git status"
+  powershell:
+    primary: "git status"
+  cmd:
+    primary: "git status"

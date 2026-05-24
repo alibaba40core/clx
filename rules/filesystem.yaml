@@ -1,0 +1,12 @@
+intent: find_file
+examples:
+  - locate {{filename}}
+  - find file {{filename}}
+  - search for {{filename}}
+strategies:
+  linux:
+    primary: "find . -name {{filename}}"
+  powershell:
+    primary: "Get-ChildItem -Recurse -Filter {{filename}}"
+  cmd:
+    primary: "dir /s {{filename}}"

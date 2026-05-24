@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+
+	"github.com/alibaba40core/clx/internal/yamlutil"
 )
 
 var (
@@ -39,7 +41,7 @@ func Load(ctx context.Context, path string) (Config, error) {
 		return Config{}, err
 	}
 
-	root, err := Decode(f)
+	root, err := yamlutil.Decode(f)
 	if err != nil {
 		return Config{}, fmt.Errorf("decode config: %w", err)
 	}

@@ -1,0 +1,11 @@
+intent: current_dir
+examples:
+  - pwd
+  - current directory
+strategies:
+  linux:
+    primary: "pwd"
+  powershell:
+    primary: "Get-Location"
+  cmd:
+    primary: "cd"
