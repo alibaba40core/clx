@@ -153,10 +153,24 @@ setup_clx_home() {
   trap 'rm -rf "${CLX_HOME}"' EXIT
 }
 
+build_release() {
+  local version commit ldf
+  if command -v make >/dev/null 2>&1; then
+    make build
+    return
+  fi
+  version="$(git -C "${ROOT}" describe --tags --always 2>/dev/null || echo dev)"
+  commit="$(git -C "${ROOT}" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+  ldf="-s -w -X github.com/alibaba40core/clx/internal/cliversion.Version=${version} -X github.com/alibaba40core/clx/internal/cliversion.Commit=${commit}"
+  mkdir -p "${BIN_DIR}"
+  go build -trimpath -ldflags="${ldf}" -o "${BIN_DIR}/clx" ./cmd/clx
+  go build -trimpath -ldflags="${ldf}" -o "${BIN_DIR}/clxmax" ./cmd/clxmax
+}
+
 main() {
   cd "${ROOT}"
   unset GOFLAGS || true
-  make build
+  build_release
   setup_clx_home
   check_binary_size
   check_cold_start
