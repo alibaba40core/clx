@@ -80,7 +80,14 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 		return 1, policy.ErrBlocked
 	}
 
-	if cfg.Features.Explain || opts.Explain || opts.DryRun || !opts.Yes {
+	// effectiveDryRun is true if either the --dry-run flag or safety.dry_run
+	// in config is set. Flag-on or config-on triggers dry-run; both off
+	// proceeds to confirm/exec. -y does NOT bypass a config-driven dry-run.
+	// TODO(phase3): also derive from cfg.Safety.Mode (medium/high imply
+	// dry-run by default). See SafetyConfig godoc for the matrix.
+	effectiveDryRun := opts.DryRun || cfg.Safety.DryRun
+
+	if cfg.Features.Explain || opts.Explain || effectiveDryRun || !opts.Yes {
 		if err := printDisplay(opts.Stdout, resolved, gen, ra); err != nil {
 			return 1, err
 		}
@@ -90,7 +97,7 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 		return 0, nil
 	}
 
-	if opts.DryRun {
+	if effectiveDryRun {
 		fmt.Fprintf(opts.Stdout, "dry-run: would execute: %s\n", executor.QuoteArgv(gen.Shell, gen.Argv))
 		return 0, nil
 	}
