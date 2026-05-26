@@ -42,6 +42,10 @@ jobs:
           go build -trimpath -o bin/clx ./cmd/clx
           go build -trimpath -o bin/clxmax ./cmd/clxmax
 
+      - name: Check runtime budgets
+        shell: bash
+        run: bash scripts/check-budgets.sh
+
       - name: Version smoke test
         shell: bash
         env:
