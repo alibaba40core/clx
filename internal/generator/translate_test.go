@@ -130,6 +130,48 @@ func TestTranslateSeedIntents(t *testing.T) {
 			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
 			wantArgv: []string{"df", "-h", "."},
 		},
+		{
+			name:     "git_status default strategy linux",
+			resolved: intent.ResolvedIntent{Intent: "git_status", Params: map[string]string{}},
+			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
+			wantArgv: []string{"git", "status"},
+		},
+		{
+			name:     "git_status default strategy windows powershell",
+			resolved: intent.ResolvedIntent{Intent: "git_status", Params: map[string]string{}},
+			profile:  environment.SystemProfile{OS: "windows", Shell: "powershell"},
+			wantArgv: []string{"git", "status"},
+		},
+		{
+			name:     "git_log bare defaults to n=20",
+			resolved: intent.ResolvedIntent{Intent: "git_log", Params: map[string]string{}},
+			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
+			wantArgv: []string{"git", "log", "--oneline", "-n", "20"},
+		},
+		{
+			name:     "git_log explicit n overrides default",
+			resolved: intent.ResolvedIntent{Intent: "git_log", Params: map[string]string{"n": "50"}},
+			profile:  environment.SystemProfile{OS: "darwin", Shell: "zsh"},
+			wantArgv: []string{"git", "log", "--oneline", "-n", "50"},
+		},
+		{
+			name:     "git_diff bare",
+			resolved: intent.ResolvedIntent{Intent: "git_diff", Params: map[string]string{}},
+			profile:  environment.SystemProfile{OS: "windows", Shell: "cmd"},
+			wantArgv: []string{"git", "diff"},
+		},
+		{
+			name:     "git_diff_path with path",
+			resolved: intent.ResolvedIntent{Intent: "git_diff_path", Params: map[string]string{"path": "internal/intent/load.go"}},
+			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
+			wantArgv: []string{"git", "diff", "internal/intent/load.go"},
+		},
+		{
+			name:     "git_branch_list",
+			resolved: intent.ResolvedIntent{Intent: "git_branch_list", Params: map[string]string{}},
+			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
+			wantArgv: []string{"git", "branch"},
+		},
 	}
 
 	for _, tc := range cases {

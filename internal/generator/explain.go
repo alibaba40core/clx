@@ -7,6 +7,10 @@ var intentExplanations = map[string]string{
 	"current_dir":         "Print current working directory",
 	"disk_usage":          "Show disk usage",
 	"git_status":          "Show git working tree status",
+	"git_log":             "Show recent git commits (oneline)",
+	"git_diff":            "Show unstaged changes in working tree",
+	"git_diff_path":       "Show unstaged changes for a path",
+	"git_branch_list":     "List local git branches",
 }
 
 func explanationFor(intent string) string {

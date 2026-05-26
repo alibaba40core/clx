@@ -37,6 +37,8 @@ func validateParamValue(v string) error {
 }
 
 // effectiveParams merges resolved params with defaults for optional keys.
+// Defaults exist so that a bare invocation (e.g. `git log` with no -n) can
+// still render a single template containing the parameter placeholder.
 func effectiveParams(intentName string, params map[string]string) map[string]string {
 	out := make(map[string]string, len(params)+1)
 	for k, v := range params {
@@ -46,6 +48,11 @@ func effectiveParams(intentName string, params map[string]string) map[string]str
 		switch intentName {
 		case "disk_usage", "list_dir":
 			out["path"] = "."
+		}
+	}
+	if _, ok := out["n"]; !ok {
+		if intentName == "git_log" {
+			out["n"] = "20"
 		}
 	}
 	return out
