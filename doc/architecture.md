@@ -19,6 +19,8 @@ This document defines the target V1 architecture. Runtime state lives in `~/.clx
 | **Cross-platform** | Single Go binary; environment-aware command generation |
 | **Lightweight** | Fast startup, minimal dependencies, session-scoped memory only |
 
+Runtime footprint budgets (binary size, cold start) are enforced in CI via [`scripts/check-budgets.sh`](../scripts/check-budgets.sh); run `make budgets` locally.
+
 ---
 
 ## 2. High-level pipeline
