@@ -111,6 +111,34 @@ func TestParseMatrix(t *testing.T) {
 			wantType: InputCLXInvocation,
 			wantTok:  []string{"find", "all", "files", "modified", "today"},
 		},
+		{
+			name:     "ping linux flags not nl",
+			input:    "ping -c 4 google.com",
+			profile:  testProfileLinux(),
+			wantType: InputShell,
+			wantTok:  []string{"ping", "-c", "4", "google.com"},
+		},
+		{
+			name:     "ping windows flags not nl",
+			input:    "ping -n 4 google.com",
+			profile:  testProfileWindows(),
+			wantType: InputShell,
+			wantTok:  []string{"ping", "-n", "4", "google.com"},
+		},
+		{
+			name:     "netstat listening not nl",
+			input:    "netstat -tlnp",
+			profile:  testProfileLinux(),
+			wantType: InputShell,
+			wantTok:  []string{"netstat", "-tlnp"},
+		},
+		{
+			name:     "ss listening not nl",
+			input:    "ss -tlnp",
+			profile:  testProfileLinux(),
+			wantType: InputShell,
+			wantTok:  []string{"ss", "-tlnp"},
+		},
 	}
 
 	for _, tc := range cases {
