@@ -93,3 +93,42 @@ func TestResolveNotFound(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 }
+
+func TestResolveGitIntents(t *testing.T) {
+	t.Parallel()
+	eng := testEngine(t)
+	cases := []struct {
+		name       string
+		tokens     []string
+		wantIntent string
+		wantParams map[string]string
+	}{
+		{"git_status", []string{"git", "status"}, "git_status", map[string]string{}},
+		{"git_log_bare", []string{"git", "log"}, "git_log", map[string]string{}},
+		{"git_log_n", []string{"git", "log", "-n", "50"}, "git_log", map[string]string{"n": "50"}},
+		{"git_diff_bare", []string{"git", "diff"}, "git_diff", map[string]string{}},
+		{"git_diff_path", []string{"git", "diff", "main.go"}, "git_diff_path", map[string]string{"path": "main.go"}},
+		{"git_branch_list", []string{"git", "branch"}, "git_branch_list", map[string]string{}},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := eng.Resolve(context.Background(), parser.Request{Tokens: tc.tokens})
+			if err != nil {
+				t.Fatalf("resolve: %v", err)
+			}
+			if got.Intent != tc.wantIntent {
+				t.Fatalf("intent: got %q want %q", got.Intent, tc.wantIntent)
+			}
+			if got.Source != SourceRule {
+				t.Fatalf("source: got %v want SourceRule", got.Source)
+			}
+			for k, v := range tc.wantParams {
+				if got.Params[k] != v {
+					t.Fatalf("param %q: got %q want %q", k, got.Params[k], v)
+				}
+			}
+		})
+	}
+}

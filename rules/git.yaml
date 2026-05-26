@@ -1,11 +1,57 @@
-# Placeholder domain rules — expanded in later phases.
-intent: git_status
-examples:
-  - git status
-strategies:
-  linux:
-    primary: "git status"
-  powershell:
-    primary: "git status"
-  cmd:
-    primary: "git status"
+# Git seed intents.
+#
+# Git ships an identical CLI on every supported OS and shell, so each rule
+# below uses a single `default:` strategy block. These rules exist primarily
+# for risk classification (read-only subverbs stay Low; non-readonly demands
+# confirmation) and to seed the AI provider corpus - NOT for cross-platform
+# translation. See doc/architecture.md (Rules first).
+intents:
+  - intent: git_status
+    examples:
+      - git status
+    strategies:
+      default:
+        argv:
+          - git
+          - status
+
+  - intent: git_log
+    examples:
+      - git log
+      - git log -n {{n}}
+    strategies:
+      default:
+        argv:
+          - git
+          - log
+          - --oneline
+          - -n
+          - {{n}}
+
+  - intent: git_diff
+    examples:
+      - git diff
+    strategies:
+      default:
+        argv:
+          - git
+          - diff
+
+  - intent: git_diff_path
+    examples:
+      - git diff {{path}}
+    strategies:
+      default:
+        argv:
+          - git
+          - diff
+          - {{path}}
+
+  - intent: git_branch_list
+    examples:
+      - git branch
+    strategies:
+      default:
+        argv:
+          - git
+          - branch
