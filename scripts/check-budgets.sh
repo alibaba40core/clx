@@ -142,6 +142,12 @@ check_cold_start() {
   pass "cold start (median of ${COLDSTART_RUNS}, ${COLDSTART_WARMUP} warmup): ${median} ms (worst ${worst} ms, limit ${MAX_COLDSTART_MS} ms)"
 }
 
+print_deferred_budgets() {
+  log "steady-state RSS: skipped (Phase 2 -- needs /usr/bin/time -v, Linux only)"
+  log "peak RSS (AI path): skipped (no AI integration yet)"
+  log "goroutines at idle: skipped (Phase 2 -- needs runtime probe)"
+}
+
 setup_clx_home() {
   CLX_HOME="$(mktemp -d)"
   trap 'rm -rf "${CLX_HOME}"' EXIT
@@ -154,6 +160,7 @@ main() {
   setup_clx_home
   check_binary_size
   check_cold_start
+  print_deferred_budgets
   if (( failures > 0 )); then
     exit 1
   fi
