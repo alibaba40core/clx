@@ -6,7 +6,7 @@ CLX is an AI-powered cross-platform command intelligence layer for developers. I
 
 ## Status
 
-> **Phase 1.6** — CLI pipeline wired in `cmd/clx`: parse → intent → translate → risk/policy stubs → confirm → argv-only execution. Flags: `--explain`, `--dry-run`, `-y`. Includes Phase 1.1–1.5.
+> **Phase 1.6** — CLI pipeline wired in `cmd/clx`: parse → intent → translate → risk/policy stubs → confirm → argv-only execution. Default config uses dry-run preview (`safety.dry_run: true`); set `safety.dry_run: false` and pass `-y` to execute. Flags: `--explain`, `--dry-run`, `-y`. Includes Phase 1.1–1.5.
 
 ## What CLX does
 
@@ -61,8 +61,9 @@ make bootstrap-local
 # Translate and run (prompts [Y/n] unless -y)
 clx grep errors logs.txt
 
-# Preview only
+# Preview (default: dry-run from config; --dry-run forces preview)
 clx --explain grep errors logs.txt
+clx pwd
 clx --dry-run pwd
 ```
 

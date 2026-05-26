@@ -169,7 +169,7 @@ func printHelp(w io.Writer) {
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Flags:")
 	fmt.Fprintln(w, "  --explain       Show intent and translation without executing")
-	fmt.Fprintln(w, "  --dry-run       Preview command without executing")
+	fmt.Fprintln(w, "  --dry-run       Preview command without executing (default; flag forces preview even if config disables it)")
 	fmt.Fprintln(w, "  -y, --yes       Skip confirmation and execute")
 	fmt.Fprintln(w, "  --version       Print version and exit")
 	fmt.Fprintln(w, "  --help          Show this help")

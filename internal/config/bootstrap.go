@@ -78,15 +78,7 @@ func Bootstrap(ctx context.Context) (BootstrapResult, error) {
 	}
 	result.WrotePolicy = wrote
 
-	profilePath, err := SystemProfilePath()
-	if err != nil {
-		return BootstrapResult{}, err
-	}
-	wrote, err = writeIfMissing(ctx, profilePath, []byte("{}\n"))
-	if err != nil {
-		return BootstrapResult{}, fmt.Errorf("bootstrap system profile: %w", err)
-	}
-	result.WroteProfile = wrote
+	// system_profile.json is created by clx doctor or LoadOrDetect on first pipeline run.
 
 	return result, nil
 }

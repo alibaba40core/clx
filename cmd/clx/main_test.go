@@ -101,7 +101,7 @@ func TestRunDryRunByDefault(t *testing.T) {
 }
 
 func TestRunExplainGrep(t *testing.T) {
-	t.Setenv("CLX_HOME", t.TempDir())
+	setupCLIHome(t)
 	var stdout, stderr bytes.Buffer
 	code := run([]string{"--explain", "grep", "errors", "logs.txt"}, &stdout, &stderr)
 	if code != 0 {

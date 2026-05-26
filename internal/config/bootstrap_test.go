@@ -15,13 +15,12 @@ func TestBootstrapCreatesTree(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !result.WroteConfig || !result.WrotePolicy || !result.WroteProfile {
+	if !result.WroteConfig || !result.WrotePolicy {
 		t.Fatalf("expected writes on first run: %+v", result)
 	}
 
 	mustExist(t, filepath.Join(home, "config.yaml"))
 	mustExist(t, filepath.Join(home, "policies", "policy.yaml"))
-	mustExist(t, filepath.Join(home, "system_profile.json"))
 	mustExist(t, filepath.Join(home, "cache"))
 	mustExist(t, filepath.Join(home, "logs"))
 }
