@@ -30,6 +30,27 @@ func TestRunDoctor(t *testing.T) {
 	}
 }
 
+func TestRunDoctorRefresh(t *testing.T) {
+	t.Setenv("CLX_HOME", t.TempDir())
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"doctor", "--refresh"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("exit %d, stderr=%s", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "environment profile written") {
+		t.Fatalf("stdout=%q", stdout.String())
+	}
+}
+
+func TestRunDoctorRefreshShortFlag(t *testing.T) {
+	t.Setenv("CLX_HOME", t.TempDir())
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"doctor", "-r"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("exit %d, stderr=%s", code, stderr.String())
+	}
+}
+
 func TestRunHelp(t *testing.T) {
 	var stdout bytes.Buffer
 	code := run([]string{"--help"}, &stdout, &stderrWriter{t: t})

@@ -17,13 +17,13 @@ func testProfile(t *testing.T, osName, shell string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p := environment.SystemProfile{
-		SchemaVersion:  environment.SchemaVersion,
+	store := environment.NewProfileStore()
+	store.UpsertProfile(environment.SystemProfile{
 		OS:             osName,
 		Shell:          shell,
 		AvailableTools: []string{"grep"},
-	}
-	if err := environment.Save(context.Background(), path, p); err != nil {
+	})
+	if err := environment.SaveStore(context.Background(), path, store); err != nil {
 		t.Fatal(err)
 	}
 }

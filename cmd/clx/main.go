@@ -82,22 +82,29 @@ func run(args []string, stdout, stderr io.Writer) int {
 }
 
 func runDoctor(args []string, stdout, stderr io.Writer) int {
+	fs := flag.NewFlagSet("doctor", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	refresh := fs.Bool("refresh", false, "force full re-detect for current shell (after installing tools)")
+	refreshShort := fs.Bool("r", false, "alias for --refresh")
+	configPath := fs.String("config", "", "path to config.yaml (default: ~/.clx/config.yaml)")
+
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	configPath := ""
-	if len(args) > 0 && args[0] == "--config" && len(args) > 1 {
-		configPath = args[1]
-	}
-
-	logger, _, closer, err := initCLX(ctx, configPath, stderr)
+	logger, _, closer, err := initCLX(ctx, *configPath, stderr)
 	if err != nil {
 		return 1
 	}
 	defer closer.Close()
 
 	logger.Info("clx doctor started")
-	if err := environment.RunDoctor(ctx, stdout); err != nil {
+	if err := environment.RunDoctor(ctx, stdout, environment.DoctorOptions{
+		Refresh: *refresh || *refreshShort,
+	}); err != nil {
 		fmt.Fprintf(stderr, "doctor: %v\n", err)
 		return 1
 	}
@@ -148,7 +155,7 @@ func printHelp(w io.Writer) {
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "  clx [flags] <command...>")
-	fmt.Fprintln(w, "  clx doctor")
+	fmt.Fprintln(w, "  clx doctor [flags]")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Examples:")
 	fmt.Fprintln(w, "  clx grep errors logs.txt")
@@ -157,7 +164,8 @@ func printHelp(w io.Writer) {
 	fmt.Fprintln(w, "  clx -y pwd")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Commands:")
-	fmt.Fprintln(w, "  doctor          Detect environment and write ~/.clx/system_profile.json")
+	fmt.Fprintln(w, "  doctor [--refresh]  Detect environment and write ~/.clx/system_profile.json")
+	fmt.Fprintln(w, "                      (run first-time or after installing tools / switching shells)")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Flags:")
 	fmt.Fprintln(w, "  --explain       Show intent and translation without executing")

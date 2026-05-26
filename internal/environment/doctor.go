@@ -4,13 +4,22 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/alibaba40core/clx/internal/config"
 )
 
-// RunDoctor detects the environment, saves the profile, and prints a summary.
-func RunDoctor(ctx context.Context, w io.Writer) error {
+// DoctorOptions configures RunDoctor behavior.
+type DoctorOptions struct {
+	// Refresh forces a full re-detect for the current shell (sibling shell entries are preserved).
+	Refresh bool
+}
+
+// RunDoctor detects the environment, saves the profile store, and prints a summary.
+func RunDoctor(ctx context.Context, w io.Writer, opts DoctorOptions) error {
+	_ = opts.Refresh // explicit refresh always re-detects; flag documents user intent.
+
 	profile, err := Detect(ctx)
 	if err != nil {
 		return err
@@ -20,7 +29,17 @@ func RunDoctor(ctx context.Context, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if err := Save(ctx, path, profile); err != nil {
+
+	store, err := LoadStore(ctx, path)
+	switch {
+	case os.IsNotExist(err):
+		store = NewProfileStore()
+	case err != nil:
+		return err
+	}
+
+	store.UpsertProfile(profile)
+	if err := SaveStore(ctx, path, store); err != nil {
 		return fmt.Errorf("save profile: %w", err)
 	}
 
