@@ -3,6 +3,9 @@ package parser
 import "strings"
 
 // shellVerbs is a bounded set of known shell command first tokens.
+// Inclusion here prevents the natural-language heuristic from misrouting
+// 3+ token commands that legitimately start with these binaries
+// (e.g. `ping -c 4 google.com`).
 var shellVerbs = map[string]struct{}{
 	"git": {}, "docker": {}, "kubectl": {}, "helm": {},
 	"grep": {}, "rg": {}, "find": {}, "locate": {},
@@ -15,6 +18,7 @@ var shellVerbs = map[string]struct{}{
 	"which": {}, "where": {}, "echo": {}, "export": {}, "set": {},
 	"kill": {}, "ps": {}, "top": {}, "df": {}, "du": {},
 	"uname": {}, "whoami": {}, "env": {},
+	"ping": {}, "netstat": {}, "ss": {}, "traceroute": {}, "tracert": {},
 }
 
 func isShellVerb(token string) bool {
