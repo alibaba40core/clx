@@ -13,11 +13,15 @@ import (
 )
 
 const (
-	maxRuleFiles     = 32
-	maxTotalRuleBytes = 256 * 1024
+	maxRuleFiles       = 32
+	maxTotalRuleBytes  = 256 * 1024
+	maxIntentsPerFile  = 64
 )
 
-// LoadRulesFromFS loads one intent per *.yaml file in dir.
+// LoadRulesFromFS loads rules from *.yaml files in dir.
+//
+// Each file may contain either a single `intent:` document or an `intents:`
+// list of multiple rules. Mixing the two shapes in one file is an error.
 func LoadRulesFromFS(fsys fs.FS, dir string) ([]Rule, error) {
 	entries, err := fs.ReadDir(fsys, dir)
 	if err != nil {
@@ -50,27 +54,68 @@ func LoadRulesFromFS(fsys fs.FS, dir string) ([]Rule, error) {
 		if totalBytes > maxTotalRuleBytes {
 			return nil, fmt.Errorf("rules exceed total size budget")
 		}
-		r, err := parseRuleFile(data)
+		parsed, err := parseRulesFile(data)
 		if err != nil {
-			if strings.Contains(err.Error(), "rule missing intent") {
+			if err == errFileNoIntents {
 				continue
 			}
 			return nil, fmt.Errorf("%s: %w", name, err)
 		}
-		rules = append(rules, r)
+		rules = append(rules, parsed...)
 	}
 	return rules, nil
 }
 
-func parseRuleFile(data []byte) (Rule, error) {
+// errFileNoIntents is returned for files that declare neither shape; callers
+// in LoadRulesFromFS treat this as "skip" to preserve the historical behavior
+// where placeholder rule files were silently ignored.
+var errFileNoIntents = fmt.Errorf("rule file declares neither intent nor intents")
+
+// parseRulesFile parses one rule file, accepting either a single `intent:`
+// document or an `intents:` list. Returns the rules in document order.
+func parseRulesFile(data []byte) ([]Rule, error) {
 	root, err := yamlutil.DecodeLimited(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return Rule{}, err
+		return nil, err
 	}
-	if _, ok := root.GetString("intent"); !ok {
-		return Rule{}, fmt.Errorf("rule missing intent")
+	hasList := root.Has("intents")
+	hasSingle := root.Has("intent")
+	if hasList && hasSingle {
+		return nil, fmt.Errorf("rule file declares both intent and intents")
 	}
-	return parseRuleNode(root)
+	switch {
+	case hasList:
+		return parseIntentsListNode(root)
+	case hasSingle:
+		r, err := parseRuleNode(root)
+		if err != nil {
+			return nil, err
+		}
+		return []Rule{r}, nil
+	default:
+		return nil, errFileNoIntents
+	}
+}
+
+// parseIntentsListNode parses an `intents:` list under root and returns its
+// rules. Used by both rule-file loading and skill loading.
+func parseIntentsListNode(root *yamlutil.Node) ([]Rule, error) {
+	intentsNode, ok := root.GetChild("intents")
+	if !ok || intentsNode == nil || len(intentsNode.List) == 0 {
+		return nil, fmt.Errorf("intents list is empty")
+	}
+	if len(intentsNode.List) > maxIntentsPerFile {
+		return nil, fmt.Errorf("too many intents in file: %d", len(intentsNode.List))
+	}
+	rules := make([]Rule, 0, len(intentsNode.List))
+	for i, item := range intentsNode.List {
+		r, err := parseRuleNode(item)
+		if err != nil {
+			return nil, fmt.Errorf("intent[%d]: %w", i, err)
+		}
+		rules = append(rules, r)
+	}
+	return rules, nil
 }
 
 // LoadRulesFromReader loads a single rule YAML document.
@@ -88,17 +133,5 @@ func ParseSkillIntents(data []byte) ([]Rule, error) {
 	if err != nil {
 		return nil, err
 	}
-	intentsNode, ok := root.GetChild("intents")
-	if !ok || len(intentsNode.List) == 0 {
-		return nil, fmt.Errorf("skill file missing intents list")
-	}
-	rules := make([]Rule, 0, len(intentsNode.List))
-	for i, item := range intentsNode.List {
-		r, err := parseRuleNode(item)
-		if err != nil {
-			return nil, fmt.Errorf("intent[%d]: %w", i, err)
-		}
-		rules = append(rules, r)
-	}
-	return rules, nil
+	return parseIntentsListNode(root)
 }

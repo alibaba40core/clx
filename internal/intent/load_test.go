@@ -3,6 +3,7 @@ package intent
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -41,4 +42,85 @@ func TestLoadRulesFromFS(t *testing.T) {
 		t.Fatal("find_file not loaded")
 	}
 	_ = filepath.Join(root, "rules")
+}
+
+func TestParseRulesFileSingleIntentBackCompat(t *testing.T) {
+	t.Parallel()
+	data := []byte(`intent: foo
+examples:
+  - foo bar
+strategies:
+  linux:
+    primary: "foo bar"
+`)
+	rules, err := parseRulesFile(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rules) != 1 || rules[0].Intent != "foo" {
+		t.Fatalf("got %+v", rules)
+	}
+}
+
+func TestParseRulesFileIntentsList(t *testing.T) {
+	t.Parallel()
+	data := []byte(`intents:
+  - intent: alpha
+    examples:
+      - alpha
+    strategies:
+      linux:
+        primary: "alpha"
+  - intent: beta
+    examples:
+      - beta {{name}}
+    strategies:
+      linux:
+        primary: "beta {{name}}"
+`)
+	rules, err := parseRulesFile(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rules) != 2 {
+		t.Fatalf("expected 2 rules, got %d", len(rules))
+	}
+	if rules[0].Intent != "alpha" || rules[1].Intent != "beta" {
+		t.Fatalf("intent order/names wrong: %+v", rules)
+	}
+}
+
+func TestParseRulesFileRejectsBothShapes(t *testing.T) {
+	t.Parallel()
+	data := []byte(`intent: foo
+examples:
+  - foo
+strategies:
+  linux:
+    primary: "foo"
+intents:
+  - intent: bar
+    examples:
+      - bar
+    strategies:
+      linux:
+        primary: "bar"
+`)
+	_, err := parseRulesFile(data)
+	if err == nil {
+		t.Fatal("expected error for mixed shapes")
+	}
+	if !strings.Contains(err.Error(), "both intent and intents") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestParseRulesFileEmptyIsSkippedByLoader(t *testing.T) {
+	t.Parallel()
+	data := []byte(`# just a comment, no intents declared
+`)
+	_, err := parseRulesFile(data)
+	if err != errFileNoIntents {
+		t.Fatalf("expected errFileNoIntents, got %v", err)
+	}
 }
