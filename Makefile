@@ -1,4 +1,4 @@
-.PHONY: build test lint install clean help bootstrap-local
+.PHONY: build test lint install clean help bootstrap-local budgets
 
 BIN_DIR := bin
 CLX_BIN := $(BIN_DIR)/clx
@@ -37,3 +37,6 @@ clean: ## Remove build artifacts
 
 bootstrap-local: build ## Bootstrap ~/.clx using CLX_HOME=./.local-clx
 	CLX_HOME=./.local-clx $(CLX_BIN) --version
+
+budgets: build ## Enforce runtime footprint budgets (size, cold start)
+	bash scripts/check-budgets.sh
