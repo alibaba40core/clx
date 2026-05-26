@@ -1,1 +1,80 @@
-# Reserved for networking intents (Phase 1.5+).
+# Networking seed intents.
+#
+# Unlike git/docker, networking commands have genuine cross-OS divergence:
+#   - ping count flag: -c on Linux/macOS, -n on Windows
+#   - listening sockets: ss (Linux), netstat (Windows + macOS BSD)
+#   - HTTP HEAD: curl works everywhere as an .exe (bypasses the PowerShell
+#     `curl` alias that maps to Invoke-WebRequest), with wget as a Linux
+#     fallback gated by requires_tool.
+#
+# All three commands are real binaries on every supported OS, so executor
+# LookPath resolves them correctly. The intents stay Low risk via the
+# allowlist in internal/risk/assess.go.
+intents:
+  - intent: ping_host
+    examples:
+      - ping {{host}}
+    strategies:
+      linux:
+        argv:
+          - ping
+          - -c
+          - 4
+          - {{host}}
+      windows:
+        argv:
+          - ping
+          - -n
+          - 4
+          - {{host}}
+
+  - intent: curl_url
+    examples:
+      - curl -I {{url}}
+    strategies:
+      default:
+        argv:
+          - curl
+          - -I
+          - {{url}}
+        requires_tool: curl
+        priority: 10
+      linux_wget:
+        argv:
+          - wget
+          - --spider
+          - {{url}}
+        requires_tool: wget
+        priority: 0
+
+  - intent: netstat_listening
+    examples:
+      - ss -tlnp
+      - netstat -tlnp
+      - netstat -an
+    strategies:
+      linux:
+        argv:
+          - ss
+          - -tlnp
+        requires_tool: ss
+        priority: 10
+      linux_netstat:
+        argv:
+          - netstat
+          - -tlnp
+        requires_tool: netstat
+        # Priority above the darwin sibling-fallback (capabilities/keys.go
+        # treats darwin as a fallback for linux). Without this bump, a
+        # Linux box missing ss would render the darwin `netstat -an`
+        # strategy instead of Linux-flavored `netstat -tlnp`.
+        priority: 5
+      darwin:
+        argv:
+          - netstat
+          - -an
+        requires_tool: netstat
+      windows:
+        argv:
+          - netstat
+          - -an

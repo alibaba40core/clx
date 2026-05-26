@@ -94,6 +94,44 @@ func TestResolveNotFound(t *testing.T) {
 	}
 }
 
+func TestResolveNetworkingIntents(t *testing.T) {
+	t.Parallel()
+	eng := testEngine(t)
+	cases := []struct {
+		name       string
+		tokens     []string
+		wantIntent string
+		wantParams map[string]string
+	}{
+		{"ping_host", []string{"ping", "google.com"}, "ping_host", map[string]string{"host": "google.com"}},
+		{"curl_url", []string{"curl", "-I", "https://example.com"}, "curl_url", map[string]string{"url": "https://example.com"}},
+		{"netstat_listening_ss", []string{"ss", "-tlnp"}, "netstat_listening", map[string]string{}},
+		{"netstat_listening_netstat", []string{"netstat", "-tlnp"}, "netstat_listening", map[string]string{}},
+		{"netstat_listening_netstat_an", []string{"netstat", "-an"}, "netstat_listening", map[string]string{}},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := eng.Resolve(context.Background(), parser.Request{Tokens: tc.tokens})
+			if err != nil {
+				t.Fatalf("resolve: %v", err)
+			}
+			if got.Intent != tc.wantIntent {
+				t.Fatalf("intent: got %q want %q", got.Intent, tc.wantIntent)
+			}
+			if got.Source != SourceRule {
+				t.Fatalf("source: got %v want SourceRule", got.Source)
+			}
+			for k, v := range tc.wantParams {
+				if got.Params[k] != v {
+					t.Fatalf("param %q: got %q want %q", k, got.Params[k], v)
+				}
+			}
+		})
+	}
+}
+
 func TestResolveDockerIntents(t *testing.T) {
 	t.Parallel()
 	eng := testEngine(t)

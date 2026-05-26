@@ -202,6 +202,72 @@ func TestTranslateSeedIntents(t *testing.T) {
 			profile:  environment.SystemProfile{OS: "windows", Shell: "powershell"},
 			wantArgv: []string{"docker", "logs", "--tail", "50", "api"},
 		},
+		{
+			name:     "ping_host linux uses -c",
+			resolved: intent.ResolvedIntent{Intent: "ping_host", Params: map[string]string{"host": "google.com"}},
+			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
+			wantArgv: []string{"ping", "-c", "4", "google.com"},
+		},
+		{
+			name:     "ping_host darwin uses -c via linux fallback",
+			resolved: intent.ResolvedIntent{Intent: "ping_host", Params: map[string]string{"host": "google.com"}},
+			profile:  environment.SystemProfile{OS: "darwin", Shell: "zsh"},
+			wantArgv: []string{"ping", "-c", "4", "google.com"},
+		},
+		{
+			name:     "ping_host windows uses -n",
+			resolved: intent.ResolvedIntent{Intent: "ping_host", Params: map[string]string{"host": "google.com"}},
+			profile:  environment.SystemProfile{OS: "windows", Shell: "powershell"},
+			wantArgv: []string{"ping", "-n", "4", "google.com"},
+		},
+		{
+			name:     "ping_host windows cmd uses -n",
+			resolved: intent.ResolvedIntent{Intent: "ping_host", Params: map[string]string{"host": "google.com"}},
+			profile:  environment.SystemProfile{OS: "windows", Shell: "cmd"},
+			wantArgv: []string{"ping", "-n", "4", "google.com"},
+		},
+		{
+			name:     "curl_url default with curl available",
+			resolved: intent.ResolvedIntent{Intent: "curl_url", Params: map[string]string{"url": "https://example.com"}},
+			profile:  environment.SystemProfile{OS: "linux", Shell: "bash", AvailableTools: []string{"curl"}},
+			wantArgv: []string{"curl", "-I", "https://example.com"},
+		},
+		{
+			name:     "curl_url wget fallback when curl missing",
+			resolved: intent.ResolvedIntent{Intent: "curl_url", Params: map[string]string{"url": "https://example.com"}},
+			profile:  environment.SystemProfile{OS: "linux", Shell: "bash", AvailableTools: []string{"wget"}},
+			wantArgv: []string{"wget", "--spider", "https://example.com"},
+		},
+		{
+			name:     "curl_url windows powershell bypasses alias",
+			resolved: intent.ResolvedIntent{Intent: "curl_url", Params: map[string]string{"url": "https://example.com"}},
+			profile:  environment.SystemProfile{OS: "windows", Shell: "powershell", AvailableTools: []string{"curl"}},
+			wantArgv: []string{"curl", "-I", "https://example.com"},
+		},
+		{
+			name:     "netstat_listening linux prefers ss",
+			resolved: intent.ResolvedIntent{Intent: "netstat_listening", Params: map[string]string{}},
+			profile:  environment.SystemProfile{OS: "linux", Shell: "bash", AvailableTools: []string{"ss", "netstat"}},
+			wantArgv: []string{"ss", "-tlnp"},
+		},
+		{
+			name:     "netstat_listening linux falls back to netstat",
+			resolved: intent.ResolvedIntent{Intent: "netstat_listening", Params: map[string]string{}},
+			profile:  environment.SystemProfile{OS: "linux", Shell: "bash", AvailableTools: []string{"netstat"}},
+			wantArgv: []string{"netstat", "-tlnp"},
+		},
+		{
+			name:     "netstat_listening darwin uses BSD netstat",
+			resolved: intent.ResolvedIntent{Intent: "netstat_listening", Params: map[string]string{}},
+			profile:  environment.SystemProfile{OS: "darwin", Shell: "zsh", AvailableTools: []string{"netstat"}},
+			wantArgv: []string{"netstat", "-an"},
+		},
+		{
+			name:     "netstat_listening windows",
+			resolved: intent.ResolvedIntent{Intent: "netstat_listening", Params: map[string]string{}},
+			profile:  environment.SystemProfile{OS: "windows", Shell: "powershell"},
+			wantArgv: []string{"netstat", "-an"},
+		},
 	}
 
 	for _, tc := range cases {
