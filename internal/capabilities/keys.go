@@ -6,28 +6,37 @@ import (
 	"github.com/alibaba40core/clx/internal/environment"
 )
 
-// candidateKeys returns strategy map keys eligible for the profile OS/shell.
+// defaultKey is the strategy key matched by every profile as last-resort
+// fallback. Use it in rules whose argv is identical across OS/shell (e.g.
+// portable binaries like git, docker).
+const defaultKey = "default"
+
+// candidateKeys returns strategy map keys eligible for the profile OS/shell,
+// in descending preference. The defaultKey is always last so OS-specific
+// strategies win when present.
 func candidateKeys(profile environment.SystemProfile) []string {
 	os := strings.ToLower(profile.OS)
 	shell := strings.ToLower(profile.Shell)
 
+	var base []string
 	switch os {
 	case "windows":
 		switch shell {
 		case "cmd":
-			return []string{"cmd", "windows", "powershell"}
+			base = []string{"cmd", "windows", "powershell"}
 		case "powershell", "":
-			return []string{"powershell", "windows", "cmd"}
+			base = []string{"powershell", "windows", "cmd"}
 		default:
-			return []string{"powershell", "cmd", "windows"}
+			base = []string{"powershell", "cmd", "windows"}
 		}
 	case "darwin":
-		return []string{"darwin", "linux"}
+		base = []string{"darwin", "linux"}
 	case "linux":
-		return []string{"linux", "darwin"}
+		base = []string{"linux", "darwin"}
 	default:
-		return []string{os, "linux"}
+		base = []string{os, "linux"}
 	}
+	return append(base, defaultKey)
 }
 
 // strategyMatchesKey reports whether a strategy entry key applies to this profile.

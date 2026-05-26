@@ -88,3 +88,50 @@ func TestStrategyMatchesKeyLinuxPrefix(t *testing.T) {
 		t.Fatal("powershell should not match linux profile")
 	}
 }
+
+func portableRule() intent.Rule {
+	return intent.Rule{
+		Intent: "git_status_portable",
+		Strategies: map[string]intent.Strategy{
+			"default": {Argv: []string{"git", "status"}},
+		},
+	}
+}
+
+func TestSelectDefaultStrategyMatchesEveryProfile(t *testing.T) {
+	t.Parallel()
+	cases := []environment.SystemProfile{
+		{OS: "linux", Shell: "bash"},
+		{OS: "darwin", Shell: "zsh"},
+		{OS: "windows", Shell: "powershell"},
+		{OS: "windows", Shell: "cmd"},
+	}
+	for _, p := range cases {
+		got, err := Select(context.Background(), portableRule(), p)
+		if err != nil {
+			t.Fatalf("profile %+v: %v", p, err)
+		}
+		if got.Key != "default" {
+			t.Fatalf("profile %+v: key %q, want default", p, got.Key)
+		}
+	}
+}
+
+func TestSelectOSSpecificBeatsDefault(t *testing.T) {
+	t.Parallel()
+	rule := intent.Rule{
+		Intent: "with_override",
+		Strategies: map[string]intent.Strategy{
+			"default":    {Argv: []string{"portable", "argv"}},
+			"powershell": {Argv: []string{"powershell", "specific"}},
+		},
+	}
+	profile := environment.SystemProfile{OS: "windows", Shell: "powershell"}
+	got, err := Select(context.Background(), rule, profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Key != "powershell" {
+		t.Fatalf("os-specific strategy should win: got %q", got.Key)
+	}
+}
