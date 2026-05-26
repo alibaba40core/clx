@@ -55,5 +55,10 @@ func effectiveParams(intentName string, params map[string]string) map[string]str
 			out["n"] = "20"
 		}
 	}
+	if _, ok := out["lines"]; !ok {
+		if intentName == "docker_logs" {
+			out["lines"] = "200"
+		}
+	}
 	return out
 }

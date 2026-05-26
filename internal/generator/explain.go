@@ -11,6 +11,9 @@ var intentExplanations = map[string]string{
 	"git_diff":            "Show unstaged changes in working tree",
 	"git_diff_path":       "Show unstaged changes for a path",
 	"git_branch_list":     "List local git branches",
+	"docker_ps":           "List running Docker containers",
+	"docker_images":       "List local Docker images",
+	"docker_logs":         "Show recent logs for a Docker container",
 }
 
 func explanationFor(intent string) string {
