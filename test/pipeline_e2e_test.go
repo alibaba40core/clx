@@ -178,11 +178,14 @@ func TestE2EExplainSeedIntents(t *testing.T) {
 		{"git status", "git_status"},
 		{"git log -n 5", "git_log"},
 		{"git diff", "git_diff"},
+		{"git diff main.go", "git_diff_path"},
 		{"git branch", "git_branch_list"},
 		{"docker ps", "docker_ps"},
 		{"docker images", "docker_images"},
+		{"docker logs web", "docker_logs"},
 		{"ping example.com", "ping_host"},
 		{"curl -I https://example.com", "curl_url"},
+		{"netstat -an", "netstat_listening"},
 	}
 
 	for _, tc := range cases {
