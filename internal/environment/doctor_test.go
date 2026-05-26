@@ -15,7 +15,7 @@ func TestRunDoctorWritesProfile(t *testing.T) {
 	t.Setenv("CLX_HOME", home)
 
 	var out bytes.Buffer
-	if err := RunDoctor(context.Background(), &out); err != nil {
+	if err := RunDoctor(context.Background(), &out, DoctorOptions{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -27,12 +27,17 @@ func TestRunDoctorWritesProfile(t *testing.T) {
 		t.Fatalf("profile missing: %v", err)
 	}
 
-	profile, err := Load(context.Background(), path)
+	store, err := LoadStore(context.Background(), path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if profile.SchemaVersion != SchemaVersion {
-		t.Fatalf("schema %d", profile.SchemaVersion)
+	if store.SchemaVersion != SchemaVersion {
+		t.Fatalf("schema %d", store.SchemaVersion)
+	}
+	key := ProfileKey(detectOS(), detectShell())
+	profile, ok := store.Profiles[key]
+	if !ok {
+		t.Fatalf("missing profile for key %q", key)
 	}
 	if profile.OS == "" || profile.Shell == "" {
 		t.Fatalf("incomplete profile: %+v", profile)
@@ -42,6 +47,57 @@ func TestRunDoctorWritesProfile(t *testing.T) {
 	}
 	if !bytes.Contains(out.Bytes(), []byte("environment profile written")) {
 		t.Fatalf("output: %s", out.String())
+	}
+}
+
+func TestRunDoctorRefreshPreservesSiblingShells(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("CLX_HOME", home)
+	ctx := context.Background()
+
+	path, err := config.SystemProfilePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	store := NewProfileStore()
+	store.UpsertProfile(SystemProfile{
+		OS:             detectOS(),
+		Shell:          "cmd",
+		OSVersion:      "sibling-cmd",
+		AvailableTools: []string{"legacy"},
+	})
+	if err := SaveStore(ctx, path, store); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := RunDoctor(ctx, ioDiscard{}, DoctorOptions{Refresh: true}); err != nil {
+		t.Fatal(err)
+	}
+
+	store2, err := LoadStore(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sibling, ok := store2.Profiles[ProfileKey(detectOS(), "cmd")]
+	if !ok {
+		t.Fatal("sibling cmd profile removed")
+	}
+	if sibling.OSVersion != "sibling-cmd" {
+		t.Fatalf("sibling mutated: %+v", sibling)
+	}
+
+	currentKey := ProfileKey(detectOS(), detectShell())
+	current, ok := store2.Profiles[currentKey]
+	if !ok {
+		t.Fatal("current shell profile missing")
+	}
+	if current.OSVersion == "sibling-cmd" {
+		t.Fatal("current shell should have been re-detected")
+	}
+	if current.Shell != detectShell() {
+		t.Fatalf("shell %q", current.Shell)
 	}
 }
 
@@ -57,7 +113,7 @@ func TestDetectHonorsContext(t *testing.T) {
 func TestDoctorProfilePathUnderCLXHome(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("CLX_HOME", home)
-	_ = RunDoctor(context.Background(), ioDiscard{})
+	_ = RunDoctor(context.Background(), ioDiscard{}, DoctorOptions{})
 	path, err := config.SystemProfilePath()
 	if err != nil {
 		t.Fatal(err)

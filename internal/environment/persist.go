@@ -11,37 +11,95 @@ import (
 
 const maxProfileBytes = 64 * 1024
 
-// Load reads a system profile from path.
-func Load(ctx context.Context, path string) (SystemProfile, error) {
+// LoadStore reads a profile store from path, migrating v1 flat profiles when needed.
+func LoadStore(ctx context.Context, path string) (ProfileStore, error) {
+	store, _, err := loadStoreFromPath(ctx, path)
+	return store, err
+}
+
+func loadStoreFromPath(ctx context.Context, path string) (ProfileStore, bool, error) {
 	if err := ctx.Err(); err != nil {
-		return SystemProfile{}, err
+		return ProfileStore{}, false, err
 	}
 
 	f, err := os.Open(path)
 	if err != nil {
-		return SystemProfile{}, err
+		return ProfileStore{}, false, err
 	}
 	defer f.Close()
 
-	dec := json.NewDecoder(io.LimitReader(f, maxProfileBytes))
-	var p SystemProfile
-	if err := dec.Decode(&p); err != nil {
-		return SystemProfile{}, fmt.Errorf("decode profile: %w", err)
+	raw, err := io.ReadAll(io.LimitReader(f, maxProfileBytes))
+	if err != nil {
+		return ProfileStore{}, false, err
 	}
-	return p, nil
+
+	store, migrated, err := migrateV1IfNeeded(raw)
+	if err != nil {
+		return ProfileStore{}, false, fmt.Errorf("decode profile store: %w", err)
+	}
+	if migrated {
+		if err := saveStore(ctx, path, store); err != nil {
+			return store, true, fmt.Errorf("persist migrated profile: %w", err)
+		}
+	}
+	return store, migrated, nil
 }
 
-// Save writes a system profile to path atomically.
-func Save(ctx context.Context, path string, p SystemProfile) error {
+// migrateV1IfNeeded decodes raw JSON as a v2 store or wraps a v1 flat profile.
+func migrateV1IfNeeded(raw []byte) (ProfileStore, bool, error) {
+	var probe struct {
+		Profiles json.RawMessage `json:"profiles"`
+		OS       string          `json:"os"`
+	}
+	if err := json.Unmarshal(raw, &probe); err != nil {
+		return ProfileStore{}, false, err
+	}
+
+	if len(probe.Profiles) > 0 && string(probe.Profiles) != "null" {
+		var store ProfileStore
+		if err := json.Unmarshal(raw, &store); err != nil {
+			return ProfileStore{}, false, err
+		}
+		if store.Profiles == nil {
+			store.Profiles = make(map[string]SystemProfile)
+		}
+		if store.SchemaVersion == 0 {
+			store.SchemaVersion = SchemaVersion
+		}
+		return store, false, nil
+	}
+
+	var p SystemProfile
+	if err := json.Unmarshal(raw, &p); err != nil {
+		return ProfileStore{}, false, err
+	}
+	if p.OS == "" {
+		return ProfileStore{}, false, fmt.Errorf("invalid profile: missing os")
+	}
+
+	store := NewProfileStore()
+	store.UpsertProfile(p)
+	return store, true, nil
+}
+
+// SaveStore writes a profile store to path atomically.
+func SaveStore(ctx context.Context, path string, store ProfileStore) error {
+	return saveStore(ctx, path, store)
+}
+
+func saveStore(ctx context.Context, path string, store ProfileStore) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
-	p.SchemaVersion = SchemaVersion
+	store.SchemaVersion = SchemaVersion
+	if store.Profiles == nil {
+		store.Profiles = make(map[string]SystemProfile)
+	}
 
-	data, err := json.MarshalIndent(p, "", "  ")
+	data, err := json.MarshalIndent(store, "", "  ")
 	if err != nil {
-		return fmt.Errorf("encode profile: %w", err)
+		return fmt.Errorf("encode profile store: %w", err)
 	}
 	data = append(data, '\n')
 
