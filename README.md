@@ -6,7 +6,7 @@ CLX is an AI-powered cross-platform command intelligence layer for developers. I
 
 ## Status
 
-> **Phase 1.6** — CLI pipeline wired in `cmd/clx`: parse → intent → translate → risk/policy stubs → confirm → argv-only execution. Default config uses dry-run preview (`safety.dry_run: true`); set `safety.dry_run: false` and pass `-y` to execute. Flags: `--explain`, `--dry-run`, `-y`. Includes Phase 1.1–1.5.
+> **Phase 1.6 (hardening complete)** — CLI pipeline wired in `cmd/clx`: parse → intent → translate → risk → policy → confirm → argv-only execution. Risk classifier (allowlists + subverb gating + destructive-pattern detection) and policy block-list are live; both gate every command before exec. Default config uses dry-run preview (`safety.dry_run: true`); set `safety.dry_run: false` and pass `-y` to execute. Cross-platform e2e matrix (Ubuntu/macOS/Windows) and runtime budgets enforced in CI via `scripts/check-budgets.sh`. Seed rules for git, docker, and networking domains. Flags: `--explain`, `--dry-run`, `-y`. Includes Phase 1.1–1.6.
 
 ## What CLX does
 
