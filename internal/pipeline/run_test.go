@@ -3,6 +3,7 @@ package pipeline
 import (
 	"bytes"
 	"context"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -29,6 +30,9 @@ func testProfile(t *testing.T, osName, shell string) {
 }
 
 func TestRunExplainGrepLinux(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("linux profile test")
+	}
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
 	policy.ResetCache()

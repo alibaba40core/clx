@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -133,8 +132,11 @@ func TestE2EDryRunFromDefaultConfig(t *testing.T) {
 func TestE2EProfileWritten(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("CLX_HOME", dir)
-	path := filepath.Join(dir, "system_profile.json")
-	if err := os.WriteFile(path, []byte("{}"), 0o600); err != nil {
+	if _, err := config.Bootstrap(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	path, err := config.SystemProfilePath()
+	if err != nil {
 		t.Fatal(err)
 	}
 	p, err := environment.LoadOrDetect(context.Background())
@@ -148,11 +150,14 @@ func TestE2EProfileWritten(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var decoded environment.SystemProfile
-	if err := json.Unmarshal(data, &decoded); err != nil {
+	var store environment.ProfileStore
+	if err := json.Unmarshal(data, &store); err != nil {
 		t.Fatal(err)
 	}
-	if decoded.OS == "" {
-		t.Fatal("profile file still empty")
+	for _, prof := range store.Profiles {
+		if prof.OS != "" {
+			return
+		}
 	}
+	t.Fatal("profile store has no profiles with OS")
 }
