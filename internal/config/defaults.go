@@ -26,7 +26,7 @@ func Default() Config {
 			ShellIntegration: false,
 		},
 		Safety: SafetyConfig{
-			Level:               "medium",
+			Mode:                "medium",
 			RequireConfirmation: true,
 			DryRun:              true,
 		},

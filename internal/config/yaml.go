@@ -39,7 +39,7 @@ func Encode(cfg Config, w io.Writer) error {
 		"  shell_integration: " + strconv.FormatBool(cfg.Execution.ShellIntegration),
 		"",
 		"safety:",
-		"  level: " + cfg.Safety.Level,
+		"  mode: " + cfg.Safety.Mode,
 		"  require_confirmation: " + strconv.FormatBool(cfg.Safety.RequireConfirmation),
 		"  dry_run: " + strconv.FormatBool(cfg.Safety.DryRun),
 		"",

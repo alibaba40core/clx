@@ -44,9 +44,21 @@ type ExecutionConfig struct {
 	ShellIntegration  bool `yaml:"shell_integration"`
 }
 
-// SafetyConfig controls safety defaults (enforced in Phase 3).
+// SafetyConfig controls safety defaults.
+//
+// Mode is the user-facing safety preset. Currently informational; Phase 3
+// will wire it to behavior bundles:
+//
+//   - low: execute directly, no dry-run, no confirm (risk-engine High-risk
+//     override still applies for destructive commands)
+//   - medium: dry-run preview, then y/n confirm before exec (default)
+//   - high: dry-run preview plus verbose display; refuses -y shortcut;
+//     always requires explicit confirm
+//
+// DryRun and RequireConfirmation remain explicit overrides; when set, they
+// win over the Mode-implied default.
 type SafetyConfig struct {
-	Level               string `yaml:"level"`
+	Mode                string `yaml:"mode"`
 	RequireConfirmation bool   `yaml:"require_confirmation"`
 	DryRun              bool   `yaml:"dry_run"`
 }

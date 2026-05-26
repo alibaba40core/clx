@@ -49,8 +49,11 @@ func applyNode(cfg *Config, root *yamlutil.Node) {
 	if v, ok := root.GetString("execution", "shell_integration"); ok {
 		cfg.Execution.ShellIntegration = parseBool(v)
 	}
-	if v, ok := root.GetString("safety", "level"); ok {
-		cfg.Safety.Level = v
+	if v, ok := root.GetString("safety", "mode"); ok {
+		cfg.Safety.Mode = v
+	} else if v, ok := root.GetString("safety", "level"); ok {
+		// TODO(phase3): emit deprecation warning once Mode drives behavior.
+		cfg.Safety.Mode = normalizeLegacyMode(v)
 	}
 	if v, ok := root.GetString("safety", "require_confirmation"); ok {
 		cfg.Safety.RequireConfirmation = parseBool(v)

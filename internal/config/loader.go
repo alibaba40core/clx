@@ -12,8 +12,8 @@ var (
 	validProviders = map[string]struct{}{
 		"ollama": {}, "openai": {}, "azure": {},
 	}
-	validSafetyLevels = map[string]struct{}{
-		"safe": {}, "medium": {}, "full": {},
+	validSafetyModes = map[string]struct{}{
+		"low": {}, "medium": {}, "high": {},
 	}
 	validLogLevels = map[string]struct{}{
 		"debug": {}, "info": {}, "warn": {}, "error": {},
@@ -58,8 +58,8 @@ func Validate(c Config) error {
 	if _, ok := validProviders[c.Provider]; !ok {
 		return fmt.Errorf("invalid provider %q: must be ollama, openai, or azure", c.Provider)
 	}
-	if _, ok := validSafetyLevels[c.Safety.Level]; !ok {
-		return fmt.Errorf("invalid safety.level %q: must be safe, medium, or full", c.Safety.Level)
+	if _, ok := validSafetyModes[c.Safety.Mode]; !ok {
+		return fmt.Errorf("invalid safety.mode %q: must be low, medium, or high", c.Safety.Mode)
 	}
 	if c.Execution.Timeout <= 0 {
 		return fmt.Errorf("execution.timeout must be > 0")

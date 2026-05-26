@@ -22,7 +22,7 @@ execution:
   shell_integration: false
 
 safety:
-  level: medium
+  mode: medium
   require_confirmation: true
   dry_run: true
 
