@@ -14,6 +14,9 @@ var intentExplanations = map[string]string{
 	"docker_ps":           "List running Docker containers",
 	"docker_images":       "List local Docker images",
 	"docker_logs":         "Show recent logs for a Docker container",
+	"ping_host":           "Send a small ICMP ping batch to a host",
+	"curl_url":            "Fetch HTTP response headers for a URL",
+	"netstat_listening":   "List listening TCP sockets on this machine",
 }
 
 func explanationFor(intent string) string {
