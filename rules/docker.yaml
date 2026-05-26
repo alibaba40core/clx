@@ -1,1 +1,41 @@
-# Reserved for docker intents (Phase 1.5+).
+# Docker seed intents.
+#
+# Docker ships an identical CLI across OS/shell, so each rule uses a single
+# `default:` strategy block. These rules exist primarily for risk gating
+# (read-only subverbs stay Low; `docker run/rm/exec/build` demand
+# confirmation) and to seed the AI provider corpus - NOT for cross-platform
+# translation. See doc/architecture.md (Rules first).
+#
+# docker_logs defaults to --tail 200 to respect the runtime footprint rule:
+# unbounded logs would dump arbitrarily large output through the executor.
+intents:
+  - intent: docker_ps
+    examples:
+      - docker ps
+    strategies:
+      default:
+        argv:
+          - docker
+          - ps
+
+  - intent: docker_images
+    examples:
+      - docker images
+    strategies:
+      default:
+        argv:
+          - docker
+          - images
+
+  - intent: docker_logs
+    examples:
+      - docker logs {{container}}
+      - docker logs --tail {{lines}} {{container}}
+    strategies:
+      default:
+        argv:
+          - docker
+          - logs
+          - --tail
+          - {{lines}}
+          - {{container}}

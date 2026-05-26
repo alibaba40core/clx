@@ -94,6 +94,43 @@ func TestResolveNotFound(t *testing.T) {
 	}
 }
 
+func TestResolveDockerIntents(t *testing.T) {
+	t.Parallel()
+	eng := testEngine(t)
+	cases := []struct {
+		name       string
+		tokens     []string
+		wantIntent string
+		wantParams map[string]string
+	}{
+		{"docker_ps", []string{"docker", "ps"}, "docker_ps", map[string]string{}},
+		{"docker_images", []string{"docker", "images"}, "docker_images", map[string]string{}},
+		{"docker_logs_bare", []string{"docker", "logs", "web"}, "docker_logs", map[string]string{"container": "web"}},
+		{"docker_logs_tail", []string{"docker", "logs", "--tail", "100", "web"}, "docker_logs", map[string]string{"container": "web", "lines": "100"}},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := eng.Resolve(context.Background(), parser.Request{Tokens: tc.tokens})
+			if err != nil {
+				t.Fatalf("resolve: %v", err)
+			}
+			if got.Intent != tc.wantIntent {
+				t.Fatalf("intent: got %q want %q", got.Intent, tc.wantIntent)
+			}
+			if got.Source != SourceRule {
+				t.Fatalf("source: got %v want SourceRule", got.Source)
+			}
+			for k, v := range tc.wantParams {
+				if got.Params[k] != v {
+					t.Fatalf("param %q: got %q want %q", k, got.Params[k], v)
+				}
+			}
+		})
+	}
+}
+
 func TestResolveGitIntents(t *testing.T) {
 	t.Parallel()
 	eng := testEngine(t)

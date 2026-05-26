@@ -172,6 +172,36 @@ func TestTranslateSeedIntents(t *testing.T) {
 			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
 			wantArgv: []string{"git", "branch"},
 		},
+		{
+			name:     "docker_ps default strategy linux",
+			resolved: intent.ResolvedIntent{Intent: "docker_ps", Params: map[string]string{}},
+			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
+			wantArgv: []string{"docker", "ps"},
+		},
+		{
+			name:     "docker_ps default strategy windows powershell",
+			resolved: intent.ResolvedIntent{Intent: "docker_ps", Params: map[string]string{}},
+			profile:  environment.SystemProfile{OS: "windows", Shell: "powershell"},
+			wantArgv: []string{"docker", "ps"},
+		},
+		{
+			name:     "docker_images",
+			resolved: intent.ResolvedIntent{Intent: "docker_images", Params: map[string]string{}},
+			profile:  environment.SystemProfile{OS: "darwin", Shell: "zsh"},
+			wantArgv: []string{"docker", "images"},
+		},
+		{
+			name:     "docker_logs bare defaults to lines=200",
+			resolved: intent.ResolvedIntent{Intent: "docker_logs", Params: map[string]string{"container": "web"}},
+			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
+			wantArgv: []string{"docker", "logs", "--tail", "200", "web"},
+		},
+		{
+			name:     "docker_logs explicit lines overrides default",
+			resolved: intent.ResolvedIntent{Intent: "docker_logs", Params: map[string]string{"container": "api", "lines": "50"}},
+			profile:  environment.SystemProfile{OS: "windows", Shell: "powershell"},
+			wantArgv: []string{"docker", "logs", "--tail", "50", "api"},
+		},
 	}
 
 	for _, tc := range cases {
