@@ -75,6 +75,68 @@ func TestRunDryRun(t *testing.T) {
 	}
 }
 
+func TestRunDryRunFromConfig(t *testing.T) {
+	t.Setenv("CLX_HOME", t.TempDir())
+	_, _ = config.Bootstrap(context.Background())
+	policy.ResetCache()
+	testProfile(t, "linux", "bash")
+
+	var stdout bytes.Buffer
+	code, err := Run(context.Background(), config.Default(), "pwd", Options{
+		Stdout: &stdout,
+		Stderr: &bytes.Buffer{},
+	})
+	if err != nil || code != 0 {
+		t.Fatalf("code=%d err=%v stdout=%s", code, err, stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "dry-run:") {
+		t.Fatalf("stdout=%q", stdout.String())
+	}
+}
+
+func TestRunYesDoesNotBypassConfigDryRun(t *testing.T) {
+	t.Setenv("CLX_HOME", t.TempDir())
+	_, _ = config.Bootstrap(context.Background())
+	policy.ResetCache()
+	testProfile(t, "linux", "bash")
+
+	var stdout bytes.Buffer
+	code, err := Run(context.Background(), config.Default(), "pwd", Options{
+		Yes:    true,
+		Stdout: &stdout,
+		Stderr: &bytes.Buffer{},
+	})
+	if err != nil || code != 0 {
+		t.Fatalf("code=%d err=%v stdout=%s", code, err, stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "dry-run:") {
+		t.Fatalf("expected dry-run with -y on default config, stdout=%q", stdout.String())
+	}
+}
+
+func TestRunDryRunFlagWhenConfigDisabled(t *testing.T) {
+	t.Setenv("CLX_HOME", t.TempDir())
+	_, _ = config.Bootstrap(context.Background())
+	policy.ResetCache()
+	testProfile(t, "linux", "bash")
+
+	cfg := config.Default()
+	cfg.Safety.DryRun = false
+
+	var stdout bytes.Buffer
+	code, err := Run(context.Background(), cfg, "pwd", Options{
+		DryRun: true,
+		Stdout: &stdout,
+		Stderr: &bytes.Buffer{},
+	})
+	if err != nil || code != 0 {
+		t.Fatalf("code=%d err=%v stdout=%s", code, err, stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "dry-run:") {
+		t.Fatalf("stdout=%q", stdout.String())
+	}
+}
+
 func TestRunNotFoundNL(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
