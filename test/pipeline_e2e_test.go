@@ -98,7 +98,9 @@ func TestE2EExecPwdWithYes(t *testing.T) {
 
 	var stdout, stderr bytes.Buffer
 	input := "pwd"
-	code, err := pipeline.Run(context.Background(), config.Default(), input, pipeline.Options{
+	cfg := config.Default()
+	cfg.Safety.DryRun = false // proves real exec path; opt out of new default
+	code, err := pipeline.Run(context.Background(), cfg, input, pipeline.Options{
 		Yes:    true,
 		Stdout: &stdout,
 		Stderr: &stderr,
@@ -108,6 +110,23 @@ func TestE2EExecPwdWithYes(t *testing.T) {
 	}
 	if code != 0 {
 		t.Fatalf("code=%d stderr=%s", code, stderr.String())
+	}
+}
+
+func TestE2EDryRunFromDefaultConfig(t *testing.T) {
+	setupCLXHome(t, "linux", "bash", nil)
+
+	var stdout, stderr bytes.Buffer
+	code, err := pipeline.Run(context.Background(), config.Default(), "pwd", pipeline.Options{
+		Yes:    true,
+		Stdout: &stdout,
+		Stderr: &stderr,
+	})
+	if err != nil || code != 0 {
+		t.Fatalf("code=%d err=%v stderr=%s", code, err, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "dry-run:") {
+		t.Fatalf("expected dry-run on default config, stdout=%q", stdout.String())
 	}
 }
 
