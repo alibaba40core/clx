@@ -28,7 +28,7 @@ Thumbs.db
 desktop.ini
 
 # Local runtime scratch (mirrors ~/.clx/ for dev testing)
-.local-clx/
+.local-clx*/
 *.local.yaml
 
 # Build artifacts
