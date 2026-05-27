@@ -41,6 +41,10 @@ func detectShellWindows() string {
 			return shell
 		}
 	}
+	// Git Bash / MSYS / Cygwin (mintty): use POSIX shell before PowerShell session env.
+	if shell := posixShellOnWindowsFromEnv(); shell != "" {
+		return shell
+	}
 	// Session markers set by PowerShell/pwsh (not user-level PSModulePath alone).
 	if os.Getenv("POWERSHELL_DISTRO_NAME") != "" {
 		return "pwsh"
@@ -58,14 +62,26 @@ func detectShellWindows() string {
 			return "cmd"
 		}
 	}
-	// Git Bash / MSYS often set MSYSTEM.
-	if msys := os.Getenv("MSYSTEM"); msys != "" {
-		return "bash"
-	}
 	if shell := os.Getenv("SHELL"); shell != "" {
 		return detectShellUnix()
 	}
 	return "cmd"
+}
+
+// posixShellOnWindowsFromEnv detects Git Bash, MSYS2, or Cygwin sessions on Windows.
+func posixShellOnWindowsFromEnv() string {
+	if os.Getenv("MSYSTEM") != "" {
+		return "bash"
+	}
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		return ""
+	}
+	lower := strings.ToLower(shell)
+	if strings.Contains(lower, "bash") || strings.Contains(lower, "/git-") {
+		return detectShellUnix()
+	}
+	return ""
 }
 
 func detectShellVersion() string {

@@ -275,6 +275,39 @@ func TestE2EExplainHostStrategyWindowsPowerShell(t *testing.T) {
 	}
 }
 
+func TestE2EExplainHostStrategyWindowsBash(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("windows host-strategy test")
+	}
+	t.Setenv("MSYSTEM", "MINGW64")
+	t.Setenv("SHELL", `/usr/bin/bash`)
+	t.Setenv("POWERSHELL_VERSION", "")
+	t.Setenv("POWERSHELL_DISTRO_NAME", "")
+	setupCLXHomeForHost(t, []string{"grep"})
+
+	cases := []struct {
+		input string
+		want  string
+	}{
+		{"pwd", "pwd"},
+		{"grep errors logs.txt", "grep"},
+		{"ls .", "ls"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.input, func(t *testing.T) {
+			r := runPipeline(t, config.Default(), tc.input, pipeline.Options{Explain: true})
+			if r.code != 0 {
+				t.Fatalf("code=%d stderr=%s", r.code, r.stderr)
+			}
+			line := commandLine(r.stdout)
+			if !strings.Contains(line, tc.want) {
+				t.Fatalf("expected %q in command line %q (stdout=%q)", tc.want, line, r.stdout)
+			}
+		})
+	}
+}
+
 func TestE2EExplainHostStrategyWindowsCmd(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("windows host-strategy test")

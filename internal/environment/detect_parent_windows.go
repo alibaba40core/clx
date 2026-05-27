@@ -69,6 +69,8 @@ func shellFromParentExecutable(base string) string {
 		return "powershell"
 	case base == "cmd.exe":
 		return "cmd"
+	case strings.Contains(base, "mintty"), base == "winpty-agent.exe":
+		return "bash"
 	case strings.Contains(base, "bash"), strings.Contains(base, "sh"):
 		return detectShellUnix()
 	default:

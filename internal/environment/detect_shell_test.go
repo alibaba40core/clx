@@ -38,6 +38,17 @@ func TestDetectShellWindowsCmdIgnoresPSModulePath(t *testing.T) {
 	}
 }
 
+func TestDetectShellWindowsGitBash(t *testing.T) {
+	t.Setenv("MSYSTEM", "MINGW64")
+	t.Setenv("SHELL", `/usr/bin/bash`)
+	t.Setenv("POWERSHELL_VERSION", "7.4.0")
+	t.Setenv("POWERSHELL_DISTRO_NAME", "")
+	t.Setenv("ComSpec", `C:\Windows\System32\cmd.exe`)
+	if got := detectShellWindows(); got != "bash" {
+		t.Fatalf("got %q want bash (MSYSTEM must beat POWERSHELL_VERSION)", got)
+	}
+}
+
 func TestDetectShellVersionFromEnv(t *testing.T) {
 	t.Setenv("POWERSHELL_VERSION", "7.4.0")
 	if got := detectShellVersion(); got != "7.4.0" {

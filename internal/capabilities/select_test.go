@@ -56,6 +56,40 @@ func TestSelectPowerShell(t *testing.T) {
 	}
 }
 
+func TestSelectWindowsBashUsesGrep(t *testing.T) {
+	t.Parallel()
+	profile := environment.SystemProfile{OS: "windows", Shell: "bash", AvailableTools: []string{"grep"}}
+	got, err := Select(context.Background(), searchRule(), profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Key != "linux" {
+		t.Fatalf("key %q want linux", got.Key)
+	}
+}
+
+func pingRule() intent.Rule {
+	return intent.Rule{
+		Intent: "ping_host",
+		Strategies: map[string]intent.Strategy{
+			"linux":   {Argv: []string{"ping", "-c", "4", "{{host}}"}},
+			"windows": {Argv: []string{"ping", "-n", "4", "{{host}}"}},
+		},
+	}
+}
+
+func TestSelectWindowsBashUsesNativePing(t *testing.T) {
+	t.Parallel()
+	profile := environment.SystemProfile{OS: "windows", Shell: "bash"}
+	got, err := Select(context.Background(), pingRule(), profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Key != "windows" {
+		t.Fatalf("key %q want windows (native ping -n on Git Bash)", got.Key)
+	}
+}
+
 func TestSelectCmd(t *testing.T) {
 	t.Parallel()
 	profile := environment.SystemProfile{OS: "windows", Shell: "cmd"}
@@ -105,6 +139,7 @@ func TestSelectDefaultStrategyMatchesEveryProfile(t *testing.T) {
 		{OS: "darwin", Shell: "zsh"},
 		{OS: "windows", Shell: "powershell"},
 		{OS: "windows", Shell: "cmd"},
+		{OS: "windows", Shell: "bash"},
 	}
 	for _, p := range cases {
 		got, err := Select(context.Background(), portableRule(), p)
