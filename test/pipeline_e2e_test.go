@@ -243,10 +243,12 @@ func TestE2EExplainHostStrategyUnix(t *testing.T) {
 	}
 }
 
-func TestE2EExplainHostStrategyWindows(t *testing.T) {
+func TestE2EExplainHostStrategyWindowsPowerShell(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("windows host-strategy test")
 	}
+	t.Setenv("POWERSHELL_VERSION", "7.4.0")
+	t.Setenv("POWERSHELL_DISTRO_NAME", "")
 	setupCLXHomeForHost(t, nil)
 
 	cases := []struct {
@@ -257,6 +259,39 @@ func TestE2EExplainHostStrategyWindows(t *testing.T) {
 		{"locate help.txt", "Get-ChildItem"},
 		{"grep errors logs.txt", "Select-String"},
 		{"ls .", "Get-ChildItem"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.input, func(t *testing.T) {
+			r := runPipeline(t, config.Default(), tc.input, pipeline.Options{Explain: true})
+			if r.code != 0 {
+				t.Fatalf("code=%d stderr=%s", r.code, r.stderr)
+			}
+			line := commandLine(r.stdout)
+			if !strings.Contains(line, tc.want) {
+				t.Fatalf("expected %q in command line %q (stdout=%q)", tc.want, line, r.stdout)
+			}
+		})
+	}
+}
+
+func TestE2EExplainHostStrategyWindowsCmd(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("windows host-strategy test")
+	}
+	t.Setenv("POWERSHELL_VERSION", "")
+	t.Setenv("POWERSHELL_DISTRO_NAME", "")
+	t.Setenv("ComSpec", `C:\Windows\System32\cmd.exe`)
+	setupCLXHomeForHost(t, nil)
+
+	cases := []struct {
+		input string
+		want  string
+	}{
+		{"pwd", "echo %CD%"},
+		{"locate help.txt", "dir /s"},
+		{"grep errors logs.txt", "findstr"},
+		{"ls .", "dir ."},
 	}
 	for _, tc := range cases {
 		tc := tc

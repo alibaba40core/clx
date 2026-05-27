@@ -35,8 +35,17 @@ func detectShellUnix() string {
 }
 
 func detectShellWindows() string {
-	// PowerShell sets PSModulePath; pwsh sets POWERSHELL_DISTRO_NAME or version env.
-	if os.Getenv("PSModulePath") != "" || os.Getenv("POWERSHELL_VERSION") != "" {
+	// Prefer the shell that launched this process (cmd.exe vs powershell.exe).
+	if base := parentProcessBaseName(); base != "" {
+		if shell := shellFromParentExecutable(base); shell != "" {
+			return shell
+		}
+	}
+	// Session markers set by PowerShell/pwsh (not user-level PSModulePath alone).
+	if os.Getenv("POWERSHELL_DISTRO_NAME") != "" {
+		return "pwsh"
+	}
+	if os.Getenv("POWERSHELL_VERSION") != "" {
 		return "powershell"
 	}
 	comspec := os.Getenv("ComSpec")
