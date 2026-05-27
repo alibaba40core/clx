@@ -8,7 +8,7 @@ import (
 
 func TestLoadFromFS(t *testing.T) {
 	engRoot := findRoot(t)
-	rules, err := LoadFromFS(os.DirFS(engRoot), "skills")
+	rules, err := LoadFromFS(os.DirFS(engRoot), "internal/builtin/skills")
 	if err != nil {
 		t.Fatal(err)
 	}

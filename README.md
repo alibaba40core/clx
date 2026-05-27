@@ -30,8 +30,7 @@ See [doc/architecture.md](doc/architecture.md) for the full V1 architecture, com
 cmd/clx/          CLI entrypoint
 cmd/clxmax/       Advanced reasoning mode
 internal/         Engine packages (parser, intent, environment, ...)
-rules/            Built-in intent rules (YAML)
-skills/           Domain skill packs (git, docker, k8s, ...)
+internal/builtin/ Embedded built-in rules and skills (YAML, shipped in binary)
 configs/          Example config templates
 policies/         Default policy templates
 test/             Integration and e2e tests
