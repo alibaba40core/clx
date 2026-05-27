@@ -11,6 +11,10 @@ strategies:
     requires_tool: fd
     priority: 10
   powershell:
-    primary: "Get-ChildItem -Recurse -Filter {{filename}}"
+    argv:
+      - Get-ChildItem
+      - -Recurse
+      - -Filter
+      - {{filename}}
   cmd:
     primary: "dir /s {{filename}}"

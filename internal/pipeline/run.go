@@ -98,7 +98,11 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 	}
 
 	if effectiveDryRun {
-		fmt.Fprintf(opts.Stdout, "dry-run: would execute: %s\n", executor.QuoteArgv(gen.Shell, gen.Argv))
+		inv, err := executor.FormatInvocation(gen, profile)
+		if err != nil {
+			inv = executor.QuoteArgv(gen.Shell, gen.Argv)
+		}
+		fmt.Fprintf(opts.Stdout, "dry-run: would execute: %s\n", inv)
 		return 0, nil
 	}
 
@@ -119,6 +123,7 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 	if err := executor.Run(ctx, gen,
 		executor.WithRisk(ra),
 		executor.WithPolicy(pol),
+		executor.WithProfile(profile),
 		executor.WithTimeout(timeout),
 		executor.WithIO(opts.Stdout, opts.Stderr),
 	); err != nil {

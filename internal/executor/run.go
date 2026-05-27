@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"time"
 
 	"github.com/alibaba40core/clx/internal/generator"
 	"github.com/alibaba40core/clx/internal/policy"
 )
 
-// Run executes gen.Argv via exec.CommandContext (argv-only, no shell).
+// Run executes gen via direct argv or a validated shell host script.
 func Run(ctx context.Context, gen generator.GeneratedCommand, opts ...Option) error {
 	cfg := RunConfig{
 		Timeout: 30 * time.Second,
@@ -39,15 +38,13 @@ func Run(ctx context.Context, gen generator.GeneratedCommand, opts ...Option) er
 		return err
 	}
 
-	bin := gen.Argv[0]
-	if _, err := exec.LookPath(bin); err != nil {
-		return fmt.Errorf("command not found: %q", bin)
-	}
-
 	runCtx, cancel := context.WithTimeout(ctx, cfg.Timeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(runCtx, gen.Argv[0], gen.Argv[1:]...)
+	cmd, err := buildCommand(runCtx, gen, cfg.Profile)
+	if err != nil {
+		return err
+	}
 	cmd.Stdout = cfg.Stdout
 	cmd.Stderr = cfg.Stderr
 

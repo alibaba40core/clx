@@ -6,4 +6,5 @@ type GeneratedCommand struct {
 	Command     string
 	Shell       string
 	Explanation string
+	ExecHost    ExecHost
 }
