@@ -24,7 +24,14 @@ func candidateKeys(profile environment.SystemProfile) []string {
 		switch shell {
 		case "cmd":
 			base = []string{"cmd", "windows", "powershell"}
-		case "powershell", "":
+		case "bash", "zsh", "sh", "fish":
+			// Git Bash / MSYS: GNU tools (linux) + native Windows ping/netstat (windows).
+			base = []string{"windows", "linux", "cmd", "powershell"}
+		case "pwsh":
+			base = []string{"pwsh", "powershell", "windows", "cmd"}
+		case "powershell":
+			base = []string{"powershell", "windows", "cmd"}
+		case "":
 			base = []string{"powershell", "windows", "cmd"}
 		default:
 			base = []string{"powershell", "cmd", "windows"}
@@ -52,7 +59,22 @@ func strategyMatchesKey(strategyKey string, profile environment.SystemProfile) b
 	if os == "linux" || os == "darwin" {
 		return key == os || strings.HasPrefix(key, os+"_")
 	}
+	if os == "windows" && isPosixShellOnWindows(profile) {
+		return key == "linux" || strings.HasPrefix(key, "linux_")
+	}
 	return false
+}
+
+func isPosixShellOnWindows(profile environment.SystemProfile) bool {
+	if strings.ToLower(profile.OS) != "windows" {
+		return false
+	}
+	switch strings.ToLower(profile.Shell) {
+	case "bash", "zsh", "sh", "fish":
+		return true
+	default:
+		return false
+	}
 }
 
 // keyRank orders strategies for tie-breaking: lower rank is preferred.
@@ -66,6 +88,9 @@ func keyRank(strategyKey string, profile environment.SystemProfile) int {
 	}
 	os := strings.ToLower(profile.OS)
 	if (os == "linux" || os == "darwin") && strings.HasPrefix(key, os+"_") {
+		return len(keys)
+	}
+	if os == "windows" && isPosixShellOnWindows(profile) && strings.HasPrefix(key, "linux_") {
 		return len(keys)
 	}
 	return len(keys) + 1

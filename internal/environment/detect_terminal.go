@@ -9,6 +9,10 @@ func detectTerminal() string {
 	if os.Getenv("WT_SESSION") != "" {
 		return "windows_terminal"
 	}
+	// Git Bash / MSYS2 mintty (common on Windows).
+	if os.Getenv("MSYSTEM") != "" {
+		return "mintty"
+	}
 	if prog := os.Getenv("TERM_PROGRAM"); prog != "" {
 		switch strings.ToLower(prog) {
 		case "iterm.app", "iterm2":
