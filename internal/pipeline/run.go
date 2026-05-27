@@ -33,7 +33,7 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 		return 1, err
 	}
 
-	eng, err := intent.NewEngineFromModuleRoot()
+	eng, err := intent.NewDefaultEngine()
 	if err != nil {
 		fmt.Fprintf(opts.Stderr, "rules: %v\n", err)
 		return 1, err
