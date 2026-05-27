@@ -154,7 +154,7 @@ setup_clx_home() {
 }
 
 build_release() {
-  local version commit ldf
+  local version commit ldf goexe
   if command -v make >/dev/null 2>&1; then
     make build
     return
@@ -162,9 +162,13 @@ build_release() {
   version="$(git -C "${ROOT}" describe --tags --always 2>/dev/null || echo dev)"
   commit="$(git -C "${ROOT}" rev-parse --short HEAD 2>/dev/null || echo unknown)"
   ldf="-s -w -X github.com/alibaba40core/clx/internal/cliversion.Version=${version} -X github.com/alibaba40core/clx/internal/cliversion.Commit=${commit}"
+  # Go does not auto-append .exe when -o specifies an explicit name without
+  # an extension, so we must add the suffix ourselves on Windows. resolve_bin
+  # below also expects clx.exe under MINGW/MSYS/CYGWIN.
+  goexe="$(go env GOEXE)"
   mkdir -p "${BIN_DIR}"
-  go build -trimpath -ldflags="${ldf}" -o "${BIN_DIR}/clx" ./cmd/clx
-  go build -trimpath -ldflags="${ldf}" -o "${BIN_DIR}/clxmax" ./cmd/clxmax
+  go build -trimpath -ldflags="${ldf}" -o "${BIN_DIR}/clx${goexe}" ./cmd/clx
+  go build -trimpath -ldflags="${ldf}" -o "${BIN_DIR}/clxmax${goexe}" ./cmd/clxmax
 }
 
 main() {

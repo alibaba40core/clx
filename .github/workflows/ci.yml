@@ -39,8 +39,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p bin
-          go build -trimpath -o bin/clx ./cmd/clx
-          go build -trimpath -o bin/clxmax ./cmd/clxmax
+          EXE="$(go env GOEXE)"
+          go build -trimpath -o "bin/clx${EXE}" ./cmd/clx
+          go build -trimpath -o "bin/clxmax${EXE}" ./cmd/clxmax
 
       - name: Check runtime budgets
         shell: bash
