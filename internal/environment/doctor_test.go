@@ -60,11 +60,17 @@ func TestRunDoctorRefreshPreservesSiblingShells(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	curShell := detectShell()
+	siblingShell := "cmd"
+	if curShell == "cmd" {
+		siblingShell = "powershell"
+	}
+
 	store := NewProfileStore()
 	store.UpsertProfile(SystemProfile{
 		OS:             detectOS(),
-		Shell:          "cmd",
-		OSVersion:      "sibling-cmd",
+		Shell:          siblingShell,
+		OSVersion:      "sibling-preserved",
 		AvailableTools: []string{"legacy"},
 	})
 	if err := SaveStore(ctx, path, store); err != nil {
@@ -80,23 +86,24 @@ func TestRunDoctorRefreshPreservesSiblingShells(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sibling, ok := store2.Profiles[ProfileKey(detectOS(), "cmd")]
+	siblingKey := ProfileKey(detectOS(), siblingShell)
+	sibling, ok := store2.Profiles[siblingKey]
 	if !ok {
-		t.Fatal("sibling cmd profile removed")
+		t.Fatalf("sibling %q profile removed", siblingKey)
 	}
-	if sibling.OSVersion != "sibling-cmd" {
+	if sibling.OSVersion != "sibling-preserved" {
 		t.Fatalf("sibling mutated: %+v", sibling)
 	}
 
-	currentKey := ProfileKey(detectOS(), detectShell())
+	currentKey := ProfileKey(detectOS(), curShell)
 	current, ok := store2.Profiles[currentKey]
 	if !ok {
 		t.Fatal("current shell profile missing")
 	}
-	if current.OSVersion == "sibling-cmd" {
+	if current.OSVersion == "sibling-preserved" {
 		t.Fatal("current shell should have been re-detected")
 	}
-	if current.Shell != detectShell() {
+	if current.Shell != curShell {
 		t.Fatalf("shell %q", current.Shell)
 	}
 }

@@ -13,7 +13,7 @@ import (
 // dockerReadOnlySubverbs).
 var lowVerbs = map[string]struct{}{
 	"ls": {}, "grep": {}, "rg": {}, "pwd": {}, "df": {}, "du": {}, "find": {}, "fd": {},
-	"dir": {}, "cat": {}, "head": {}, "tail": {}, "git": {},
+	"dir": {}, "echo": {}, "cat": {}, "head": {}, "tail": {}, "git": {},
 	"get-location": {}, "get-childitem": {}, "select-string": {}, "findstr": {},
 	"docker": {}, "curl": {}, "wget": {},
 	"ping": {}, "ss": {}, "netstat": {}, "traceroute": {}, "tracert": {},
