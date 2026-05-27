@@ -27,7 +27,7 @@ func TestLoadRulesFromFS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rules, err := LoadRulesFromFS(os.DirFS(root), "rules")
+	rules, err := LoadRulesFromFS(os.DirFS(root), "internal/builtin/rules")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestLoadRulesFromFS(t *testing.T) {
 	if !found {
 		t.Fatal("find_file not loaded")
 	}
-	_ = filepath.Join(root, "rules")
+	_ = filepath.Join(root, "internal/builtin/rules")
 }
 
 func TestParseRulesFileSingleIntentBackCompat(t *testing.T) {

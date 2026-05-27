@@ -23,18 +23,20 @@ func NewEngine(rules []Rule) *Engine {
 	return &Engine{rules: mergeRules(rules)}
 }
 
-// NewEngineFromModuleRoot loads rules/ and skills/ under the module root (go.mod directory).
+// NewEngineFromModuleRoot loads built-in rules and skills from the module root
+// (go.mod directory). Intended for tests and rule iteration without rebuilding
+// the binary; production uses NewEngineWithOverlay.
 func NewEngineFromModuleRoot() (*Engine, error) {
 	root, err := findModuleRoot()
 	if err != nil {
 		return nil, err
 	}
 	fsys := os.DirFS(root)
-	ruleList, err := LoadRulesFromFS(fsys, "rules")
+	ruleList, err := LoadRulesFromFS(fsys, "internal/builtin/rules")
 	if err != nil {
 		return nil, fmt.Errorf("load rules: %w", err)
 	}
-	skillRules, err := LoadSkillsFromFS(fsys, "skills")
+	skillRules, err := LoadSkillsFromFS(fsys, "internal/builtin/skills")
 	if err != nil {
 		return nil, fmt.Errorf("load skills: %w", err)
 	}
