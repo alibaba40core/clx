@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -36,6 +37,21 @@ func NewDefaultEngine() (*Engine, error) {
 		return nil, fmt.Errorf("load builtin skills: %w", err)
 	}
 	return NewEngine(append(rules, skills...)), nil
+}
+
+// NewEngineWithOverlay loads embedded built-in rules and skills, then overlays
+// optional user content from ~/.clx/rules and ~/.clx/skills. Missing overlay
+// directories are silent; malformed overlay files are skipped with a warning.
+func NewEngineWithOverlay(ctx context.Context, logger *slog.Logger) (*Engine, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	rules, err := loadBuiltinRulesAndSkills()
+	if err != nil {
+		return nil, err
+	}
+	rules = appendUserOverlay(ctx, logger, rules)
+	return NewEngine(rules), nil
 }
 
 // NewEngineFromModuleRoot loads built-in rules and skills from the module root

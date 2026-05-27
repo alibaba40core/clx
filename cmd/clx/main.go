@@ -72,6 +72,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		Explain: *explain,
 		DryRun:  *dryRun,
 		Yes:     skipConfirm,
+		Logger:  logger,
 		Stdout:  stdout,
 		Stderr:  stderr,
 	})

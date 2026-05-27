@@ -429,9 +429,12 @@ Created on first run / install — **not committed to the repo.**
 ├── sessions/
 ├── policies/
 │   └── policy.yaml
-├── skills/          # user-installed skill overrides
+├── rules/           # user rule overrides (*.yaml; same intent name wins over built-in)
+├── skills/          # user skill pack overrides (*/intents.yaml)
 └── logs/
 ```
+
+User overlay files use the same YAML shapes as built-in rules. When the same `intent` name appears in both built-in and user content, **the user definition wins** (later merge order).
 
 ---
 

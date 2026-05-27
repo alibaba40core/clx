@@ -82,6 +82,20 @@ func MemoryDir() (string, error) {
 	return filepath.Join(home, "memory"), nil
 }
 
+// UserRulesDir returns ~/.clx/rules (user rule overrides).
+func UserRulesDir() (string, error) {
+	home, err := Home()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, "rules"), nil
+}
+
+// UserSkillsDir returns ~/.clx/skills (user skill pack overrides).
+func UserSkillsDir() (string, error) {
+	return SkillsDir()
+}
+
 // SkillsDir returns ~/.clx/skills (user skill overrides).
 func SkillsDir() (string, error) {
 	home, err := Home()
