@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/alibaba40core/clx/internal/environment"
 	"github.com/alibaba40core/clx/internal/policy"
 	"github.com/alibaba40core/clx/internal/risk"
 )
@@ -17,13 +18,15 @@ var (
 
 // RunConfig holds execution parameters.
 type RunConfig struct {
-	Timeout  time.Duration
-	Stdout   io.Writer
-	Stderr   io.Writer
-	Risk     risk.RiskAssessment
-	Policy   policy.Result
-	HasRisk  bool
+	Timeout   time.Duration
+	Stdout    io.Writer
+	Stderr    io.Writer
+	Risk      risk.RiskAssessment
+	Policy    policy.Result
+	Profile   environment.SystemProfile
+	HasRisk   bool
 	HasPolicy bool
+	HasProfile bool
 }
 
 // Option configures Run.
@@ -55,5 +58,13 @@ func WithPolicy(p policy.Result) Option {
 	return func(c *RunConfig) {
 		c.Policy = p
 		c.HasPolicy = true
+	}
+}
+
+// WithProfile supplies the system profile for host resolution (PowerShell vs pwsh).
+func WithProfile(p environment.SystemProfile) Option {
+	return func(c *RunConfig) {
+		c.Profile = p
+		c.HasProfile = true
 	}
 }

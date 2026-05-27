@@ -3,8 +3,9 @@
 //
 // The test matrix matches the Phase 1.6 exit criteria: every seed intent has
 // an explain test (cross-platform), and a small set of exec tests run real
-// binaries on Linux/macOS/Windows with documented skip reasons (Windows
-// PowerShell cmdlets, missing docker daemon, etc.).
+// binaries on Linux/macOS/Windows with documented skip reasons (missing
+// docker daemon, optional tools, etc.). Shell-native cmdlets use validated
+// host scripts (Phase 1.7) on Windows PowerShell/CMD.
 package test
 
 import (
@@ -280,13 +281,10 @@ func TestE2EExplainHostStrategyWindows(t *testing.T) {
 // runtime.GOOS or exec.LookPath where the underlying binary isn't portable.
 // -----------------------------------------------------------------------------
 
-// TestE2EExecPwdUnix executes the Linux/darwin `pwd` binary. Skipped on
-// Windows because the powershell strategy resolves to Get-Location, a
-// PowerShell cmdlet that exec.LookPath cannot find on PATH (Step 3 note:
-// argv-only execution of PS cmdlets is out of scope for Phase 1.6).
+// TestE2EExecPwdUnix executes the Linux/darwin `pwd` binary.
 func TestE2EExecPwdUnix(t *testing.T) {
 	if runtime.GOOS == "windows" {
-		t.Skip("Windows PowerShell cmdlet exec gap: Get-Location is not a PATH binary (see Step 3 note)")
+		t.Skip("unix only")
 	}
 	skipUnlessTool(t, "pwd")
 	setupCLXHomeForHost(t, nil)
@@ -299,11 +297,10 @@ func TestE2EExecPwdUnix(t *testing.T) {
 	}
 }
 
-// TestE2EExecListDirUnix executes `ls -la .` on Linux/darwin. Skipped on
-// Windows for the same PowerShell-cmdlet reason as pwd (Get-ChildItem).
+// TestE2EExecListDirUnix executes `ls` on Linux/darwin.
 func TestE2EExecListDirUnix(t *testing.T) {
 	if runtime.GOOS == "windows" {
-		t.Skip("Windows PowerShell cmdlet exec gap: ls maps to Get-ChildItem, not a PATH binary (see Step 3 note)")
+		t.Skip("unix only")
 	}
 	skipUnlessTool(t, "ls")
 	setupCLXHomeForHost(t, nil)
@@ -313,6 +310,60 @@ func TestE2EExecListDirUnix(t *testing.T) {
 	r := runPipeline(t, cfg, "ls .", pipeline.Options{Yes: true})
 	if r.code != 0 || r.err != nil {
 		t.Fatalf("code=%d err=%v stderr=%s", r.code, r.err, r.stderr)
+	}
+}
+
+// TestE2EExecPwdWindows runs pwd via PowerShell Get-Location host script.
+func TestE2EExecPwdWindows(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("windows only")
+	}
+	skipUnlessTool(t, "powershell")
+	setupCLXHomeForHost(t, nil)
+
+	cfg := config.Default()
+	cfg.Safety.DryRun = false
+	r := runPipeline(t, cfg, "pwd", pipeline.Options{Yes: true})
+	if r.code != 0 || r.err != nil {
+		t.Fatalf("code=%d err=%v stderr=%s", r.code, r.err, r.stderr)
+	}
+}
+
+// TestE2EExecListDirWindows runs ls via Get-ChildItem host script.
+func TestE2EExecListDirWindows(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("windows only")
+	}
+	skipUnlessTool(t, "powershell")
+	setupCLXHomeForHost(t, nil)
+
+	cfg := config.Default()
+	cfg.Safety.DryRun = false
+	r := runPipeline(t, cfg, "ls .", pipeline.Options{Yes: true})
+	if r.code != 0 || r.err != nil {
+		t.Fatalf("code=%d err=%v stderr=%s", r.code, r.err, r.stderr)
+	}
+}
+
+// TestE2EExecSearchTextWindows runs grep via Select-String host script.
+func TestE2EExecSearchTextWindows(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("windows only")
+	}
+	skipUnlessTool(t, "powershell")
+	setupCLXHomeForHost(t, []string{"grep"})
+
+	logFile := filepath.Join(t.TempDir(), "logs.txt")
+	if err := os.WriteFile(logFile, []byte("line one\nerrors here\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := config.Default()
+	cfg.Safety.DryRun = false
+	input := fmt.Sprintf("grep errors %s", logFile)
+	r := runPipeline(t, cfg, input, pipeline.Options{Yes: true})
+	if r.code != 0 || r.err != nil {
+		t.Fatalf("code=%d err=%v stderr=%s stdout=%s", r.code, r.err, r.stderr, r.stdout)
 	}
 }
 

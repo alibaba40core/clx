@@ -6,7 +6,7 @@ CLX is an AI-powered cross-platform command intelligence layer for developers. I
 
 ## Status
 
-> **Phase 1.6 (hardening complete)** — CLI pipeline wired in `cmd/clx`: parse → intent → translate → risk → policy → confirm → argv-only execution. Risk classifier (allowlists + subverb gating + destructive-pattern detection) and policy block-list are live; both gate every command before exec. Default config uses dry-run preview (`safety.dry_run: true`); set `safety.dry_run: false` and pass `-y` to execute. Cross-platform e2e matrix (Ubuntu/macOS/Windows) and runtime budgets enforced in CI via `scripts/check-budgets.sh`. Seed rules for git, docker, and networking domains. Flags: `--explain`, `--dry-run`, `-y`. Includes Phase 1.1–1.6.
+> **Phase 1.7 (shell-native exec)** — CLI pipeline: parse → intent → translate → risk → policy → confirm → execute. PATH binaries run as direct argv (`git`, `ping`); PowerShell cmdlets and CMD builtins run via validated host scripts (`Get-Location`, `Select-String`, etc.) — never raw user input in `-Command`. Default config uses dry-run preview (`safety.dry_run: true`); set `safety.dry_run: false` and pass `-y` to execute (e.g. `clx -y pwd` on Windows). Cross-platform e2e matrix and runtime budgets in CI. Flags: `--explain`, `--dry-run`, `-y`. Includes Phase 1.1–1.7.
 
 ## What CLX does
 
@@ -64,7 +64,12 @@ clx grep errors logs.txt
 clx --explain grep errors logs.txt
 clx pwd
 clx --dry-run pwd
+
+# Execute on Windows (after safety.dry_run: false in ~/.clx/config.yaml)
+clx -y pwd
 ```
+
+Host scripts are assembled only from rule templates with validated parameters; CLX does not pass your raw shell input to `powershell -Command` or `cmd /c`.
 
 `shell_version` in the profile is filled from environment variables when present (e.g. `POWERSHELL_VERSION`); otherwise it stays empty until a later phase adds subprocess probing.
 

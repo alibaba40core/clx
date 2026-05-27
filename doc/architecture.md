@@ -503,9 +503,16 @@ Phase 1 is split into six dependency-ordered slices. Each slice is independently
 | **1.3 — Parser** | Normalize raw input into a `Request`. Classify as `Shell`, `NaturalLanguage`, `PartialShell`, or `CLXInvocation`. Strip the `clx` prefix and tokenize args. | `internal/parser` | Unit tests pass for all four input types across representative samples. |
 | **1.4 — Rules-First Intent Resolver** | YAML rule loader for built-in rules/skills (`internal/builtin/`, embedded in binary) and optional user overlays (`~/.clx/rules/`, `~/.clx/skills/`). Match input → `ResolvedIntent` with extracted params. Skill pack loader (loader only — no AI prompts yet). **No AI fallback, no cache, no memory.** | `internal/intent` (rule path), `internal/skills` (loader), `internal/builtin` | Seed rule set (e.g. `find_file`, `search_text_in_file`, `list_dir`, `current_dir`, `disk_usage`) resolves correctly with `Source: Rule`. |
 | **1.5 — Capabilities & Generator** | Pick the best strategy for a resolved intent given the `SystemProfile` (e.g. `rg` over `grep`, `Select-String` over `findstr`). Render the chosen template into a final native command string. | `internal/capabilities`, `internal/generator` | `(ResolvedIntent + SystemProfile) → GeneratedCommand` produces the expected native command per shell for the seed rule set. |
-| **1.6 — Basic Executor & CLI Wiring** | Shell-aware execution with timeout. Implement `--explain` (no execution), dry-run from `safety.dry_run` in config **or** `--dry-run` flag (preview only — full risk classification deferred to Phase 3), and proper exit codes. Wire the full pipeline in `cmd/clx`. | `internal/executor` (basic, no risk/policy hooks yet), `cmd/clx` | `clx grep errors logs.txt` runs end-to-end on Windows / Linux / macOS for every seed rule. Integration tests in `test/` green on all three. |
+| **1.6 — Basic Executor & CLI Wiring** | Shell-aware execution with timeout, risk/policy gates, dry-run and confirm. Direct `exec.CommandContext` for PATH binaries (`git`, `ping`, `findstr`). PowerShell cmdlets and CMD builtins deferred to **1.7** (explain-only on Windows for `pwd` / `ls` until then). | `internal/executor`, `internal/risk`, `internal/policy`, `cmd/clx` | `clx --explain` and argv-only exec for PATH tools on all three OSes; e2e matrix green. |
+| **1.7 — Shell-native execution** | `ExecHost` on `GeneratedCommand`; validated script assembly in `internal/executor` (`BuildValidatedScript`, host resolution); dispatch via fixed host argv (`powershell -NoProfile -NonInteractive -Command`, `cmd /c`, `sh -c` fallback on Unix). Dry-run shows effective invocation via `FormatInvocation`. | `internal/generator`, `internal/executor` | `clx -y pwd` executes on Windows (Get-Location); `clx -y grep PAT FILE` runs Select-String; Linux/macOS direct argv unchanged. |
+
+### 6.1.7 Phase 1.7 security contract
+
+Shell hosts are allowed only when the script is built from rule-rendered argv: each token is metachar-checked, then joined with existing quoters in `internal/executor/quote.go`. User/AI raw strings never become `-Command` / `/c` input. `os/exec` stays in `internal/executor` only.
 
 **Notes on what is intentionally NOT in Phase 1:**
+
+- WSL-in-Windows routing to `wsl.exe`, arbitrary user `-Command` strings, CMD `cd` vs `pwd` semantics → later
 
 - LLM provider selection and AI fallback → **Phase 2**
 - Risk classification and access-level enforcement (Safe / Moderate / Full) → **Phase 3**
