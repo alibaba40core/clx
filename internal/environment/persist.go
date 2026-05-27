@@ -22,13 +22,11 @@ func loadStoreFromPath(ctx context.Context, path string) (ProfileStore, bool, er
 		return ProfileStore{}, false, err
 	}
 
-	f, err := os.Open(path)
-	if err != nil {
-		return ProfileStore{}, false, err
-	}
-	defer f.Close()
-
-	raw, err := io.ReadAll(io.LimitReader(f, maxProfileBytes))
+	// Read+close in a tight scope. The migration branch below calls
+	// saveStore, which os.Renames a temp file over `path`; on Windows the
+	// rename fails with "Access is denied" while any handle to the target
+	// is still open, so we must release the read handle first.
+	raw, err := readProfileBytes(path)
 	if err != nil {
 		return ProfileStore{}, false, err
 	}
@@ -43,6 +41,15 @@ func loadStoreFromPath(ctx context.Context, path string) (ProfileStore, bool, er
 		}
 	}
 	return store, migrated, nil
+}
+
+func readProfileBytes(path string) ([]byte, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return io.ReadAll(io.LimitReader(f, maxProfileBytes))
 }
 
 // migrateV1IfNeeded decodes raw JSON as a v2 store or wraps a v1 flat profile.
