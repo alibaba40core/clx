@@ -397,6 +397,33 @@ func TestE2EConfigDryRunDefault(t *testing.T) {
 }
 
 // -----------------------------------------------------------------------------
+// Cwd independence (embedded rules)
+// -----------------------------------------------------------------------------
+
+// TestE2EWorksFromNonRepoCwd verifies the pipeline resolves intents when the
+// process cwd is outside the source tree (production install on PATH).
+func TestE2EWorksFromNonRepoCwd(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmp := t.TempDir()
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(wd) })
+
+	setupCLXHomeForHost(t, nil)
+	r := runPipeline(t, config.Default(), "pwd", pipeline.Options{Explain: true})
+	if r.err != nil || r.code != 0 {
+		t.Fatalf("code=%d err=%v stderr=%s", r.code, r.err, r.stderr)
+	}
+	if !strings.Contains(r.stdout, "current_dir") {
+		t.Fatalf("expected current_dir in stdout=%q", r.stdout)
+	}
+}
+
+// -----------------------------------------------------------------------------
 // Profile persistence (smoke)
 // -----------------------------------------------------------------------------
 

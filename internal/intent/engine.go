@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/alibaba40core/clx/internal/builtin"
 	"github.com/alibaba40core/clx/internal/parser"
 )
 
@@ -21,6 +22,20 @@ type Engine struct {
 // NewEngine returns an engine with the given rules (later entries override duplicate intents).
 func NewEngine(rules []Rule) *Engine {
 	return &Engine{rules: mergeRules(rules)}
+}
+
+// NewDefaultEngine loads built-in rules and skills embedded in the binary.
+// Use this for production CLI paths where cwd may be outside the source tree.
+func NewDefaultEngine() (*Engine, error) {
+	rules, err := LoadRulesFromFS(builtin.FS, "rules")
+	if err != nil {
+		return nil, fmt.Errorf("load builtin rules: %w", err)
+	}
+	skills, err := LoadSkillsFromFS(builtin.FS, "skills")
+	if err != nil {
+		return nil, fmt.Errorf("load builtin skills: %w", err)
+	}
+	return NewEngine(append(rules, skills...)), nil
 }
 
 // NewEngineFromModuleRoot loads built-in rules and skills from the module root
