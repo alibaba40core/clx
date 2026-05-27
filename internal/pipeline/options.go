@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"io"
+	"log/slog"
 	"os"
 )
 
@@ -10,6 +11,7 @@ type Options struct {
 	Explain bool
 	DryRun  bool
 	Yes     bool
+	Logger  *slog.Logger
 	Stdin   io.Reader
 	Stdout  io.Writer
 	Stderr  io.Writer

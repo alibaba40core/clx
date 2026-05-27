@@ -79,10 +79,23 @@ Runtime config lives in `~/.clx/` (created on first run):
 ├── cache/
 ├── sessions/
 ├── policies/
+├── rules/          # optional user rule overrides
+├── skills/         # optional user skill pack overrides
 └── logs/
 ```
 
 See [configs/config.example.yaml](configs/config.example.yaml) for the default config template.
+
+## Customizing rules
+
+Built-in rules and skills ship **inside the `clx` binary** (from `internal/builtin/`), so `clx` works from any directory without the source tree on disk.
+
+To override or extend behavior, add YAML under:
+
+- `~/.clx/rules/*.yaml` — same format as built-in rule files (`intent:` or `intents:` list)
+- `~/.clx/skills/<pack>/intents.yaml` — same format as built-in skill packs
+
+If a user rule uses the same `intent` name as a built-in rule, **your definition wins**. Malformed overlay files are skipped with a warning; built-ins still load.
 
 ## License
 
