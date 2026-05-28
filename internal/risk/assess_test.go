@@ -68,6 +68,8 @@ func TestAssessLowVerbsMatrix(t *testing.T) {
 		{"get_command_ps", []string{"Get-Command", "git"}},
 		{"write_output_ps", []string{"Write-Output", "hello"}},
 		{"type_cmd", []string{"type", "README.md"}},
+		{"ipconfig", []string{"ipconfig"}},
+		{"ip_addr", []string{"ip", "-br", "addr"}},
 	}
 	for _, tc := range cases {
 		tc := tc
@@ -129,6 +131,30 @@ func TestAssessDockerNonReadOnlySubverbMedium(t *testing.T) {
 		if got.Level != Medium {
 			t.Fatalf("%v: level %v reason=%q", argv, got.Level, got.Reason)
 		}
+	}
+}
+
+func TestAssessRemoveFileHigh(t *testing.T) {
+	t.Parallel()
+	cases := [][]string{
+		{"rm", "test"},
+		{"rmdir", "text"},
+		{"Remove-Item", "-Path", "test"},
+		{"del", "test"},
+	}
+	for _, argv := range cases {
+		argv := argv
+		t.Run(joinArgv(argv), func(t *testing.T) {
+			t.Parallel()
+			gen := generator.GeneratedCommand{Argv: argv, Command: joinArgv(argv)}
+			got, err := Assess(context.Background(), gen)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.Level != High {
+				t.Fatalf("%v: level %v reason=%q", argv, got.Level, got.Reason)
+			}
+		})
 	}
 }
 

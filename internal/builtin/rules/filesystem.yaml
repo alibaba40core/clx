@@ -50,6 +50,8 @@ intents:
     examples:
       - ls {{path}}
       - ls -la {{path}}
+      - ll
+      - ll {{path}}
       - list directory {{path}}
       - dir {{path}}
     strategies:
@@ -208,3 +210,49 @@ intents:
           - move
           - {{source}}
           - {{dest}}
+
+  # Destructive: classified High in internal/risk/assess.go (rm/rmdir/del patterns).
+  - intent: remove_file
+    examples:
+      - rm {{path}}
+      - del {{path}}
+      - remove {{path}}
+      - remove file {{path}}
+      - delete {{path}}
+      - delete file {{path}}
+    strategies:
+      linux:
+        argv:
+          - rm
+          - {{path}}
+      powershell:
+        argv:
+          - Remove-Item
+          - -Path
+          - {{path}}
+      cmd:
+        argv:
+          - del
+          - {{path}}
+
+  - intent: remove_dir
+    examples:
+      - rmdir {{path}}
+      - rd {{path}}
+      - remove directory {{path}}
+      - delete directory {{path}}
+    strategies:
+      linux:
+        argv:
+          - rmdir
+          - {{path}}
+      powershell:
+        argv:
+          - Remove-Item
+          - -Path
+          - {{path}}
+          - -Recurse
+      cmd:
+        argv:
+          - rmdir
+          - {{path}}

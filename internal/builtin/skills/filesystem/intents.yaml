@@ -3,6 +3,8 @@ intents:
     examples:
       - list directory {{path}}
       - ls {{path}}
+      - ll
+      - ll {{path}}
       - dir {{path}}
     strategies:
       linux:

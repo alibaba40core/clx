@@ -103,6 +103,43 @@ func TestResolveDiskUsage(t *testing.T) {
 	}
 }
 
+func TestResolveDailyUsageIntents(t *testing.T) {
+	t.Parallel()
+	eng := testEngine(t)
+	cases := []struct {
+		name       string
+		tokens     []string
+		wantIntent string
+		wantParams map[string]string
+	}{
+		{"ll_bare", []string{"ll"}, "list_dir", map[string]string{}},
+		{"ll_path", []string{"ll", "/tmp"}, "list_dir", map[string]string{"path": "/tmp"}},
+		{"ip_bare", []string{"ip"}, "show_ip_addresses", map[string]string{}},
+		{"ipconfig", []string{"ipconfig"}, "show_ip_addresses", map[string]string{}},
+		{"rm_file", []string{"rm", "test"}, "remove_file", map[string]string{"path": "test"}},
+		{"rmdir", []string{"rmdir", "text"}, "remove_dir", map[string]string{"path": "text"}},
+		{"remove_file", []string{"remove", "test"}, "remove_file", map[string]string{"path": "test"}},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := eng.Resolve(context.Background(), parser.Request{Tokens: tc.tokens})
+			if err != nil {
+				t.Fatalf("resolve: %v", err)
+			}
+			if got.Intent != tc.wantIntent {
+				t.Fatalf("intent: got %q want %q", got.Intent, tc.wantIntent)
+			}
+			for k, v := range tc.wantParams {
+				if got.Params[k] != v {
+					t.Fatalf("param %q: got %q want %q", k, got.Params[k], v)
+				}
+			}
+		})
+	}
+}
+
 func TestResolveNotFound(t *testing.T) {
 	t.Parallel()
 	eng := testEngine(t)

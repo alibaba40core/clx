@@ -116,6 +116,24 @@ func TestTranslateSeedIntents(t *testing.T) {
 			wantArgv: []string{"ls", "-la", "/tmp"},
 		},
 		{
+			name: "list_dir ll bare defaults path",
+			resolved: intent.ResolvedIntent{Intent: "list_dir", Params: map[string]string{}},
+			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
+			wantArgv: []string{"ls", "-la", "."},
+		},
+		{
+			name: "show_ip windows",
+			resolved: intent.ResolvedIntent{Intent: "show_ip_addresses", Params: map[string]string{}},
+			profile:  environment.SystemProfile{OS: "windows", Shell: "powershell"},
+			wantArgv: []string{"ipconfig"},
+		},
+		{
+			name: "remove_file linux",
+			resolved: intent.ResolvedIntent{Intent: "remove_file", Params: map[string]string{"path": "test"}},
+			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
+			wantArgv: []string{"rm", "test"},
+		},
+		{
 			name: "current_dir linux",
 			resolved: intent.ResolvedIntent{Intent: "current_dir", Params: map[string]string{}},
 			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
