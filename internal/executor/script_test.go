@@ -63,6 +63,30 @@ func TestBuildValidatedScript(t *testing.T) {
 			argv:    []string{"Write-Host", "$(whoami)"},
 			wantErr: ErrScriptMetachar,
 		},
+		{
+			name:    "cmd percent expansion",
+			shell:   "cmd",
+			argv:    []string{"echo", "%USERPROFILE%"},
+			wantErr: ErrScriptMetachar,
+		},
+		{
+			name:    "cmd no percent",
+			shell:   "cmd",
+			argv:    []string{"echo", "hello"},
+			wantSub: "hello",
+		},
+		{
+			name:    "powershell percent in url",
+			shell:   "powershell",
+			argv:    []string{"Write-Output", "https://example.com/path%20x"},
+			wantSub: "%20",
+		},
+		{
+			name:    "bash percent in url",
+			shell:   "bash",
+			argv:    []string{"curl", "https://example.com/x%20y"},
+			wantSub: "%20",
+		},
 	}
 	for _, tc := range cases {
 		tc := tc

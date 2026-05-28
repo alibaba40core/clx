@@ -12,9 +12,10 @@ import (
 )
 
 var (
-	ErrMissingRisk   = errors.New("executor: missing risk assessment")
-	ErrMissingPolicy = errors.New("executor: missing policy result")
-	ErrEmptyArgv     = errors.New("executor: empty argv")
+	ErrMissingRisk    = errors.New("executor: missing risk assessment")
+	ErrMissingPolicy  = errors.New("executor: missing policy result")
+	ErrMissingProfile = errors.New("executor: missing system profile")
+	ErrEmptyArgv      = errors.New("executor: empty argv")
 )
 
 // TimeoutError is returned by Run when the configured execution.timeout elapses
@@ -30,14 +31,14 @@ func (e *TimeoutError) Error() string {
 
 // RunConfig holds execution parameters.
 type RunConfig struct {
-	Timeout   time.Duration
-	Stdout    io.Writer
-	Stderr    io.Writer
-	Risk      risk.RiskAssessment
-	Policy    policy.Result
-	Profile   environment.SystemProfile
-	HasRisk   bool
-	HasPolicy bool
+	Timeout    time.Duration
+	Stdout     io.Writer
+	Stderr     io.Writer
+	Risk       risk.RiskAssessment
+	Policy     policy.Result
+	Profile    environment.SystemProfile
+	HasRisk    bool
+	HasPolicy  bool
 	HasProfile bool
 }
 

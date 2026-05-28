@@ -34,6 +34,9 @@ func Run(ctx context.Context, gen generator.GeneratedCommand, opts ...Option) er
 	if len(gen.Argv) == 0 {
 		return ErrEmptyArgv
 	}
+	if gen.ExecHost != generator.ExecDirect && !cfg.HasProfile {
+		return ErrMissingProfile
+	}
 
 	if err := ctx.Err(); err != nil {
 		return err

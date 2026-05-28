@@ -321,7 +321,7 @@ func TestE2EExplainHostStrategyWindowsCmd(t *testing.T) {
 		input string
 		want  string
 	}{
-		{"pwd", "echo %CD%"},
+		{"pwd", "cd"},
 		{"locate help.txt", "dir /s"},
 		{"grep errors logs.txt", "findstr"},
 		{"ls .", "dir ."},

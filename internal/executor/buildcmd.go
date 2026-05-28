@@ -5,23 +5,33 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
+
 	"github.com/alibaba40core/clx/internal/environment"
 	"github.com/alibaba40core/clx/internal/generator"
 )
 
-func buildCommand(ctx context.Context, gen generator.GeneratedCommand, profile environment.SystemProfile) (*exec.Cmd, error) {
+// effectiveExecHost resolves the subprocess host after PATH lookups. Generator
+// sets ExecHost from strategy key only; promotion and fallbacks live here.
+func effectiveExecHost(gen generator.GeneratedCommand) generator.ExecHost {
 	host := gen.ExecHost
-	if host == generator.ExecDirect {
-		if len(gen.Argv) == 0 {
-			return nil, ErrEmptyArgv
-		}
-		if _, err := exec.LookPath(gen.Argv[0]); err != nil {
-			if runtime.GOOS == "windows" {
-				return nil, fmt.Errorf("command not found: %q (try clx --explain)", gen.Argv[0])
-			}
-			host = generator.ExecPosix
+	if host == generator.ExecCmd && len(gen.Argv) > 0 {
+		if _, err := exec.LookPath(gen.Argv[0]); err == nil {
+			return generator.ExecDirect
 		}
 	}
+	if host == generator.ExecDirect && len(gen.Argv) > 0 {
+		if _, err := exec.LookPath(gen.Argv[0]); err != nil {
+			if runtime.GOOS == "windows" {
+				return generator.ExecCmd
+			}
+			return generator.ExecPosix
+		}
+	}
+	return host
+}
+
+func buildCommand(ctx context.Context, gen generator.GeneratedCommand, profile environment.SystemProfile) (*exec.Cmd, error) {
+	host := effectiveExecHost(gen)
 	return buildCommandForHost(ctx, host, gen, profile)
 }
 

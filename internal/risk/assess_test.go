@@ -187,6 +187,52 @@ func TestAssessMutatingFilesystemMedium(t *testing.T) {
 	}
 }
 
+func TestAssessNoSubstringFalsePositives(t *testing.T) {
+	t.Parallel()
+	cases := [][]string{
+		{"docker", "logs", "arm-builder"},
+		{"docker", "tag", "alpine:latest", "alpine:dev", "--format", "table"},
+		{"find", "./form", "-name", "x"},
+	}
+	for _, argv := range cases {
+		argv := argv
+		t.Run(joinArgv(argv), func(t *testing.T) {
+			t.Parallel()
+			gen := generator.GeneratedCommand{Argv: argv, Command: joinArgv(argv)}
+			got, err := Assess(context.Background(), gen)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.Level == High {
+				t.Fatalf("%v: unexpected high: %q", argv, got.Reason)
+			}
+		})
+	}
+}
+
+func TestAssessRecursiveDeletePatternsHigh(t *testing.T) {
+	t.Parallel()
+	cases := [][]string{
+		{"rm", "-rf", "."},
+		{"del", "/s", "/q", "dir"},
+		{"rmdir", "/S", "/Q", "dir"},
+	}
+	for _, argv := range cases {
+		argv := argv
+		t.Run(joinArgv(argv), func(t *testing.T) {
+			t.Parallel()
+			gen := generator.GeneratedCommand{Argv: argv, Command: joinArgv(argv)}
+			got, err := Assess(context.Background(), gen)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.Level != High {
+				t.Fatalf("%v: level %v reason=%q", argv, got.Level, got.Reason)
+			}
+		})
+	}
+}
+
 func TestAssessDockerRmStillHigh(t *testing.T) {
 	t.Parallel()
 	gen := generator.GeneratedCommand{

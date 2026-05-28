@@ -8,4 +8,4 @@ strategies:
   powershell:
     primary: "Get-Location"
   cmd:
-    primary: "echo %CD%"
+    primary: "cd"

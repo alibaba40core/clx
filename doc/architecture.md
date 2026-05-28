@@ -557,7 +557,6 @@ Shell hosts are allowed only when the script is built from rule-rendered argv: e
 **Notes on what is intentionally NOT in Phase 1:**
 
 - WSL-in-Windows routing to `wsl.exe`, arbitrary user `-Command` strings, CMD `cd` vs `pwd` semantics → later
-
 - LLM provider selection and AI fallback → **Phase 2**
 - Risk classification and access-level enforcement (Safe / Moderate / Full) → **Phase 3**
 - Interactive setup wizard (`clx init`) → **Phase 4** (silent install with safe defaults is sufficient for Phase 1)

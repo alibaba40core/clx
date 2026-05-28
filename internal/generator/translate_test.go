@@ -35,9 +35,9 @@ func TestTranslateSeedIntents(t *testing.T) {
 	ctx := context.Background()
 
 	cases := []struct {
-		name    string
+		name     string
 		resolved intent.ResolvedIntent
-		profile environment.SystemProfile
+		profile  environment.SystemProfile
 		wantArgv []string
 	}{
 		{
@@ -116,37 +116,37 @@ func TestTranslateSeedIntents(t *testing.T) {
 			wantArgv: []string{"ls", "-la", "/tmp"},
 		},
 		{
-			name: "list_dir ll bare defaults path",
+			name:     "list_dir ll bare defaults path",
 			resolved: intent.ResolvedIntent{Intent: "list_dir", Params: map[string]string{}},
 			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
 			wantArgv: []string{"ls", "-la", "."},
 		},
 		{
-			name: "show_ip windows",
+			name:     "show_ip windows",
 			resolved: intent.ResolvedIntent{Intent: "show_ip_addresses", Params: map[string]string{}},
 			profile:  environment.SystemProfile{OS: "windows", Shell: "powershell"},
 			wantArgv: []string{"ipconfig"},
 		},
 		{
-			name: "remove_file linux",
+			name:     "remove_file linux",
 			resolved: intent.ResolvedIntent{Intent: "remove_file", Params: map[string]string{"path": "test"}},
 			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
 			wantArgv: []string{"rm", "test"},
 		},
 		{
-			name: "current_dir linux",
+			name:     "current_dir linux",
 			resolved: intent.ResolvedIntent{Intent: "current_dir", Params: map[string]string{}},
 			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
 			wantArgv: []string{"pwd"},
 		},
 		{
-			name: "current_dir powershell",
+			name:     "current_dir powershell",
 			resolved: intent.ResolvedIntent{Intent: "current_dir", Params: map[string]string{}},
 			profile:  environment.SystemProfile{OS: "windows", Shell: "powershell"},
 			wantArgv: []string{"Get-Location"},
 		},
 		{
-			name: "disk_usage linux default path",
+			name:     "disk_usage linux default path",
 			resolved: intent.ResolvedIntent{Intent: "disk_usage", Params: map[string]string{}},
 			profile:  environment.SystemProfile{OS: "linux", Shell: "bash"},
 			wantArgv: []string{"df", "-h", "."},

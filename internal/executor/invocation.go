@@ -2,8 +2,6 @@ package executor
 
 import (
 	"fmt"
-	"os/exec"
-	"runtime"
 	"strings"
 
 	"github.com/alibaba40core/clx/internal/environment"
@@ -12,12 +10,7 @@ import (
 
 // FormatInvocation returns a display string for the effective subprocess invocation.
 func FormatInvocation(gen generator.GeneratedCommand, profile environment.SystemProfile) (string, error) {
-	host := gen.ExecHost
-	if host == generator.ExecDirect {
-		if _, err := exec.LookPath(gen.Argv[0]); err != nil && runtime.GOOS != "windows" {
-			host = generator.ExecPosix
-		}
-	}
+	host := effectiveExecHost(gen)
 	switch host {
 	case generator.ExecDirect:
 		return QuoteArgv(gen.Shell, gen.Argv), nil

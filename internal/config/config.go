@@ -2,13 +2,13 @@ package config
 
 // Config is the root CLX runtime configuration (see configs/config.example.yaml).
 type Config struct {
-	Provider  string           `yaml:"provider"`
-	Model     string           `yaml:"model"`
-	Providers ProvidersConfig  `yaml:"providers"`
-	Execution ExecutionConfig  `yaml:"execution"`
-	Safety    SafetyConfig     `yaml:"safety"`
-	Features  FeaturesConfig   `yaml:"features"`
-	Logging   LoggingConfig    `yaml:"logging"`
+	Provider  string          `yaml:"provider"`
+	Model     string          `yaml:"model"`
+	Providers ProvidersConfig `yaml:"providers"`
+	Execution ExecutionConfig `yaml:"execution"`
+	Safety    SafetyConfig    `yaml:"safety"`
+	Features  FeaturesConfig  `yaml:"features"`
+	Logging   LoggingConfig   `yaml:"logging"`
 }
 
 // ProvidersConfig holds per-provider settings.
@@ -39,9 +39,9 @@ type AzureProvider struct {
 
 // ExecutionConfig controls command execution behavior.
 type ExecutionConfig struct {
-	AutoExecute       bool `yaml:"auto_execute"`
-	Timeout           int  `yaml:"timeout"`
-	ShellIntegration  bool `yaml:"shell_integration"`
+	AutoExecute      bool `yaml:"auto_execute"`
+	Timeout          int  `yaml:"timeout"`
+	ShellIntegration bool `yaml:"shell_integration"`
 }
 
 // SafetyConfig controls safety defaults.
