@@ -79,6 +79,34 @@ intents:
           - netstat
           - -an
 
+  - intent: show_ip_addresses
+    examples:
+      - ip
+      - ip addr
+      - ip address
+      - show ip
+      - ipconfig
+    strategies:
+      linux:
+        argv:
+          - ip
+          - -br
+          - addr
+        requires_tool: ip
+        priority: 10
+      linux_ifconfig:
+        argv:
+          - ifconfig
+        requires_tool: ifconfig
+        priority: 0
+      darwin:
+        argv:
+          - ifconfig
+        requires_tool: ifconfig
+      windows:
+        argv:
+          - ipconfig
+
   - intent: traceroute_host
     examples:
       - traceroute {{host}}

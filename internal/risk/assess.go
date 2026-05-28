@@ -20,6 +20,7 @@ var lowVerbs = map[string]struct{}{
 	"get-date": {}, "get-command": {}, "get-uptime": {},
 	"docker": {}, "curl": {}, "wget": {},
 	"ping": {}, "ss": {}, "netstat": {}, "traceroute": {}, "tracert": {},
+	"ipconfig": {}, "ifconfig": {}, "ip": {},
 }
 
 // gitReadOnlySubverbs lists git subcommands whose default behavior does not
@@ -40,10 +41,25 @@ var dockerReadOnlySubverbs = map[string]struct{}{
 
 var destructive = []string{"rm", "shutdown", "format", "del /f", "remove-item", "rmdir"}
 
+// destructiveArgv classifies argv[0] as High regardless of joined command text.
+var destructiveArgv = map[string]struct{}{
+	"rm": {}, "rmdir": {}, "del": {}, "rd": {}, "remove-item": {},
+}
+
 // Assess classifies a generated command (Phase 1.6 heuristic stub).
 func Assess(ctx context.Context, gen generator.GeneratedCommand) (RiskAssessment, error) {
 	if err := ctx.Err(); err != nil {
 		return RiskAssessment{}, err
+	}
+
+	if len(gen.Argv) > 0 {
+		if _, ok := destructiveArgv[strings.ToLower(gen.Argv[0])]; ok {
+			return RiskAssessment{
+				Level:                High,
+				Reason:               "destructive command verb",
+				RequiresConfirmation: true,
+			}, nil
+		}
 	}
 
 	joined := strings.ToLower(gen.Command)

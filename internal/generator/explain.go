@@ -3,7 +3,10 @@ package generator
 var intentExplanations = map[string]string{
 	"find_file":           "Search for a file by name",
 	"search_text_in_file": "Search for text inside a file",
-	"list_dir":            "List directory contents",
+	"list_dir":            "List directory contents (ls/ll/dir)",
+	"remove_file":         "Delete a file",
+	"remove_dir":          "Delete a directory",
+	"show_ip_addresses":   "Show local IP addresses",
 	"current_dir":         "Print current working directory",
 	"disk_usage":          "Show disk usage",
 	"git_status":          "Show git working tree status",
