@@ -1,27 +1,210 @@
-intent: find_file
-examples:
-  - locate {{filename}}
-  - find file {{filename}}
-  - search for {{filename}}
-  - locate {{filename}} in {{path}}
-  - find file {{filename}} in {{path}}
-  - search for {{filename}} in {{path}}
-strategies:
-  linux:
-    primary: "find {{path}} -name {{filename}}"
-  linux_fd:
-    primary: "fd -t f -g {{filename}} {{path}}"
-    requires_tool: fd
-    priority: 10
-  powershell:
-    argv:
-      - Get-ChildItem
-      - -Path
-      - {{path}}
-      - -Recurse
-      - -Filter
-      - {{filename}}
-      - -ErrorAction
-      - SilentlyContinue
-  cmd:
-    primary: "dir /s {{path}}\\{{filename}}"
+# Filesystem seed intents.
+#
+# Cross-platform file operations use argv strategies per safe-command-execution.
+# Mutating intents (make_dir, create_empty_file, copy_file, move_file) are
+# intentionally absent from lowVerbs in internal/risk/assess.go so they
+# require confirmation before execution.
+intents:
+  - intent: find_file
+    examples:
+      - locate {{filename}}
+      - find file {{filename}}
+      - search for {{filename}}
+      - locate {{filename}} in {{path}}
+      - find file {{filename}} in {{path}}
+      - search for {{filename}} in {{path}}
+    strategies:
+      linux:
+        argv:
+          - find
+          - {{path}}
+          - -name
+          - {{filename}}
+      linux_fd:
+        argv:
+          - fd
+          - -t
+          - f
+          - -g
+          - {{filename}}
+          - {{path}}
+        requires_tool: fd
+        priority: 10
+      powershell:
+        argv:
+          - Get-ChildItem
+          - -Path
+          - {{path}}
+          - -Recurse
+          - -Filter
+          - {{filename}}
+          - -ErrorAction
+          - SilentlyContinue
+      cmd:
+        argv:
+          - dir
+          - /s
+          - {{path}}\{{filename}}
+
+  - intent: list_dir
+    examples:
+      - ls {{path}}
+      - ls -la {{path}}
+      - list directory {{path}}
+      - dir {{path}}
+    strategies:
+      linux:
+        argv:
+          - ls
+          - -la
+          - {{path}}
+      powershell:
+        argv:
+          - Get-ChildItem
+          - {{path}}
+      cmd:
+        argv:
+          - dir
+          - {{path}}
+
+  - intent: view_file
+    examples:
+      - cat {{file}}
+      - show {{file}}
+      - type {{file}}
+    strategies:
+      linux:
+        argv:
+          - cat
+          - {{file}}
+      powershell:
+        argv:
+          - Get-Content
+          - {{file}}
+      cmd:
+        argv:
+          - type
+          - {{file}}
+
+  - intent: head_file
+    examples:
+      - head -n {{n}} {{file}}
+      - head {{n}} {{file}}
+    strategies:
+      linux:
+        argv:
+          - head
+          - -n
+          - {{n}}
+          - {{file}}
+      powershell:
+        argv:
+          - Get-Content
+          - {{file}}
+          - -TotalCount
+          - {{n}}
+
+  - intent: tail_file
+    examples:
+      - tail -n {{n}} {{file}}
+      - tail {{n}} {{file}}
+    strategies:
+      linux:
+        argv:
+          - tail
+          - -n
+          - {{n}}
+          - {{file}}
+      powershell:
+        argv:
+          - Get-Content
+          - {{file}}
+          - -Tail
+          - {{n}}
+
+  - intent: make_dir
+    examples:
+      - mkdir {{path}}
+      - mkdir -p {{path}}
+      - create directory {{path}}
+    strategies:
+      linux:
+        argv:
+          - mkdir
+          - -p
+          - {{path}}
+      powershell:
+        argv:
+          - New-Item
+          - -ItemType
+          - Directory
+          - -Path
+          - {{path}}
+          - -Force
+      cmd:
+        argv:
+          - mkdir
+          - {{path}}
+
+  - intent: create_empty_file
+    examples:
+      - touch {{file}}
+      - create empty file {{file}}
+    strategies:
+      linux:
+        argv:
+          - touch
+          - {{file}}
+      powershell:
+        argv:
+          - New-Item
+          - -ItemType
+          - File
+          - -Path
+          - {{file}}
+
+  - intent: copy_file
+    examples:
+      - cp {{source}} {{dest}}
+      - copy {{source}} to {{dest}}
+    strategies:
+      linux:
+        argv:
+          - cp
+          - {{source}}
+          - {{dest}}
+      powershell:
+        argv:
+          - Copy-Item
+          - -Path
+          - {{source}}
+          - -Destination
+          - {{dest}}
+      cmd:
+        argv:
+          - copy
+          - {{source}}
+          - {{dest}}
+
+  - intent: move_file
+    examples:
+      - mv {{source}} {{dest}}
+      - move {{source}} to {{dest}}
+    strategies:
+      linux:
+        argv:
+          - mv
+          - {{source}}
+          - {{dest}}
+      powershell:
+        argv:
+          - Move-Item
+          - -Path
+          - {{source}}
+          - -Destination
+          - {{dest}}
+      cmd:
+        argv:
+          - move
+          - {{source}}
+          - {{dest}}

@@ -1,0 +1,93 @@
+# System information seed intents.
+#
+# Read-only introspection commands. system_uptime has no clean Windows
+# equivalent in the seed set; uptime is linux/darwin only.
+intents:
+  - intent: current_user
+    examples:
+      - whoami
+      - current user
+    strategies:
+      default:
+        argv:
+          - whoami
+
+  - intent: current_date
+    examples:
+      - date
+      - current date
+      - what time is it
+    strategies:
+      linux:
+        argv:
+          - date
+      powershell:
+        argv:
+          - Get-Date
+      cmd:
+        argv:
+          - date
+          - /t
+
+  - intent: system_uptime
+    examples:
+      - uptime
+      - system uptime
+    strategies:
+      linux:
+        argv:
+          - uptime
+      darwin:
+        argv:
+          - uptime
+
+  - intent: list_env
+    examples:
+      - env
+      - print environment
+      - list environment variables
+    strategies:
+      linux:
+        argv:
+          - env
+      powershell:
+        argv:
+          - Get-ChildItem
+          - env:
+
+  - intent: which_command
+    examples:
+      - which {{command}}
+      - where is {{command}}
+      - find command {{command}}
+    strategies:
+      linux:
+        argv:
+          - which
+          - {{command}}
+      powershell:
+        argv:
+          - Get-Command
+          - {{command}}
+      cmd:
+        argv:
+          - where
+          - {{command}}
+
+  - intent: print_text
+    examples:
+      - echo {{text}}
+      - print {{text}}
+    strategies:
+      linux:
+        argv:
+          - echo
+          - {{text}}
+      powershell:
+        argv:
+          - Write-Output
+          - {{text}}
+      cmd:
+        argv:
+          - echo
+          - {{text}}

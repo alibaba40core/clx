@@ -15,6 +15,9 @@ var lowVerbs = map[string]struct{}{
 	"ls": {}, "grep": {}, "rg": {}, "pwd": {}, "df": {}, "du": {}, "find": {}, "fd": {},
 	"dir": {}, "echo": {}, "cat": {}, "head": {}, "tail": {}, "git": {},
 	"get-location": {}, "get-childitem": {}, "select-string": {}, "findstr": {},
+	"get-content": {}, "type": {}, "write-output": {},
+	"whoami": {}, "date": {}, "env": {}, "which": {}, "where": {}, "uptime": {},
+	"get-date": {}, "get-command": {}, "get-uptime": {},
 	"docker": {}, "curl": {}, "wget": {},
 	"ping": {}, "ss": {}, "netstat": {}, "traceroute": {}, "tracert": {},
 }
