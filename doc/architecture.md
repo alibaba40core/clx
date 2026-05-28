@@ -121,6 +121,8 @@ type Request struct {
 }
 ```
 
+**Alias expansion (Phase 3.5+):** before classification, the parser consults `internal/aliases` and, on a hit for the first token, rewrites `RawInput` with the alias value before continuing. Expansion is single-level (no alias-of-alias chains). See [§3.16](#316-aliases--internalaliases).
+
 ---
 
 ### 3.3 Intent Resolver — `internal/intent`
@@ -334,9 +336,9 @@ Every AI request automatically injects the system profile as grounding context.
 
 **Responsibility:** Lightweight session-scoped context for follow-up commands.
 
-**Stores:** previous commands, resolved translations, aliases, session preferences.
+**Stores:** previous commands, resolved translations, session preferences.
 
-**Does NOT store:** filesystem knowledge, embeddings, long-term autonomous planning.
+**Does NOT store:** filesystem knowledge, embeddings, long-term autonomous planning, user-global aliases (see [§3.16](#316-aliases--internalaliases)).
 
 **Storage:** `~/.clx/sessions/<session_id>.json`
 
@@ -416,6 +418,45 @@ logging:
 
 ---
 
+### 3.16 Aliases — `internal/aliases`
+
+**Responsibility:** Persistent, user-global input shortcuts. Distinct from `internal/memory` (which is session-scoped and ephemeral).
+
+**Storage:** `~/.clx/aliases.yaml` (flat YAML, atomic tmp+rename writes).
+
+**Schema:**
+
+```yaml
+schema_version: 1
+aliases:
+  - name: prd
+    value: "cd /abc/clx/prd"
+  - name: gst
+    value: "git status"
+```
+
+**Lifecycle:**
+
+| Operation | CLI | Behavior |
+|---|---|---|
+| Create | `clx alias set <name> "<value>"` | Warn if `<name>` collides with a known shell verb or built-in rule example head. `--force` to override. |
+| List | `clx alias list` | Print all aliases. |
+| Delete | `clx alias rm <name>` | Remove from `aliases.yaml`. |
+| Invoke | `clx <name> [args]` | Parser-stage rewrite. Alias value replaces `<name>` in the input, then continues through the normal pipeline. |
+
+**Pipeline placement:** alias expansion happens inside the parser (§3.2), **before** intent resolution. The expanded value flows through the full `intent → generator → risk → policy → executor` chain — aliases get **zero** privileged path and never bypass safety gates (per [`.cursor/rules/safe-command-execution.mdc`](../.cursor/rules/safe-command-execution.mdc)).
+
+**Collision policy:** aliases always win over rules at runtime (shell-alias semantics). The warning at `alias set` time is the user's one chance to catch shadowing; once set, no invoke-time flag is required.
+
+**Bounds (config-driven, default in `config.yaml` under `aliases:`):**
+
+- `max_aliases: 256`
+- Load lazily on first parser invocation, cache for the process lifetime, no background watcher (per [`.cursor/rules/runtime-footprint.mdc`](../.cursor/rules/runtime-footprint.mdc)).
+
+**Does NOT do:** function-style aliases with positional substitution, regex aliases, alias-of-alias chains (resolved one level only — explicit by design to prevent infinite loops and surprise).
+
+---
+
 ## 4. Runtime directory layout (`~/.clx/`)
 
 Created on first run / install — **not committed to the repo.**
@@ -423,14 +464,15 @@ Created on first run / install — **not committed to the repo.**
 ```
 ~/.clx/
 ├── config.yaml
+├── aliases.yaml       # user-global alias shortcuts (see §3.16)
 ├── system_profile.json
 ├── cache/
 ├── memory/
 ├── sessions/
 ├── policies/
 │   └── policy.yaml
-├── rules/           # user rule overrides (*.yaml; same intent name wins over built-in)
-├── skills/          # user skill pack overrides (*/intents.yaml)
+├── rules/             # user rule overrides (*.yaml; same intent name wins over built-in)
+├── skills/            # user skill pack overrides (*/intents.yaml)
 └── logs/
 ```
 
@@ -459,6 +501,7 @@ clx.ai/
 │   │   ├── openai/
 │   │   └── azure/
 │   ├── memory/
+│   ├── aliases/
 │   ├── cache/
 │   ├── skills/               # skill loader (delegates to intent)
 │   ├── builtin/              # embedded built-in rules + skills (//go:embed source)
@@ -490,7 +533,8 @@ clx.ai/
 | **Phase 1 — Core Engine** | Rules-first deterministic pipeline (no AI, no policy enforcement) — see [§6.1](#61-phase-1-sub-phases) for breakdown | `config`, `logging`, `environment`, `parser`, `intent` (rules path), `skills` (loader), `capabilities`, `generator`, `executor` (basic), `cmd/clx` |
 | **Phase 2 — AI Integration** | Ollama + OpenAI providers, AI fallback, explanations | `providers/*`, `intent` (AI path), `cache` |
 | **Phase 3 — Safety** | Risk engine, policy engine, dry-run, confirmations, access levels | `risk`, `policy`, `executor` (safety hooks) |
-| **Phase 4 — Advanced UX** | Shell interception, auto-fix, aliases, session context, interactive `clx init` wizard | `memory`, `skills`, shell hooks |
+| **Phase 3.5 — Aliases** | Persistent user-global aliases in `~/.clx/aliases.yaml`. `clx alias set/list/rm` subcommand, parser-stage expansion (alias value flows through full risk/policy/exec chain), set-time collision warning against shell verbs and built-in rule example heads. No dependency on `internal/memory` or shell hooks — ships as a self-contained slice between safety and advanced UX. See [§3.16](#316-aliases--internalaliases). | `internal/aliases`, `internal/parser` (expansion hook), `cmd/clx` (`alias` subcommand) |
+| **Phase 4 — Advanced UX** | Shell interception, auto-fix, session context, interactive `clx init` wizard | `memory`, `skills`, shell hooks |
 
 ### 6.1 Phase 1 sub-phases
 
