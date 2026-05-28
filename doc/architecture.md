@@ -376,12 +376,15 @@ skills/git/
 
 ```yaml
 provider: ollama
-model: llama3
+# Default model for the active provider.
+# Tested alternates for Ollama: qwen3:1.7b (lightest), qwen2.5:7b (quality), llama3.1:8b (Meta).
+model: qwen3:4b
 
 providers:
   ollama:
     host: "http://localhost:11434"
-    model: llama3
+    # Tested alternates: qwen3:1.7b, qwen2.5:7b, llama3.1:8b
+    model: qwen3:4b
   openai:
     api_key: ""
     model: gpt-4.1-mini

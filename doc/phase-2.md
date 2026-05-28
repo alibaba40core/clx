@@ -72,6 +72,8 @@ below before Phase 2 started. **Do not redo any of this.**
 | **D1** | **One global prompt** for AI resolution. Per-domain prompts (`skills/<domain>/prompts.yaml`) deferred to Phase 4. | Single prompt is a smaller surface area to reason about and to red-team. The closed-vocabulary intent list grounds it sufficiently for V1. |
 | **D2** | **Hard-fail when the configured provider is unavailable.** No cross-provider fallback in 2.1. | Predictable UX. A user who configured `provider: ollama` deserves a clear error if Ollama is down — not silent escalation to a cloud API they didn't ask for. Cross-provider fallback opt-in lands in 2.3. |
 | **D3** | **`--provider` flag ships in 2.1**, even though only Ollama is implemented. | Stable CLI surface from day one. `--provider openai` returns a clean "not implemented yet" error in 2.1 and starts working in 2.3 without a flag rename. |
+| **D4** | **Default Ollama model is `qwen3:4b`** (Apache 2.0, ~3 GB Q4, native tool/JSON support). Tested alternates documented in `internal/config/defaults.go` and `configs/config.example.yaml`: `qwen3:1.7b` (lightest), `qwen2.5:7b` (quality bump), `llama3.1:8b` (Meta-ecosystem). | Closed-vocabulary intent extraction is a classification + light entity-extraction task. `qwen3:4b` matches Qwen 2.5 7B quality at ~half the size, has native tool calling, and pairs well with Ollama's schema-constrained structured outputs (the real hallucination defense). Avoided as defaults: `llama3.2:3b` (unreliable for >1 param extraction), `phi3.5:mini` (hallucinates tool args), `gemma2:*` (weak tool calling), `llama3` (predates the modern tool-use fine-tune line). |
+| **D5** | **Schema-constrained structured outputs (`format: <jsonschema>`) from day one.** Schema built dynamically from `Engine.KnownIntents()` + `Rule.Params` in 2.1.3 (`internal/providers/schema.go`). `ValidateResolved` remains defense-in-depth. | Grammar-constrained decoding makes out-of-vocab intents and undeclared param keys physically impossible at the wire, not only rejected at the gate. |
 
 ---
 
@@ -147,22 +149,24 @@ Each task is one commit. Each commit must compile and keep `go test -race ./...`
 green. Mark the box when the commit lands on `development`.
 
 #### 2.1.1 Provider interface and types
-- [ ] Add `internal/providers/provider.go` with `Provider`, `IntentRequest`,
+- [x] Add `internal/providers/provider.go` with `Provider`, `IntentRequest`,
       `IntentResponse`, and typed errors (`ErrUnavailable`, `ErrTimeout`,
       `ErrInvalidResp`, `ErrNoMatch`).
-- [ ] No imports from `internal/memory` (provider layer must stay stateless).
-- [ ] No `init()`, no goroutines, no I/O.
+- [x] No imports from `internal/memory` (provider layer must stay stateless).
+- [x] No `init()`, no goroutines, no I/O.
 
 #### 2.1.2 Single global prompt builder
-- [ ] Add `internal/providers/prompt.go` exporting `BuildPrompt(req) (system, user string)`.
-- [ ] System message is a package-level constant (computed via `sync.Once` if templated).
-- [ ] User message includes: OS, shell, available tools, allowed intents (capped at 256), raw input.
-- [ ] Whole prompt capped at 8 KB pre-send; over-cap returns a clear error.
-- [ ] `prompt_test.go`: profile fields present, intents present, bounded size, deterministic output.
+- [x] Add `internal/providers/prompt.go` exporting `BuildPrompt(req) (system, user string)`.
+- [x] System message is a package-level constant (computed via `sync.Once` if templated).
+- [x] User message includes: OS, shell, available tools, allowed intents (capped at 256), raw input.
+- [x] Whole prompt capped at 8 KB pre-send; over-cap returns a clear error.
+- [x] `prompt_test.go`: profile fields present, intents present, bounded size, deterministic output.
 
 #### 2.1.3 Ollama HTTP client
 - [ ] Add `internal/providers/ollama/client.go`. Endpoint: `POST {host}/api/chat`,
-      `format: "json"`, `stream: false`, `temperature: 0.0`.
+      `format: <jsonschema>` (built by `internal/providers/schema.go` from
+      `IntentRequest.KnownIntents` + `IntentRequest.RuleParams`), `stream: false`,
+      `temperature: 0.0`.
 - [ ] `http.Client` with explicit `Timeout`. **No** `http.DefaultClient`.
 - [ ] User-Agent: `clx/<cliversion.Version>`.
 - [ ] Response read via `io.LimitReader(body, 64*1024)` — never `io.ReadAll`.
@@ -345,7 +349,7 @@ These apply to every commit in Phase 2. They mirror the workspace rules
 
 | # | Item | Owner | Status |
 |---|------|-------|--------|
-| R1 | Ollama `/api/chat` `format: "json"` stability on older Ollama versions. Fallback: `/api/generate` with one-shot prompt (1-line change in `client.go`). | TBD | Open |
+| R1 | Ollama `/api/chat` schema-constrained `format` requires Ollama ≥ 0.5. Fallback: `format: "json"` and rely on `ValidateResolved`; older fallback: `/api/generate` with one-shot prompt (1-line change in `client.go`). | TBD | Open |
 | R2 | Cold-start budget impact of importing `net/http` (~few hundred KB binary growth). Confirm with `make budgets` after 2.1.7. | TBD | Open |
 | R3 | Confidence threshold of 0.5 is a guess. Tune after first round of real Ollama responses. | TBD | Open |
 | R4 | `cfg.Provider == "ollama"` but `Ollama.Host` empty: factory should fail with a clear "ollama.host required" message, not crash. | Covered in 2.1.5 | Open |
