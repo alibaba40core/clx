@@ -65,3 +65,40 @@ func validateParams(rule Rule, params map[string]string) error {
 	}
 	return nil
 }
+
+// validateResolvedParams checks params for externally-sourced resolutions (AI, cache).
+// When rule.Params is empty, allowed keys are derived from {{placeholders}} in examples.
+func validateResolvedParams(rule Rule, params map[string]string) error {
+	if err := validateParams(rule, params); err != nil {
+		return err
+	}
+	if len(rule.Params) > 0 {
+		return nil
+	}
+	allowed, err := paramNamesFromExamples(rule)
+	if err != nil {
+		return err
+	}
+	for k := range params {
+		if _, ok := allowed[k]; !ok {
+			return fmt.Errorf("unexpected param %q", k)
+		}
+	}
+	return nil
+}
+
+func paramNamesFromExamples(rule Rule) (map[string]struct{}, error) {
+	allowed := make(map[string]struct{})
+	for _, ex := range rule.Examples {
+		tokens, err := tokenize.Tokenize(ex)
+		if err != nil {
+			return nil, err
+		}
+		for _, tok := range tokens {
+			if name, ok := paramName(tok); ok {
+				allowed[name] = struct{}{}
+			}
+		}
+	}
+	return allowed, nil
+}
