@@ -125,7 +125,7 @@ func ValidateParamValue(key, value string) error {
 		return nil
 	}
 	switch key {
-	case "path", "file", "filename":
+	case "path", "file", "filename", "source", "dest", "destination":
 		opts, err := PathOptionsFromEnv()
 		if err != nil {
 			return err

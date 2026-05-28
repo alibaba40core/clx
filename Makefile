@@ -14,7 +14,11 @@ help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
 build: ## Build clx and clxmax binaries
+ifeq ($(OS),Windows_NT)
+	@if not exist "$(BIN_DIR)" mkdir "$(BIN_DIR)"
+else
 	@mkdir -p $(BIN_DIR)
+endif
 	go build $(GOFLAGS) -ldflags="$(LDFLAGS)" -o $(CLX_BIN) ./cmd/clx
 	go build $(GOFLAGS) -ldflags="$(LDFLAGS)" -o $(CLXMAX_BIN) ./cmd/clxmax
 
