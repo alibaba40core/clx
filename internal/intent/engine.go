@@ -91,6 +91,28 @@ func mergeRules(rules []Rule) []Rule {
 	return out
 }
 
+// KnownIntents returns the set of intent names the engine resolves.
+// AI providers use this as their closed vocabulary, per
+// .cursor/rules/safe-command-execution.mdc.
+func (e *Engine) KnownIntents() []string {
+	names := make([]string, 0, len(e.rules))
+	for _, r := range e.rules {
+		names = append(names, r.Intent)
+	}
+	return names
+}
+
+// ValidateResolved checks an externally-sourced ResolvedIntent against the
+// rule schema: intent name must exist; params must match declared schema.
+// Call for every non-Rule source before generator.Translate.
+func (e *Engine) ValidateResolved(r ResolvedIntent) error {
+	rule, ok := e.RuleForIntent(r.Intent)
+	if !ok {
+		return fmt.Errorf("unknown intent %q", r.Intent)
+	}
+	return validateResolvedParams(rule, r.Params)
+}
+
 // RuleForIntent returns the rule definition for an intent name.
 func (e *Engine) RuleForIntent(name string) (Rule, bool) {
 	for _, r := range e.rules {

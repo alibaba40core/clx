@@ -4,6 +4,8 @@ import (
 	"io"
 	"log/slog"
 	"os"
+
+	"github.com/alibaba40core/clx/internal/intent"
 )
 
 // Options configures pipeline execution.
@@ -15,6 +17,10 @@ type Options struct {
 	Stdin   io.Reader
 	Stdout  io.Writer
 	Stderr  io.Writer
+
+	// AIResolver, when non-nil, runs after the rule engine misses.
+	// Phase 2.1 wires the Ollama/OpenAI provider here.
+	AIResolver intent.Resolver
 }
 
 // WithDefaults fills nil writers and stdin.

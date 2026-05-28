@@ -5,6 +5,9 @@ type IntentSource int
 
 const (
 	SourceRule IntentSource = iota
+	SourceCache
+	SourceAI
+	SourceMemory // Phase 4
 )
 
 // String returns the source name.
@@ -12,6 +15,12 @@ func (s IntentSource) String() string {
 	switch s {
 	case SourceRule:
 		return "Rule"
+	case SourceCache:
+		return "Cache"
+	case SourceAI:
+		return "AI"
+	case SourceMemory:
+		return "Memory"
 	default:
 		return "Unknown"
 	}

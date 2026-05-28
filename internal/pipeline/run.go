@@ -39,7 +39,8 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 		return 1, err
 	}
 
-	resolved, err := eng.Resolve(ctx, req)
+	resolvers := buildResolvers(eng, opts)
+	resolved, err := resolveChain(ctx, req, resolvers, opts.Logger)
 	if err != nil {
 		if errors.Is(err, intent.ErrNotFound) {
 			if req.InputType == parser.InputNaturalLanguage {
@@ -51,6 +52,20 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 		}
 		fmt.Fprintf(opts.Stderr, "intent: %v\n", err)
 		return 1, err
+	}
+
+	if resolved.Source != intent.SourceRule {
+		if err := eng.ValidateResolved(resolved); err != nil {
+			if opts.Logger != nil {
+				opts.Logger.Warn("non-rule resolver output rejected",
+					"source", resolved.Source.String(),
+					"intent", resolved.Intent,
+					"err", err,
+				)
+			}
+			fmt.Fprintf(opts.Stderr, "untrusted resolver output rejected: %v\n", err)
+			return 1, err
+		}
 	}
 
 	if err := executor.ValidateIntentParams(resolved.Params); err != nil {
