@@ -2,6 +2,7 @@ package executor
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -15,6 +16,17 @@ var (
 	ErrMissingPolicy = errors.New("executor: missing policy result")
 	ErrEmptyArgv     = errors.New("executor: empty argv")
 )
+
+// TimeoutError is returned by Run when the configured execution.timeout elapses
+// before the child process exits. It is distinct from a real non-zero exit so
+// the CLI can render a useful message instead of "exit status 1".
+type TimeoutError struct {
+	After time.Duration
+}
+
+func (e *TimeoutError) Error() string {
+	return fmt.Sprintf("timed out after %s (configure execution.timeout)", e.After)
+}
 
 // RunConfig holds execution parameters.
 type RunConfig struct {

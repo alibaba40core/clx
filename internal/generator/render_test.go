@@ -63,6 +63,97 @@ func TestRenderTokenizedPrimary(t *testing.T) {
 	}
 }
 
+func TestRenderFindFileDefaultPath(t *testing.T) {
+	t.Parallel()
+	resolved := intent.ResolvedIntent{
+		Intent: "find_file",
+		Params: map[string]string{"filename": "clx.exe"},
+	}
+	cases := []struct {
+		key      string
+		strategy intent.Strategy
+		want     []string
+	}{
+		{
+			key:      "linux",
+			strategy: intent.Strategy{Primary: "find {{path}} -name {{filename}}"},
+			want:     []string{"find", ".", "-name", "clx.exe"},
+		},
+		{
+			key:      "linux_fd",
+			strategy: intent.Strategy{Primary: "fd -t f -g {{filename}} {{path}}"},
+			want:     []string{"fd", "-t", "f", "-g", "clx.exe", "."},
+		},
+		{
+			key: "powershell",
+			strategy: intent.Strategy{
+				Argv: []string{
+					"Get-ChildItem", "-Path", "{{path}}", "-Recurse", "-Filter", "{{filename}}",
+					"-ErrorAction", "SilentlyContinue",
+				},
+			},
+			want: []string{
+				"Get-ChildItem", "-Path", ".", "-Recurse", "-Filter", "clx.exe",
+				"-ErrorAction", "SilentlyContinue",
+			},
+		},
+		{
+			key:      "cmd",
+			strategy: intent.Strategy{Primary: "dir /s {{path}}\\{{filename}}"},
+			want:     []string{"dir", "/s", ".\\clx.exe"},
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.key, func(t *testing.T) {
+			t.Parallel()
+			selected := capabilities.SelectedStrategy{Key: tc.key, Strategy: tc.strategy}
+			got, err := Render(context.Background(), resolved, selected, environment.SystemProfile{Shell: tc.key})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(got.Argv) != len(tc.want) {
+				t.Fatalf("argv %v want %v", got.Argv, tc.want)
+			}
+			for i := range tc.want {
+				if got.Argv[i] != tc.want[i] {
+					t.Fatalf("argv[%d]=%q want %q (full %v)", i, got.Argv[i], tc.want[i], got.Argv)
+				}
+			}
+		})
+	}
+}
+
+func TestRenderFindFileExplicitPathPowerShell(t *testing.T) {
+	t.Parallel()
+	resolved := intent.ResolvedIntent{
+		Intent: "find_file",
+		Params: map[string]string{"filename": "clx.exe", "path": `C:\foo`},
+	}
+	selected := capabilities.SelectedStrategy{
+		Key: "powershell",
+		Strategy: intent.Strategy{
+			Argv: []string{
+				"Get-ChildItem", "-Path", "{{path}}", "-Recurse", "-Filter", "{{filename}}",
+				"-ErrorAction", "SilentlyContinue",
+			},
+		},
+	}
+	got, err := Render(context.Background(), resolved, selected, environment.SystemProfile{Shell: "powershell"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{
+		"Get-ChildItem", "-Path", `C:\foo`, "-Recurse", "-Filter", "clx.exe",
+		"-ErrorAction", "SilentlyContinue",
+	}
+	for i := range want {
+		if got.Argv[i] != want[i] {
+			t.Fatalf("argv[%d]=%q want %q (full %v)", i, got.Argv[i], want[i], got.Argv)
+		}
+	}
+}
+
 func TestRenderDiskUsageDefaultPath(t *testing.T) {
 	t.Parallel()
 	resolved := intent.ResolvedIntent{Intent: "disk_usage", Params: map[string]string{}}

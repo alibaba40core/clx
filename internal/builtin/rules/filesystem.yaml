@@ -3,18 +3,25 @@ examples:
   - locate {{filename}}
   - find file {{filename}}
   - search for {{filename}}
+  - locate {{filename}} in {{path}}
+  - find file {{filename}} in {{path}}
+  - search for {{filename}} in {{path}}
 strategies:
   linux:
-    primary: "find . -name {{filename}}"
+    primary: "find {{path}} -name {{filename}}"
   linux_fd:
-    primary: "fd . -t f -g {{filename}}"
+    primary: "fd -t f -g {{filename}} {{path}}"
     requires_tool: fd
     priority: 10
   powershell:
     argv:
       - Get-ChildItem
+      - -Path
+      - {{path}}
       - -Recurse
       - -Filter
       - {{filename}}
+      - -ErrorAction
+      - SilentlyContinue
   cmd:
-    primary: "dir /s {{filename}}"
+    primary: "dir /s {{path}}\\{{filename}}"

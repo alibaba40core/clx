@@ -74,7 +74,10 @@ func TestTranslateSeedIntents(t *testing.T) {
 				Params: map[string]string{"filename": "help.txt"},
 			},
 			profile: environment.SystemProfile{OS: "windows", Shell: "powershell"},
-			wantArgv: []string{"Get-ChildItem", "-Recurse", "-Filter", "help.txt"},
+			wantArgv: []string{
+				"Get-ChildItem", "-Path", ".", "-Recurse", "-Filter", "help.txt",
+				"-ErrorAction", "SilentlyContinue",
+			},
 		},
 		{
 			name: "find_file linux find",
@@ -92,7 +95,7 @@ func TestTranslateSeedIntents(t *testing.T) {
 				Params: map[string]string{"filename": "help.txt"},
 			},
 			profile:  environment.SystemProfile{OS: "linux", Shell: "bash", AvailableTools: []string{"fd"}},
-			wantArgv: []string{"fd", ".", "-t", "f", "-g", "help.txt"},
+			wantArgv: []string{"fd", "-t", "f", "-g", "help.txt", "."},
 		},
 		{
 			name: "list_dir powershell",

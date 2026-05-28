@@ -29,6 +29,25 @@ func TestResolveFindFile(t *testing.T) {
 	}
 }
 
+func TestResolveFindFileWithPath(t *testing.T) {
+	t.Parallel()
+	eng := testEngine(t)
+	req := parser.Request{Tokens: []string{"locate", "clx.exe", "in", `C:\foo`}}
+	got, err := eng.Resolve(context.Background(), req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Intent != "find_file" {
+		t.Fatalf("intent: got %q want find_file", got.Intent)
+	}
+	if got.Params["filename"] != "clx.exe" {
+		t.Fatalf("filename: got %q want clx.exe", got.Params["filename"])
+	}
+	if got.Params["path"] != `C:\foo` {
+		t.Fatalf("path: got %q want C:\\foo", got.Params["path"])
+	}
+}
+
 func TestResolveSearchText(t *testing.T) {
 	t.Parallel()
 	eng := testEngine(t)

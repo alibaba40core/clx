@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -49,6 +50,9 @@ func Run(ctx context.Context, gen generator.GeneratedCommand, opts ...Option) er
 	cmd.Stderr = cfg.Stderr
 
 	if err := cmd.Run(); err != nil {
+		if errors.Is(runCtx.Err(), context.DeadlineExceeded) {
+			return &TimeoutError{After: cfg.Timeout}
+		}
 		return err
 	}
 	return nil
