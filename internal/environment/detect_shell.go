@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+// parentProcessBaseNameFunc is swappable in tests to avoid depending on the
+// real parent process of the go test runner on Windows.
+var parentProcessBaseNameFunc = parentProcessBaseName
+
 func detectShell() string {
 	if runtime.GOOS == "windows" {
 		return detectShellWindows()
@@ -36,7 +40,7 @@ func detectShellUnix() string {
 
 func detectShellWindows() string {
 	// Prefer the shell that launched this process (cmd.exe vs powershell.exe).
-	if base := parentProcessBaseName(); base != "" {
+	if base := parentProcessBaseNameFunc(); base != "" {
 		if shell := shellFromParentExecutable(base); shell != "" {
 			return shell
 		}

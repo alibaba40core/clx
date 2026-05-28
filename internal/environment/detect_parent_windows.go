@@ -32,8 +32,8 @@ var (
 	modKernel32                  = syscall.NewLazyDLL("kernel32.dll")
 	procCreateToolhelp32Snapshot = modKernel32.NewProc("CreateToolhelp32Snapshot")
 	procProcess32FirstW          = modKernel32.NewProc("Process32FirstW")
-	procProcess32NextW             = modKernel32.NewProc("Process32NextW")
-	procCloseHandle                = modKernel32.NewProc("CloseHandle")
+	procProcess32NextW           = modKernel32.NewProc("Process32NextW")
+	procCloseHandle              = modKernel32.NewProc("CloseHandle")
 )
 
 // parentProcessBaseName returns the executable file name of this process's parent.

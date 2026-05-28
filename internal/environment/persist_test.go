@@ -14,14 +14,14 @@ func TestSaveLoadStoreRoundTrip(t *testing.T) {
 	path := filepath.Join(dir, "system_profile.json")
 
 	orig := SystemProfile{
-		OS:             "linux",
-		OSVersion:      "22.04",
-		Shell:          "bash",
-		ShellVersion:   "5.1",
-		Terminal:       "unknown",
+		OS:              "linux",
+		OSVersion:       "22.04",
+		Shell:           "bash",
+		ShellVersion:    "5.1",
+		Terminal:        "unknown",
 		PackageManagers: []string{"apt"},
-		AvailableTools: []string{"git", "go"},
-		Paths:          map[string]string{"home": "/home/user", "workspace": "/tmp"},
+		AvailableTools:  []string{"git", "go"},
+		Paths:           map[string]string{"home": "/home/user", "workspace": "/tmp"},
 	}
 
 	store := NewProfileStore()

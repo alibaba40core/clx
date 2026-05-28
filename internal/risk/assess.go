@@ -39,8 +39,6 @@ var dockerReadOnlySubverbs = map[string]struct{}{
 	"history": {}, "search": {},
 }
 
-var destructive = []string{"rm", "shutdown", "format", "del /f", "remove-item", "rmdir"}
-
 // destructiveArgv classifies argv[0] as High regardless of joined command text.
 var destructiveArgv = map[string]struct{}{
 	"rm": {}, "rmdir": {}, "del": {}, "rd": {}, "remove-item": {},
@@ -54,30 +52,15 @@ func Assess(ctx context.Context, gen generator.GeneratedCommand) (RiskAssessment
 
 	if len(gen.Argv) > 0 {
 		if _, ok := destructiveArgv[strings.ToLower(gen.Argv[0])]; ok {
-			return RiskAssessment{
-				Level:                High,
-				Reason:               "destructive command verb",
-				RequiresConfirmation: true,
-			}, nil
+			return high("destructive command verb"), nil
 		}
 	}
 
-	joined := strings.ToLower(gen.Command)
-	for _, d := range destructive {
-		if strings.Contains(joined, d) {
-			return RiskAssessment{
-				Level:                High,
-				Reason:               "destructive command pattern",
-				RequiresConfirmation: true,
-			}, nil
-		}
+	if destructiveArgvPattern(gen.Argv) {
+		return high("destructive command pattern"), nil
 	}
-	if strings.Contains(joined, "-rf") || strings.Contains(joined, "/s /q") {
-		return RiskAssessment{
-			Level:                High,
-			Reason:               "recursive or forced delete pattern",
-			RequiresConfirmation: true,
-		}, nil
+	if recursiveDeletePattern(gen.Argv) {
+		return high("recursive or forced delete pattern"), nil
 	}
 
 	if len(gen.Argv) > 0 {
@@ -95,6 +78,67 @@ func Assess(ctx context.Context, gen generator.GeneratedCommand) (RiskAssessment
 	}
 
 	return medium("unknown command verb"), nil
+}
+
+func high(reason string) RiskAssessment {
+	return RiskAssessment{
+		Level:                High,
+		Reason:               reason,
+		RequiresConfirmation: true,
+	}
+}
+
+// destructiveArgvPattern scans argv tokens (not joined text) for destructive patterns.
+func destructiveArgvPattern(argv []string) bool {
+	if len(argv) == 0 {
+		return false
+	}
+	switch strings.ToLower(argv[0]) {
+	case "shutdown", "format":
+		return true
+	}
+	if hasAdjacent(argv, "del", "/f") {
+		return true
+	}
+	if len(argv) >= 2 && strings.EqualFold(argv[0], "docker") && strings.EqualFold(argv[1], "rm") {
+		return true
+	}
+	return false
+}
+
+// recursiveDeletePattern detects -rf style flags and /s /q forced deletes in argv.
+func recursiveDeletePattern(argv []string) bool {
+	if hasFlag(argv, "-rf") || hasFlag(argv, "-fr") {
+		return true
+	}
+	if hasFlag(argv, "-r") && hasFlag(argv, "-f") {
+		return true
+	}
+	if hasAdjacent(argv, "/s", "/q") || hasAdjacent(argv, "/S", "/Q") {
+		return true
+	}
+	if hasAdjacent(argv, "rmdir", "/s") || hasAdjacent(argv, "rmdir", "/S") {
+		return true
+	}
+	return false
+}
+
+func hasFlag(argv []string, flag string) bool {
+	for _, a := range argv {
+		if strings.EqualFold(a, flag) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasAdjacent(argv []string, a, b string) bool {
+	for i := 0; i+1 < len(argv); i++ {
+		if strings.EqualFold(argv[i], a) && strings.EqualFold(argv[i+1], b) {
+			return true
+		}
+	}
+	return false
 }
 
 // nonReadOnlySubverb returns a reason string when a low-verb command uses a

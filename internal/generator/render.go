@@ -47,6 +47,6 @@ func Render(ctx context.Context, resolved intent.ResolvedIntent, selected capabi
 		Command:     strings.Join(argv, " "),
 		Shell:       profile.Shell,
 		Explanation: explanationFor(resolved.Intent),
-		ExecHost:    inferExecHost(selected.Key, argv),
+		ExecHost:    inferExecHost(selected.Key),
 	}, nil
 }

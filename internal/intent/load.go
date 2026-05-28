@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	maxRuleFiles       = 32
-	maxTotalRuleBytes  = 256 * 1024
-	maxIntentsPerFile  = 64
+	maxRuleFiles      = 32
+	maxTotalRuleBytes = 256 * 1024
+	maxIntentsPerFile = 64
 )
 
 // LoadRulesFromFS loads rules from *.yaml files in dir.

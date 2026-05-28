@@ -13,20 +13,19 @@ func TestInferExecHost(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		key  string
-		argv []string
 		want ExecHost
 	}{
-		{"powershell", []string{"Get-Location"}, ExecPowerShell},
-		{"cmd", []string{"cd"}, ExecCmd},
-		{"cmd", []string{"findstr", "x", "y"}, ExecDirect},
-		{"linux", []string{"pwd"}, ExecDirect},
-		{"default", []string{"git", "status"}, ExecDirect},
+		{"powershell", ExecPowerShell},
+		{"pwsh", ExecPowerShell},
+		{"cmd", ExecCmd},
+		{"linux", ExecDirect},
+		{"default", ExecDirect},
 	}
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.key, func(t *testing.T) {
 			t.Parallel()
-			if got := inferExecHost(tc.key, tc.argv); got != tc.want {
+			if got := inferExecHost(tc.key); got != tc.want {
 				t.Fatalf("got %v want %v", got, tc.want)
 			}
 		})

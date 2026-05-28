@@ -1,9 +1,6 @@
 package generator
 
-import (
-	"os/exec"
-	"strings"
-)
+import "strings"
 
 // ExecHost selects how the executor runs GeneratedCommand.Argv.
 type ExecHost int
@@ -19,18 +16,13 @@ const (
 	ExecPosix
 )
 
-// inferExecHost picks the execution host from the selected strategy key and argv.
-func inferExecHost(strategyKey string, argv []string) ExecHost {
-	key := strings.ToLower(strategyKey)
-	switch key {
-	case "powershell":
+// inferExecHost picks the execution host from the selected strategy key only.
+// PATH-based promotion (cmd strategy + findstr on PATH) is resolved in the executor.
+func inferExecHost(strategyKey string) ExecHost {
+	switch strings.ToLower(strategyKey) {
+	case "powershell", "pwsh":
 		return ExecPowerShell
 	case "cmd":
-		if len(argv) > 0 {
-			if _, err := exec.LookPath(argv[0]); err == nil {
-				return ExecDirect
-			}
-		}
 		return ExecCmd
 	default:
 		return ExecDirect

@@ -7,8 +7,8 @@ const SchemaVersion = 2
 
 // ProfileStore holds per-shell system profiles in ~/.clx/system_profile.json.
 type ProfileStore struct {
-	SchemaVersion int                         `json:"schema_version"`
-	Profiles      map[string]SystemProfile    `json:"profiles"`
+	SchemaVersion int                      `json:"schema_version"`
+	Profiles      map[string]SystemProfile `json:"profiles"`
 }
 
 // SystemProfile describes the current machine environment for command generation.

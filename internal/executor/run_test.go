@@ -71,6 +71,22 @@ func TestRunSurfacesTimeout(t *testing.T) {
 	}
 }
 
+func TestRunRejectsMissingProfileForShellHost(t *testing.T) {
+	t.Parallel()
+	gen := generator.GeneratedCommand{
+		Argv:     []string{"Get-Location"},
+		ExecHost: generator.ExecPowerShell,
+	}
+	err := Run(context.Background(), gen,
+		WithRisk(risk.RiskAssessment{Level: risk.Low}),
+		WithPolicy(policy.Result{Allowed: true}),
+		WithTimeout(time.Second),
+	)
+	if err != ErrMissingProfile {
+		t.Fatalf("got %v want ErrMissingProfile", err)
+	}
+}
+
 func TestRunRejectsBlockedPolicy(t *testing.T) {
 	t.Parallel()
 	gen := generator.GeneratedCommand{Argv: []string{"rm", "-rf", "/"}}

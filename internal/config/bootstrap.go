@@ -21,9 +21,9 @@ var bootstrapDirs = []func() (string, error){
 
 // BootstrapResult reports what first-run bootstrap did.
 type BootstrapResult struct {
-	CreatedDirs []string
-	WroteConfig bool
-	WrotePolicy bool
+	CreatedDirs  []string
+	WroteConfig  bool
+	WrotePolicy  bool
 	WroteProfile bool
 }
 
