@@ -13,7 +13,7 @@
 
 | Sub-phase | Scope | Status | Last commit | Notes |
 |-----------|-------|--------|-------------|-------|
-| **2.1** | Provider interface + Ollama + `--provider` flag + AI fallback wiring | ⬜ Not started | — | First slice. Hard-fail on provider down. |
+| **2.1** | Provider interface + Ollama + `--provider` flag + AI fallback wiring | 🟡 In progress | 8948818+ | Foundation + Ollama client wired; e2e stubs green. |
 | **2.2** | Intent cache (`internal/cache`) | ⬜ Not started | — | Insert between rules and AI in resolver chain. |
 | **2.3** | OpenAI provider | ⬜ Not started | — | Adds cross-provider fallback option. |
 | **2.4** | AI-driven `Explain()` wiring | ⬜ Not started | — | Optional polish; can defer to Phase 4. |
@@ -163,7 +163,7 @@ green. Mark the box when the commit lands on `development`.
 - [x] `prompt_test.go`: profile fields present, intents present, bounded size, deterministic output.
 
 #### 2.1.3 Ollama HTTP client
-- [ ] Add `internal/providers/ollama/client.go`. Endpoint: `POST {host}/api/chat`,
+- [x] Add `internal/providers/ollama/client.go`. Endpoint: `POST {host}/api/chat`,
       `format: <jsonschema>` (built by `internal/providers/schema.go` from
       `IntentRequest.KnownIntents` + `IntentRequest.RuleParams`), `stream: false`,
       `temperature: 0.0`.
