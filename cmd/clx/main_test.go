@@ -55,6 +55,15 @@ func TestRunDoctorRefreshShortFlag(t *testing.T) {
 	}
 }
 
+func TestRunProviderFlagInvalidValue(t *testing.T) {
+	t.Setenv("CLX_HOME", t.TempDir())
+	var stderr bytes.Buffer
+	code := run([]string{"--provider", "bogus", "pwd"}, &bytes.Buffer{}, &stderr)
+	if code != 2 {
+		t.Fatalf("exit %d, want 2, stderr=%s", code, stderr.String())
+	}
+}
+
 func TestRunHelp(t *testing.T) {
 	var stdout bytes.Buffer
 	code := run([]string{"--help"}, &stdout, &stderrWriter{t: t})

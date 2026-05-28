@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/alibaba40core/clx/internal/config"
@@ -33,10 +34,14 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 		return 1, err
 	}
 
-	eng, err := intent.NewEngineWithOverlay(ctx, opts.Logger)
-	if err != nil {
-		fmt.Fprintf(opts.Stderr, "rules: %v\n", err)
-		return 1, err
+	eng := opts.Engine
+	if eng == nil {
+		var err error
+		eng, err = intent.NewEngineWithOverlay(ctx, opts.Logger)
+		if err != nil {
+			fmt.Fprintf(opts.Stderr, "rules: %v\n", err)
+			return 1, err
+		}
 	}
 
 	resolvers := buildResolvers(eng, opts)
@@ -48,6 +53,14 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 			} else {
 				fmt.Fprintf(opts.Stderr, "no matching rule for input\n")
 			}
+			return 1, err
+		}
+		if msg := err.Error(); strings.Contains(msg, "provider unavailable") {
+			fmt.Fprintf(opts.Stderr, "%s\n", msg)
+			return 1, err
+		}
+		if strings.Contains(err.Error(), "provider timeout") {
+			fmt.Fprintf(opts.Stderr, "intent: %v\n", err)
 			return 1, err
 		}
 		fmt.Fprintf(opts.Stderr, "intent: %v\n", err)

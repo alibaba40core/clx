@@ -9,12 +9,16 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 
 	"github.com/alibaba40core/clx/internal/cliversion"
 	"github.com/alibaba40core/clx/internal/config"
 	"github.com/alibaba40core/clx/internal/environment"
+	"github.com/alibaba40core/clx/internal/intent"
 	"github.com/alibaba40core/clx/internal/logging"
 	"github.com/alibaba40core/clx/internal/pipeline"
+	"github.com/alibaba40core/clx/internal/providers"
+	providerfactory "github.com/alibaba40core/clx/internal/providers/factory"
 )
 
 func main() {
@@ -35,6 +39,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	dryRun := fs.Bool("dry-run", false, "preview command without executing")
 	yes := fs.Bool("y", false, "skip confirmation and execute")
 	yesLong := fs.Bool("yes", false, "skip confirmation and execute")
+	providerFlag := fs.String("provider", "", "override AI provider (ollama, openai, azure)")
 
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -66,15 +71,42 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 
+	if *providerFlag != "" {
+		cfg.Provider = *providerFlag
+		if err := config.Validate(cfg); err != nil {
+			fmt.Fprintf(stderr, "config: %v\n", err)
+			return 2
+		}
+	}
+
+	eng, err := intent.NewEngineWithOverlay(ctx, logger)
+	if err != nil {
+		fmt.Fprintf(stderr, "rules: %v\n", err)
+		return 1
+	}
+
+	var aiResolver intent.Resolver
+	p, perr := providerfactory.NewFromConfig(cfg)
+	if perr != nil {
+		aiResolver = providers.ErrorResolver(perr)
+	} else {
+		timeout := time.Duration(cfg.Execution.Timeout) * time.Second
+		aiResolver = providers.AsResolver(p, eng, logger, providers.AdapterConfig{
+			Timeout: timeout,
+		})
+	}
+
 	rawInput := strings.Join(fs.Args(), " ")
 	skipConfirm := *yes || *yesLong
 	code, err := pipeline.Run(ctx, cfg, rawInput, pipeline.Options{
-		Explain: *explain,
-		DryRun:  *dryRun,
-		Yes:     skipConfirm,
-		Logger:  logger,
-		Stdout:  stdout,
-		Stderr:  stderr,
+		Explain:    *explain,
+		DryRun:     *dryRun,
+		Yes:        skipConfirm,
+		Logger:     logger,
+		Stdout:     stdout,
+		Stderr:     stderr,
+		Engine:     eng,
+		AIResolver: aiResolver,
 	})
 	if err != nil && code == 0 {
 		return 1
@@ -175,6 +207,7 @@ func printHelp(w io.Writer) {
 	fmt.Fprintln(w, "  --version       Print version and exit")
 	fmt.Fprintln(w, "  --help          Show this help")
 	fmt.Fprintln(w, "  --config path   Path to config.yaml")
+	fmt.Fprintln(w, "  --provider      Override AI provider (ollama, openai, azure)")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Exit codes: 0 success, 1 error, 2 flag error")
 }

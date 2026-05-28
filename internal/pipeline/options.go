@@ -18,6 +18,10 @@ type Options struct {
 	Stdout  io.Writer
 	Stderr  io.Writer
 
+	// Engine, when set, is used for rule resolution and ValidateResolved.
+	// If nil, Run builds an overlay engine internally (tests).
+	Engine *intent.Engine
+
 	// AIResolver, when non-nil, runs after the rule engine misses.
 	// Phase 2.1 wires the Ollama/OpenAI provider here.
 	AIResolver intent.Resolver
