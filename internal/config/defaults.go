@@ -2,14 +2,16 @@ package config
 
 // DefaultOllamaModel is the shipped default model for the Ollama provider.
 //
-// Picked for: Apache 2.0, native tool/JSON support, ~3 GB RAM at Q4,
-// strong on closed-vocabulary intent classification (Phase 2.1 use case).
+// Picked for: Apache 2.0, native JSON/schema support, ~1.4 GB on disk,
+// correct closed-vocabulary intent + param extraction on CPU (Phase 2.1).
+// Local benchmark (scripts/bench-ollama-models.ps1, "show current directory"):
+//   gemma3:270m ~13s but wrong intent; qwen3:1.7b ~67s correct; qwen3:4b ~179s correct.
 //
 // Tested alternates (swap in config.yaml under providers.ollama.model):
-//   - qwen3:1.7b   — lightest viable; relies on Ollama structured outputs
-//   - qwen2.5:7b   — quality bump; ~4.4 GB, 8/10 tool-use score
-//   - llama3.1:8b  — Meta-ecosystem alternate; ~4.7 GB, reliable workhorse
-const DefaultOllamaModel = "qwen3:4b"
+//   - qwen3:4b     — quality bump when GPU/RAM allows (~2.5 GB, ~3x slower on CPU)
+//   - qwen2.5:7b   — higher quality; ~4.4 GB
+//   - llama3.1:8b  — Meta-ecosystem alternate; avoid plain llama3 (weak tool JSON)
+const DefaultOllamaModel = "qwen3:1.7b"
 
 // Default returns the built-in default configuration.
 func Default() Config {

@@ -14,7 +14,9 @@ const (
 )
 
 // systemPrompt is the global resolution prompt (D1: one prompt for all domains).
-const systemPrompt = `You map the user's shell or natural-language request to exactly one intent from the allowed list in the user message. Extract only parameters declared for that intent. Respond with JSON only: {"intent":"<name>","params":{...},"confidence":<0-1>}.`
+// /no_think disables Qwen3 chain-of-thought for faster JSON-only extraction.
+const systemPrompt = `/no_think
+You map the user's shell or natural-language request to exactly one intent from the allowed list in the user message. Extract only parameters declared for that intent. Respond with JSON only: {"intent":"<name>","params":{...},"confidence":<0-1>}.`
 
 // toolAllowlist limits which detected tools are included in grounding context.
 var toolAllowlist = []string{
@@ -59,6 +61,18 @@ func buildUserMessage(req IntentRequest, intents, tools []string) string {
 		b.WriteString("(none)")
 	} else {
 		b.WriteString(strings.Join(intents, ", "))
+	}
+
+	if len(req.RuleParams) > 0 {
+		b.WriteString("\n\nIntent parameters (use only keys for the chosen intent):")
+		for _, name := range intents {
+			ps := req.RuleParams[name]
+			if len(ps) == 0 {
+				fmt.Fprintf(&b, "\n- %s: none", name)
+			} else {
+				fmt.Fprintf(&b, "\n- %s: %s", name, strings.Join(ps, ", "))
+			}
+		}
 	}
 
 	b.WriteString("\n\nInput: ")

@@ -19,6 +19,11 @@ func sampleRequest() IntentRequest {
 			},
 		},
 		KnownIntents: []string{"list_dir", "find_file", "current_dir"},
+		RuleParams: map[string][]string{
+			"find_file":   {"filename", "path"},
+			"list_dir":    {"path"},
+			"current_dir": {},
+		},
 	}
 }
 
@@ -50,6 +55,23 @@ func TestBuildPromptSortsIntents(t *testing.T) {
 	section := user[idxAlpha:]
 	if !strings.Contains(section, "alpha, middle, zebra") {
 		t.Fatalf("intents not sorted: %s", section)
+	}
+}
+
+func TestBuildPromptIncludesIntentParameters(t *testing.T) {
+	t.Parallel()
+	_, user, err := BuildPrompt(sampleRequest())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(user, "Intent parameters") {
+		t.Fatalf("missing intent parameters section: %s", user)
+	}
+	if !strings.Contains(user, "- find_file: filename, path") {
+		t.Fatalf("missing find_file params: %s", user)
+	}
+	if !strings.Contains(user, "- current_dir: none") {
+		t.Fatalf("missing current_dir params: %s", user)
 	}
 }
 
