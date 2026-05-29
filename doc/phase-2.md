@@ -14,7 +14,7 @@
 | Sub-phase | Scope | Status | Last commit | Notes |
 |-----------|-------|--------|-------------|-------|
 | **2.1** | Provider interface + Ollama + `--provider` flag + AI fallback wiring | ✅ Done | 9f35917 | Provider iface, Ollama HTTP client + provider, factory, adapter, `--provider` flag, engine injection, hermetic e2e suite all green. |
-| **2.2** | Intent cache (`internal/cache`) | ✅ Done | 2f09846 | File-backed LRU at ~/.clx/cache/intents.json; chain [rules, cache, ai]; write-through on AI hits. |
+| **2.2** | Intent cache (`internal/cache`) | ✅ Done | be1c59f | File-backed LRU at ~/.clx/cache/intents.json; chain [rules, cache, ai]; write-through on AI hits. |
 | **2.3** | OpenAI provider | ⬜ Not started | — | Adds cross-provider fallback option. |
 | **2.4** | AI-driven `Explain()` wiring | ⬜ Not started | — | Optional polish; can defer to Phase 4. |
 | **2.5** | Hardening: redaction audit, docs, CI budget recheck | ⬜ Not started | — | Closes the phase. |
@@ -371,7 +371,7 @@ Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short su
 2026-05-29 · 2.1.3–2.1.8 · Wire Ollama AI fallback through pipeline (client, provider, factory, adapter, --provider flag, engine injection, e2e suite) · e2238d2
 2026-05-29 · 2.1   · Default Ollama to qwen3:1.7b; tighten AI param validation · 9f35917
 2026-05-29 · 2.1.9 · Doc + status close-out; goleak in ollama tests; reconcile C3 timeout with 180s impl · cd20e7b
-2026-05-29 · 2.2   · Intent cache: file-backed LRU, resolver chain [rules,cache,ai], write-through on AI hits · 63c0972
+2026-05-29 · 2.2   · Intent cache: file-backed LRU, resolver chain [rules,cache,ai], write-through on AI hits · 2f09846
 ```
 
 ---
