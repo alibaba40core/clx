@@ -80,6 +80,15 @@ func TestProviderTimeoutPrefersProvidersTimeout(t *testing.T) {
 	}
 }
 
+func TestProviderTimeoutCappedAt180(t *testing.T) {
+	t.Parallel()
+	cfg := Default()
+	cfg.Providers.Timeout = 300
+	if got := ProviderTimeout(cfg); got != 180*time.Second {
+		t.Fatalf("got %v", got)
+	}
+}
+
 func TestValidateProvidersTimeoutNegative(t *testing.T) {
 	t.Parallel()
 	cfg := Default()
