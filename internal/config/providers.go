@@ -18,14 +18,22 @@ func EffectivePrimary(c Config) string {
 
 // ProviderTimeout returns the AI provider HTTP/resolver timeout.
 // providers.timeout wins when > 0; else execution.timeout; else 30s.
+// Values above maxProviderTimeout are capped to align with the adapter ceiling (C3).
+const maxProviderTimeout = 180 * time.Second
+
 func ProviderTimeout(c Config) time.Duration {
+	var d time.Duration
 	if c.Providers.Timeout > 0 {
-		return time.Duration(c.Providers.Timeout) * time.Second
+		d = time.Duration(c.Providers.Timeout) * time.Second
+	} else if c.Execution.Timeout > 0 {
+		d = time.Duration(c.Execution.Timeout) * time.Second
+	} else {
+		d = 30 * time.Second
 	}
-	if c.Execution.Timeout > 0 {
-		return time.Duration(c.Execution.Timeout) * time.Second
+	if d > maxProviderTimeout {
+		d = maxProviderTimeout
 	}
-	return 30 * time.Second
+	return d
 }
 
 func normalizeProviderName(name string) string {

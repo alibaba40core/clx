@@ -388,7 +388,7 @@ providers:
 
 **Explain (Phase 2.4):** When `--explain` is set and the resolved intent came from AI or cache, the factory provider may enrich the display explanation via a plain-text LLM call (2s timeout, static fallback). Cached at `~/.clx/cache/explanations.json`.
 
-**Provider timeout (Phase 2.5):** `providers.timeout` (seconds) caps ResolveIntent HTTP/resolver time; when unset, `execution.timeout` applies. Explain always uses a hardcoded 2s ceiling (D14).
+**Provider timeout (Phase 2.5):** `providers.timeout` (seconds) caps ResolveIntent HTTP/resolver time; when unset, `execution.timeout` applies. Values above 180s are capped at 180s to align with the adapter ceiling. Explain always uses a hardcoded 2s ceiling (D14).
 
 ---
 
