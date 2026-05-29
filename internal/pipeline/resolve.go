@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/alibaba40core/clx/internal/cache"
 	"github.com/alibaba40core/clx/internal/intent"
 	"github.com/alibaba40core/clx/internal/parser"
 )
@@ -41,13 +42,19 @@ func resolveChain(ctx context.Context, req parser.Request, resolvers []intent.Re
 	return intent.ResolvedIntent{}, intent.ErrNotFound
 }
 
-// buildResolvers assembles the resolution chain. Today: rules only.
-// Phase 2.1 appends AI when opts.AIResolver != nil.
-// Phase 2.2 inserts cache between rule and AI.
+// buildResolvers assembles the resolution chain: rules, optional cache read,
+// optional AI (wrapped for write-through cache on hits).
 func buildResolvers(eng *intent.Engine, opts Options) []intent.Resolver {
-	resolvers := []intent.Resolver{eng}
-	if opts.AIResolver != nil {
-		resolvers = append(resolvers, opts.AIResolver)
+	out := []intent.Resolver{eng}
+	if opts.Cache != nil {
+		out = append(out, cache.AsResolver(opts.Cache, opts.Logger))
 	}
-	return resolvers
+	if opts.AIResolver != nil {
+		ai := opts.AIResolver
+		if opts.Cache != nil {
+			ai = cache.WrapAIResolver(ai, opts.Cache, opts.Logger)
+		}
+		out = append(out, ai)
+	}
+	return out
 }

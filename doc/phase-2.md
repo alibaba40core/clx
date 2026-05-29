@@ -1,6 +1,6 @@
 # Phase 2 — AI Integration
 
-> **Status:** 2.1 done. 2.2 (intent cache) ready to start.
+> **Status:** 2.1–2.2 done. 2.3 (OpenAI provider) ready to start.
 >
 > This doc is both the implementation plan **and** the live tracker. Flip
 > checkboxes (`[ ]` → `[x]`) and append to the **Update log** at the bottom as
@@ -14,7 +14,7 @@
 | Sub-phase | Scope | Status | Last commit | Notes |
 |-----------|-------|--------|-------------|-------|
 | **2.1** | Provider interface + Ollama + `--provider` flag + AI fallback wiring | ✅ Done | 9f35917 | Provider iface, Ollama HTTP client + provider, factory, adapter, `--provider` flag, engine injection, hermetic e2e suite all green. |
-| **2.2** | Intent cache (`internal/cache`) | ⬜ Not started | — | Insert between rules and AI in resolver chain. |
+| **2.2** | Intent cache (`internal/cache`) | ✅ Done | 2f09846 | File-backed LRU at ~/.clx/cache/intents.json; chain [rules, cache, ai]; write-through on AI hits. |
 | **2.3** | OpenAI provider | ⬜ Not started | — | Adds cross-provider fallback option. |
 | **2.4** | AI-driven `Explain()` wiring | ⬜ Not started | — | Optional polish; can defer to Phase 4. |
 | **2.5** | Hardening: redaction audit, docs, CI budget recheck | ⬜ Not started | — | Closes the phase. |
@@ -269,19 +269,19 @@ green. Mark the box when the commit lands on `development`.
 
 ---
 
-## Phase 2.2 — Intent cache *(outline)*
+## Phase 2.2 — Intent cache
 
 > **Goal:** memoize `(input, os, shell, tools_hash) → ResolvedIntent` to skip
 > repeat AI calls. Inserted between rules and AI in the resolver chain.
 
-- [ ] Create `internal/cache/cache.go` — file-backed kv at `~/.clx/cache/`
-- [ ] Bounded: max entries (default 1024, LRU), TTL (default 30 days), max disk size (default 5 MB) — all in `config.yaml` under `cache:`
-- [ ] Cache key: SHA-256 of `tokens + profile.OS + profile.Shell + sorted(profile.AvailableTools)`
-- [ ] Adapter: `internal/cache/resolver.go` — read on `Resolve`, write-through on AI hit
-- [ ] Wire into `pipeline.buildResolvers`: chain becomes `[rules, cache, ai]`
-- [ ] Honor `cfg.Features.CacheCommands` (already present in config)
-- [ ] Tests: cache miss/hit, TTL expiry, profile-change miss, corrupt file graceful degrade
-- [ ] Update this doc's status snapshot when complete
+- [x] Create `internal/cache/cache.go` — file-backed kv at `~/.clx/cache/intents.json`
+- [x] Bounded: max entries (default 1024, LRU), TTL (default 30 days), max disk size (default 5 MB) — all in `config.yaml` under `cache:`
+- [x] Cache key: SHA-256 of `InputType + tokens + profile.OS + profile.Shell + sorted(profile.AvailableTools)`
+- [x] Adapter: `internal/cache/resolver.go` — read on `Resolve`, write-through on AI hit
+- [x] Wire into `pipeline.buildResolvers`: chain becomes `[rules, cache, ai]`
+- [x] Honor `cfg.Features.CacheCommands` (already present in config)
+- [x] Tests: cache miss/hit, TTL expiry, profile-change miss, corrupt file graceful degrade
+- [x] Update this doc's status snapshot when complete
 
 ---
 
@@ -370,7 +370,8 @@ Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short su
 2026-05-28 · 2.1.1–2.1.2 · Phase 2.1 foundation: provider iface, prompt builder, default qwen3:4b · 8948818
 2026-05-29 · 2.1.3–2.1.8 · Wire Ollama AI fallback through pipeline (client, provider, factory, adapter, --provider flag, engine injection, e2e suite) · e2238d2
 2026-05-29 · 2.1   · Default Ollama to qwen3:1.7b; tighten AI param validation · 9f35917
-2026-05-29 · 2.1.9 · Doc + status close-out; goleak in ollama tests; reconcile C3 timeout with 180s impl · (this commit, see `git log --grep="close out Phase 2.1"`)
+2026-05-29 · 2.1.9 · Doc + status close-out; goleak in ollama tests; reconcile C3 timeout with 180s impl · cd20e7b
+2026-05-29 · 2.2   · Intent cache: file-backed LRU, resolver chain [rules,cache,ai], write-through on AI hits · 63c0972
 ```
 
 ---

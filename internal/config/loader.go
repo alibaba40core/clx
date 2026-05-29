@@ -71,5 +71,14 @@ func Validate(c Config) error {
 	if _, ok := validLogLevels[level]; !ok {
 		return fmt.Errorf("invalid logging.level %q", c.Logging.Level)
 	}
+	if c.Cache.MaxEntries <= 0 {
+		return fmt.Errorf("cache.max_entries must be > 0")
+	}
+	if c.Cache.TTLDays <= 0 {
+		return fmt.Errorf("cache.ttl_days must be > 0")
+	}
+	if c.Cache.MaxDiskBytes <= 0 {
+		return fmt.Errorf("cache.max_disk_bytes must be > 0")
+	}
 	return nil
 }

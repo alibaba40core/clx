@@ -73,6 +73,15 @@ func CacheDir() (string, error) {
 	return filepath.Join(home, "cache"), nil
 }
 
+// CacheIntentsPath returns ~/.clx/cache/intents.json.
+func CacheIntentsPath() (string, error) {
+	dir, err := CacheDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "intents.json"), nil
+}
+
 // MemoryDir returns ~/.clx/memory.
 func MemoryDir() (string, error) {
 	home, err := Home()
