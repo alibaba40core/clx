@@ -7,4 +7,5 @@ type GeneratedCommand struct {
 	Shell       string
 	Explanation string
 	ExecHost    ExecHost
+	Intent      string // optional; set by pipeline for AI explain only
 }

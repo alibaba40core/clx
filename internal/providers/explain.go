@@ -26,6 +26,9 @@ func BuildExplainPrompt(gen generator.GeneratedCommand, profile environment.Syst
 		shell = profile.Shell
 	}
 	fmt.Fprintf(&b, "Shell: %s\n", shell)
+	if intent := strings.TrimSpace(gen.Intent); intent != "" {
+		fmt.Fprintf(&b, "Intent: %s\n", intent)
+	}
 	b.WriteString("Command argv: ")
 	for i, arg := range gen.Argv {
 		if i > 0 {
