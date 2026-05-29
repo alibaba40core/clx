@@ -8,6 +8,7 @@ import (
 	"github.com/alibaba40core/clx/internal/cache"
 	"github.com/alibaba40core/clx/internal/generator"
 	"github.com/alibaba40core/clx/internal/intent"
+	"github.com/alibaba40core/clx/internal/providers"
 )
 
 const explainTimeout = 2 * time.Second
@@ -40,7 +41,7 @@ func enrichExplanation(ctx context.Context, opts Options, resolved intent.Resolv
 		if opts.Logger != nil && err != nil {
 			opts.Logger.Debug("ai explain fallback to static",
 				"provider", opts.Provider.Name(),
-				"err", err,
+				"err", providers.RedactError(err),
 			)
 		}
 		return static

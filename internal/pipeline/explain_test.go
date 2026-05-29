@@ -3,6 +3,7 @@ package pipeline
 import (
 	"bytes"
 	"context"
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -95,6 +96,35 @@ func TestRunExplainAIFallbackStatic(t *testing.T) {
 		t.Fatal("unexpected AI text")
 	}
 }
+
+func TestExplainFallbackRedactsErrorInDebugLog(t *testing.T) {
+	t.Parallel()
+	var logBuf strings.Builder
+	logger := slog.New(slog.NewTextHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	secret := "sk-secret1234567890abcdef"
+	stub := &explainStubProvider{err: errString("provider unavailable: " + secret)}
+	var stdout bytes.Buffer
+	_, err := Run(context.Background(), config.Default(), "unknown", Options{
+		Explain: true,
+		Logger:  logger,
+		Provider: stub,
+		AIResolver: stubAIResult{result: intent.ResolvedIntent{
+			Intent: "list_dir", Source: intent.SourceAI, Confidence: 0.9,
+		}},
+		Stdout: &stdout,
+		Stderr: &bytes.Buffer{},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(logBuf.String(), secret) {
+		t.Fatalf("secret in logs: %s", logBuf.String())
+	}
+}
+
+type errString string
+
+func (e errString) Error() string { return string(e) }
 
 type stubAIResult struct {
 	result intent.ResolvedIntent
