@@ -31,10 +31,55 @@ function Build-Binaries {
     }
 }
 
+function Stop-DestProcesses {
+    foreach ($name in @("clx", "clxmax")) {
+        Get-Process -Name $name -ErrorAction SilentlyContinue | ForEach-Object {
+            if ($_.Path -and $_.Path.StartsWith($Dest, [StringComparison]::OrdinalIgnoreCase)) {
+                Write-Host "stopping $name (PID $($_.Id)) so install can replace $($_.Path)"
+                Stop-Process -Id $_.Id -Force -ErrorAction Stop
+            }
+        }
+    }
+    Start-Sleep -Milliseconds 300
+}
+
+function Install-Binary {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Name
+    )
+
+    $src = Join-Path $BinDir "$Name.exe"
+    $dst = Join-Path $Dest "$Name.exe"
+    $stale = "$dst.old"
+
+    if (Test-Path $stale) {
+        Remove-Item -Force $stale -ErrorAction SilentlyContinue
+    }
+
+    if (Test-Path $dst) {
+        try {
+            Copy-Item -Force $src $dst
+            return
+        } catch {
+            Write-Host "could not overwrite locked $dst; trying rename-then-copy"
+        }
+
+        if (Test-Path $stale) {
+            Remove-Item -Force $stale -ErrorAction SilentlyContinue
+        }
+        Move-Item -Force $dst $stale
+    }
+
+    Copy-Item -Force $src $dst
+    Remove-Item -Force $stale -ErrorAction SilentlyContinue
+}
+
 function Install-ToDest {
     New-Item -ItemType Directory -Force -Path $Dest | Out-Null
-    Copy-Item -Force (Join-Path $BinDir "clx.exe") (Join-Path $Dest "clx.exe")
-    Copy-Item -Force (Join-Path $BinDir "clxmax.exe") (Join-Path $Dest "clxmax.exe")
+    Stop-DestProcesses
+    Install-Binary -Name "clx"
+    Install-Binary -Name "clxmax"
 }
 
 function Add-ToUserPath {
