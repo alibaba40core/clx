@@ -16,8 +16,8 @@
 | **2.1** | Provider interface + Ollama + `--provider` flag + AI fallback wiring | ✅ Done | 9f35917 | Provider iface, Ollama HTTP client + provider, factory, adapter, `--provider` flag, engine injection, hermetic e2e suite all green. |
 | **2.2** | Intent cache (`internal/cache`) | ✅ Done | be1c59f | File-backed LRU at ~/.clx/cache/intents.json; chain [rules, cache, ai]; write-through on AI hits. |
 | **2.3** | OpenAI provider + cross-provider fallback | ✅ Done | f47ff62 | OpenAI chat completions, primary/fallback config, chain on ErrUnavailable only. |
-| **2.4** | AI-driven `Explain()` wiring | ✅ Done | (pending) | AI explain on --explain + AI/Cache source; explanations.json cache; 2s timeout. |
-| **2.5** | Hardening: redaction audit, docs, CI budget recheck | ✅ Done | (pending) | providers.timeout, host URL validation, security e2e, Phase 2 close-out. |
+| **2.4** | AI-driven `Explain()` wiring | ✅ Done | 05196f9 | AI explain on --explain + AI/Cache source; explanations.json cache; 2s timeout. |
+| **2.5** | Hardening: redaction audit, docs, CI budget recheck | ✅ Done | 1d48cd4 | providers.timeout, host URL validation, security e2e, Phase 2 close-out. |
 
 Legend: ⬜ Not started · 🟡 In progress · ✅ Done · 🛑 Blocked
 
@@ -383,8 +383,8 @@ Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short su
 2026-05-29 · 2.1.9 · Doc + status close-out; goleak in ollama tests; reconcile C3 timeout with 180s impl · cd20e7b
 2026-05-29 · 2.2   · Intent cache: file-backed LRU, resolver chain [rules,cache,ai], write-through on AI hits · be1c59f
 2026-05-29 · 2.3   · OpenAI provider, primary/fallback config, chain on ErrUnavailable; --provider clears fallback · f47ff62
-2026-05-29 · 2.4   · AI Explain on --explain + AI/Cache path; explanations.json cache; 2s timeout · (pending)
-2026-05-29 · 2.5   · providers.timeout, host URL validation, security e2e, Phase 2 close-out · (pending)
+2026-05-29 · 2.4   · AI Explain on --explain + AI/Cache path; explanations.json cache; 2s timeout · 05196f9
+2026-05-29 · 2.5   · providers.timeout, host URL validation, security e2e, Phase 2 close-out · 1d48cd4
 ```
 
 ---
