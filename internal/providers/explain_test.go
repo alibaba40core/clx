@@ -31,6 +31,23 @@ func TestBuildExplainPromptDeterministic(t *testing.T) {
 	}
 }
 
+func TestBuildExplainPromptIncludesIntent(t *testing.T) {
+	t.Parallel()
+	gen := generator.GeneratedCommand{
+		Intent: "list_dir",
+		Argv:   []string{"ls"},
+		Shell:  "bash",
+	}
+	profile := environment.SystemProfile{OS: "linux", Shell: "bash"}
+	_, user, err := BuildExplainPrompt(gen, profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(user, "Intent: list_dir") {
+		t.Fatalf("user=%q", user)
+	}
+}
+
 func TestBuildExplainPromptRedactsSecrets(t *testing.T) {
 	t.Parallel()
 	gen := generator.GeneratedCommand{

@@ -36,7 +36,9 @@ func enrichExplanation(ctx context.Context, opts Options, resolved intent.Resolv
 	callCtx, cancel := context.WithTimeout(ctx, explainTimeout)
 	defer cancel()
 
-	text, err := opts.Provider.Explain(callCtx, gen)
+	genForExplain := gen
+	genForExplain.Intent = resolved.Intent
+	text, err := opts.Provider.Explain(callCtx, genForExplain)
 	if err != nil || strings.TrimSpace(text) == "" {
 		if opts.Logger != nil && err != nil {
 			opts.Logger.Debug("ai explain fallback to static",
