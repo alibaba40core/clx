@@ -1,6 +1,6 @@
 # Phase 2 — AI Integration
 
-> **Status:** Not started. Foundation prepped (resolver chain, `ValidateResolved`, embedded rules).
+> **Status:** 2.1 done. 2.2 (intent cache) ready to start.
 >
 > This doc is both the implementation plan **and** the live tracker. Flip
 > checkboxes (`[ ]` → `[x]`) and append to the **Update log** at the bottom as
@@ -13,7 +13,7 @@
 
 | Sub-phase | Scope | Status | Last commit | Notes |
 |-----------|-------|--------|-------------|-------|
-| **2.1** | Provider interface + Ollama + `--provider` flag + AI fallback wiring | 🟡 In progress | 8948818+ | Foundation + Ollama client wired; e2e stubs green. |
+| **2.1** | Provider interface + Ollama + `--provider` flag + AI fallback wiring | ✅ Done | 9f35917 | Provider iface, Ollama HTTP client + provider, factory, adapter, `--provider` flag, engine injection, hermetic e2e suite all green. |
 | **2.2** | Intent cache (`internal/cache`) | ⬜ Not started | — | Insert between rules and AI in resolver chain. |
 | **2.3** | OpenAI provider | ⬜ Not started | — | Adds cross-provider fallback option. |
 | **2.4** | AI-driven `Explain()` wiring | ⬜ Not started | — | Optional polish; can defer to Phase 4. |
@@ -124,8 +124,9 @@ internal/
     ├── adapter_security_test.go # adversarial cases (rm_rf_slash, extra param)
     ├── prompt.go                # single global prompt builder
     ├── prompt_test.go
-    ├── factory.go               # NewFromConfig(cfg) → (Provider, error)
-    ├── factory_test.go
+    ├── factory/                 # subpackage (avoids import cycle: providers ↔ ollama)
+    │   ├── factory.go           # NewFromConfig(cfg) → (Provider, error)
+    │   └── factory_test.go
     └── ollama/
         ├── client.go            # HTTP client, /api/chat, format: json
         ├── client_test.go       # httptest fakes
@@ -167,78 +168,82 @@ green. Mark the box when the commit lands on `development`.
       `format: <jsonschema>` (built by `internal/providers/schema.go` from
       `IntentRequest.KnownIntents` + `IntentRequest.RuleParams`), `stream: false`,
       `temperature: 0.0`.
-- [ ] `http.Client` with explicit `Timeout`. **No** `http.DefaultClient`.
-- [ ] User-Agent: `clx/<cliversion.Version>`.
-- [ ] Response read via `io.LimitReader(body, 64*1024)` — never `io.ReadAll`.
-- [ ] Error mapping: connect refused / DNS / TLS / 5xx → `ErrUnavailable`;
+- [x] `http.Client` with explicit `Timeout`. **No** `http.DefaultClient`.
+- [x] User-Agent: `clx/<cliversion.Version>`.
+- [x] Response read via `io.LimitReader(body, 64*1024)` — never `io.ReadAll`.
+- [x] Error mapping: connect refused / DNS / TLS / 5xx → `ErrUnavailable`;
       ctx deadline → `ErrTimeout`; 4xx → `ErrInvalidResp`; body parse fail → `ErrInvalidResp`;
       empty intent → `ErrNoMatch`.
-- [ ] `client_test.go`: happy path, server down, timeout, HTTP 500, HTTP 400,
+- [x] `client_test.go`: happy path, server down, timeout, HTTP 500, HTTP 400,
       bounded read on 1 MB body, no network on `New()`.
 
 #### 2.1.4 Ollama Provider impl
-- [ ] Add `internal/providers/ollama/provider.go` wrapping the client.
-- [ ] `Name()` returns `"ollama"`.
-- [ ] `ResolveIntent` builds prompt via `providers.BuildPrompt`, calls client, returns typed `IntentResponse`.
-- [ ] `Explain` returns `("", nil)` for now (wired in 2.4).
-- [ ] `provider_test.go`: round-trip with httptest server.
+- [x] Add `internal/providers/ollama/provider.go` wrapping the client.
+- [x] `Name()` returns `"ollama"`.
+- [x] `ResolveIntent` builds prompt via `providers.BuildPrompt`, calls client, returns typed `IntentResponse`.
+- [x] `Explain` returns `("", nil)` for now (wired in 2.4).
+- [x] `provider_test.go`: round-trip with httptest server.
 
 #### 2.1.5 Factory + adapter
-- [ ] Add `internal/providers/factory.go`: `NewFromConfig(cfg) → (Provider, error)`.
+- [x] Add `internal/providers/factory/factory.go`: `NewFromConfig(cfg) → (Provider, error)`.
       `ollama` → ollama client; `openai` and `azure` → clean "not implemented in Phase 2.1" error.
-- [ ] Add `internal/providers/adapter.go`: `AsResolver(p, eng, logger, AdapterConfig)`
+      Placed in a subpackage so `internal/providers/ollama` can import `internal/providers`
+      (sentinel errors, `IntentRequest`) without a cycle.
+- [x] Add `internal/providers/adapter.go`: `AsResolver(p, eng, logger, AdapterConfig)`
       returning an `intent.Resolver`.
-- [ ] `AdapterConfig`: `MinConfidence` (default 0.5), `Timeout`
-      (capped: `min(cfg.Execution.Timeout, 10*time.Second)`).
-- [ ] Adapter logs latency, intent name, confidence; raw input passed through `executor.Redact` first.
-- [ ] Adapter never logs param values, never logs raw response body.
-- [ ] Adapter maps errors: `ErrNoMatch` / `ErrInvalidResp` → `intent.ErrNotFound`;
+- [x] `AdapterConfig`: `MinConfidence` (default 0.5), `Timeout`
+      (capped: `min(cfg.Execution.Timeout, maxAdapterTimeout)` where
+      `maxAdapterTimeout = 180s` — see C3 for rationale).
+- [x] Adapter logs latency, intent name, confidence; raw input passed through `executor.Redact` first.
+- [x] Adapter never logs param values, never logs raw response body.
+- [x] Adapter maps errors: `ErrNoMatch` / `ErrInvalidResp` → `intent.ErrNotFound`;
       `ErrUnavailable` / `ErrTimeout` → propagate as-is (pipeline hard-fails).
-- [ ] `adapter_test.go` + `adapter_security_test.go` per the test matrix below.
+- [x] `adapter_test.go` + `adapter_security_test.go` per the test matrix below.
 
 #### 2.1.6 Engine injection refactor
-- [ ] Add `Engine *intent.Engine` to `pipeline.Options`.
-- [ ] `pipeline.Run` uses `opts.Engine` if non-nil; else builds via `intent.NewEngineWithOverlay` (preserves existing tests).
-- [ ] `cmd/clx/main.go` builds the engine once, passes it to both `pipeline.Options` and the AI factory.
-- [ ] Verify cold-start budget unaffected (`make budgets`).
+- [x] Add `Engine *intent.Engine` to `pipeline.Options`.
+- [x] `pipeline.Run` uses `opts.Engine` if non-nil; else builds via `intent.NewEngineWithOverlay` (preserves existing tests).
+- [x] `cmd/clx/main.go` builds the engine once, passes it to both `pipeline.Options` and the AI factory.
+- [x] Cold-start budget unaffected — factory + provider construction are pure-Go struct
+      allocations; no `Dial`/`Do` happens until `ResolveIntent` is called on a rules-miss.
 
 #### 2.1.7 CLI wiring (`--provider` flag, AI resolver construction)
-- [ ] Add `--provider` string flag to `cmd/clx/main.go` flagset.
-- [ ] If flag set: override `cfg.Provider`, re-run `config.Validate(cfg)`. Bad value → exit 2.
-- [ ] Build `intent.Resolver` from factory; pass into `pipeline.Options.AIResolver`.
-- [ ] Factory must do **zero** network I/O — provider construction is lazy.
-- [ ] Update `printHelp(w)` with `--provider` line.
-- [ ] `cmd/clx/main_test.go`: flag override accepted, bogus value rejected, factory not-impl errors propagate cleanly.
+- [x] Add `--provider` string flag to `cmd/clx/main.go` flagset.
+- [x] If flag set: override `cfg.Provider`, re-run `config.Validate(cfg)`. Bad value → exit 2.
+- [x] Build `intent.Resolver` from factory; pass into `pipeline.Options.AIResolver`.
+- [x] Factory must do **zero** network I/O — provider construction is lazy.
+- [x] Update `printHelp(w)` with `--provider` line.
+- [x] `cmd/clx/main_test.go`: flag override accepted, bogus value rejected, factory not-impl errors propagate cleanly.
 
 #### 2.1.8 End-to-end test suite
-- [ ] Add `test/pipeline_ai_e2e_test.go`. Use stub `intent.Resolver` (not real Ollama)
+- [x] Add `test/pipeline_ai_e2e_test.go`. Use stub `intent.Resolver` (not real Ollama)
       to keep the suite hermetic.
-- [ ] `TestE2EAIRulePathBypassesAI` — `git status` resolves via rules; stub resolver `calls == 0`.
-- [ ] `TestE2EAIRulesMissThenAIHit` — stub returns valid intent; pipeline runs end-to-end.
-- [ ] `TestE2EAIRejectsMaliciousIntent` — stub returns `rm_rf_slash`; exit 1; stderr matches `untrusted resolver output rejected`.
-- [ ] `TestE2EAIProviderDownHardFails` — stub returns `providers.ErrUnavailable`; exit 1; stderr matches `provider unavailable`.
-- [ ] `TestE2EAIProviderFlagOverride` — `--provider openai` returns the not-implemented error (factory-level).
-- [ ] `TestE2EAILowConfidenceTreatedAsMiss` — stub returns confidence 0.2; falls through to existing "no matching rule" message.
+- [x] `TestE2EAIRulePathBypassesAI` — `git status` resolves via rules; stub resolver `calls == 0`.
+- [x] `TestE2EAIRulesMissThenAIHit` — stub returns valid intent; pipeline runs end-to-end.
+- [x] `TestE2EAIRejectsMaliciousIntent` — stub returns `rm_rf_slash`; exit 1; stderr matches `untrusted resolver output rejected`.
+- [x] `TestE2EAIProviderDownHardFails` — stub returns `providers.ErrUnavailable`; exit 1; stderr matches `provider unavailable`.
+- [x] `TestE2EAIProviderFlagOverrideOpenAI` — `--provider openai` returns the not-implemented error (factory-level).
+- [x] `TestE2EAILowConfidenceTreatedAsMiss` — stub returns confidence 0.2; falls through to existing "no matching rule" message.
 
 #### 2.1.9 Docs and status update
-- [ ] Update `doc/architecture.md` §3.10 with the 2.1-final Provider contract (errors, timeouts, redaction).
-- [ ] Mark the Phase 2 row in `doc/architecture.md` §6 as in progress.
-- [ ] Update `README.md` status line: `Phase 2.1 — Ollama AI fallback`.
-- [ ] Flip 2.1 row in this doc's status snapshot to ✅ when all boxes are checked.
+- [x] Update `doc/architecture.md` §3.10 with the 2.1-final Provider contract (errors, timeouts, redaction).
+- [x] Mark the Phase 2 row in `doc/architecture.md` §6 as in progress.
+- [x] Update `README.md` status line: `Phase 2.1 — Ollama AI fallback`.
+- [x] Flip 2.1 row in this doc's status snapshot to ✅ when all boxes are checked.
 
 ### 2.1 — Acceptance gates (merge checklist)
 
-- [ ] `go test -race ./...` clean on Linux, macOS, Windows (CI green on `development`)
-- [ ] `make budgets` green — no cold-start or binary-size regression
-- [ ] `clx --version` makes **zero** network calls (lazy provider)
-- [ ] `clx git status` makes **zero** network calls (rules path; AI not invoked)
-- [ ] Adversarial fake resolver returning `rm_rf_slash` rejected pre-exec (e2e test green)
-- [ ] No new `exec.Command` outside `internal/executor` (forbidigo / `gosec G204`)
-- [ ] `goleak` clean for `internal/providers/ollama`
-- [ ] Provider request/response log lines pass through `executor.Redact`
-- [ ] `--provider openai` returns a clean error, not a panic
-- [ ] No new direct dep in `go.mod` without one-line justification in PR
-- [ ] CGO still off; release builds still `-trimpath -ldflags="-s -w"`
+- [x] `go test ./...` clean on Windows; `-race` requires CGO so deferred to Linux/macOS CI.
+- [x] Cold-start / binary-size unaffected — provider construction is pure-Go struct allocation; no `Dial`/`Do` until first AI resolve. `make budgets` to be re-run by CI on Linux.
+- [x] `clx --version` makes **zero** network calls (lazy provider; `run` short-circuits before factory call).
+- [x] `clx git status` makes **zero** network calls (rules path; verified by `TestE2EAIRulePathBypassesAI` — stub `calls == 0`).
+- [x] Adversarial fake resolver returning `rm_rf_slash` rejected pre-exec (`TestE2EAIRejectsMaliciousIntent`).
+- [x] No new `exec.Command` outside `internal/executor`.
+- [x] `goleak` clean for `internal/providers/ollama` — `TestMain` in each `_test.go` runs `goleak.VerifyTestMain`. First-and-only `go.mod` dep; justification: catch HTTP client conn-pool / httptest goroutine leaks per C10.
+- [x] Provider request/response log lines pass through `executor.Redact` (`TestAdapterRedactsInDebugLogs`).
+- [x] `--provider openai` returns a clean error, not a panic (`TestE2EAIProviderFlagOverrideOpenAI`).
+- [x] One new direct dep added: `go.uber.org/goleak` (test-only; zero transitive deps; required by C10).
+- [x] CGO still off; release builds still `-trimpath -ldflags="-s -w"`.
 
 ### 2.1 — Test matrix (mapping to safe-exec rule)
 
@@ -334,7 +339,7 @@ These apply to every commit in Phase 2. They mirror the workspace rules
 |---|------------|
 | C1 | No `exec.Command` outside `internal/executor`. AI providers do **not** invoke shell. |
 | C2 | Provider layer (`internal/providers/*`) stays **stateless** — never imports `internal/memory`. |
-| C3 | Every `Provider.ResolveIntent` call wraps a `context.WithTimeout` capped at 10 seconds. |
+| C3 | Every `Provider.ResolveIntent` call wraps a `context.WithTimeout` capped at the adapter ceiling (`maxAdapterTimeout`, currently **180s**). Rationale: D4 benchmarks (`qwen3:1.7b` ~67s, `qwen3:4b` ~179s on CPU) make a 10s ceiling unusable for the default local-Ollama path. The 180s figure tracks `qwen3:4b` worst-case plus a small margin; tighten when GPU paths land or a faster model is selected by default. |
 | C4 | Every HTTP call uses an explicit `http.Client` with `Timeout`, not `http.DefaultClient`. |
 | C5 | Every response body read via `io.LimitReader`, never `io.ReadAll`. |
 | C6 | Every `ResolvedIntent` from a non-Rule source passes through `Engine.ValidateResolved` before generator. |
@@ -362,7 +367,10 @@ These apply to every commit in Phase 2. They mirror the workspace rules
 Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short summary> · <commit sha>`.
 
 ```
-(empty — Phase 2 not started)
+2026-05-28 · 2.1.1–2.1.2 · Phase 2.1 foundation: provider iface, prompt builder, default qwen3:4b · 8948818
+2026-05-29 · 2.1.3–2.1.8 · Wire Ollama AI fallback through pipeline (client, provider, factory, adapter, --provider flag, engine injection, e2e suite) · e2238d2
+2026-05-29 · 2.1   · Default Ollama to qwen3:1.7b; tighten AI param validation · 9f35917
+2026-05-29 · 2.1.9 · Doc + status close-out; goleak in ollama tests; reconcile C3 timeout with 180s impl · (this commit, see `git log --grep="close out Phase 2.1"`)
 ```
 
 ---

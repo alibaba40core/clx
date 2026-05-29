@@ -309,26 +309,70 @@ safety:
 ### 3.10 AI Provider Layer — `internal/providers`
 
 **Responsibility:** Pluggable LLM interface for intent resolution, explanation, and reasoning.
+Stateless by contract (must not import `internal/memory`). Plugs into the resolver chain as
+one more `intent.Resolver` via `providers.AsResolver` — the pipeline shape is unchanged.
 
 **Providers:**
 
-| Provider | Package | Use case |
-|----------|---------|----------|
-| Ollama | `internal/providers/ollama` | Local-first, offline |
-| OpenAI | `internal/providers/openai` | Cloud fallback |
-| Azure | `internal/providers/azure` | Enterprise |
+| Provider | Package | Use case | Status |
+|----------|---------|----------|--------|
+| Ollama | `internal/providers/ollama` | Local-first, offline | Shipped (Phase 2.1) |
+| OpenAI | `internal/providers/openai` | Cloud fallback | Stub — factory returns "not implemented" until Phase 2.3 |
+| Azure | `internal/providers/azure` | Enterprise | Stub — same as OpenAI until Phase 2.3 |
 
 **Interface contract:**
 
 ```go
 type Provider interface {
-    ResolveIntent(ctx context.Context, req IntentRequest) (*ResolvedIntent, error)
-    Explain(ctx context.Context, cmd GeneratedCommand) (string, error)
     Name() string
+    ResolveIntent(ctx context.Context, req IntentRequest) (*IntentResponse, error)
+    Explain(ctx context.Context, cmd generator.GeneratedCommand) (string, error)
+}
+
+type IntentRequest struct {
+    RawInput     string
+    Profile      environment.SystemProfile
+    KnownIntents []string            // closed vocabulary, sorted, capped at 256
+    RuleParams   map[string][]string // intent name -> declared param names
+}
+
+type IntentResponse struct {
+    Intent     string
+    Params     map[string]string
+    Confidence float64
 }
 ```
 
-Every AI request automatically injects the system profile as grounding context.
+**Sentinel errors (`internal/providers`):**
+
+| Error | Trigger | Adapter mapping |
+|-------|---------|-----------------|
+| `ErrUnavailable` | connect refused / DNS / TLS / 5xx | propagated → pipeline prints `provider unavailable: …`, exit 1 |
+| `ErrTimeout` | `context.DeadlineExceeded` or `net.Error.Timeout()` | propagated → pipeline prints `intent: provider timeout: …`, exit 1 |
+| `ErrInvalidResp` | 4xx / body parse fail / schema-mismatch JSON | folded to `intent.ErrNotFound` → falls through chain |
+| `ErrNoMatch` | empty `intent` in parsed response | folded to `intent.ErrNotFound` |
+
+**Adapter (`providers.AsResolver`):**
+
+- Wraps `Provider` as `intent.Resolver` with `AdapterConfig{MinConfidence, Timeout}`.
+- Default `MinConfidence = 0.5`; below threshold → `intent.ErrNotFound` (treated as miss).
+- Timeout is `min(cfg.Execution.Timeout, maxAdapterTimeout)` where `maxAdapterTimeout = 180s`.
+  Local CPU-only Ollama with `qwen3:4b` benchmarks at ~179s worst-case; tighten when a faster
+  default model or GPU path is adopted.
+- Every request profile + raw input flow through `executor.Redact` before any log line.
+  Param **values** are never logged; only intent name + confidence + latency.
+
+**Schema-constrained outputs (D5):**
+`providers.BuildResponseSchema(req)` produces a JSON schema from `KnownIntents` + `RuleParams`
+that Ollama enforces via `format: <jsonschema>` at decode time. Out-of-vocab intents and
+undeclared param keys become physically impossible on the wire; `Engine.ValidateResolved`
+remains defense-in-depth before the generator runs.
+
+**Factory (`internal/providers/factory`):**
+Subpackage to avoid an import cycle (`providers/ollama` imports `providers` for sentinels +
+`IntentRequest`). `NewFromConfig(cfg) → (Provider, error)` does **zero network I/O** — first
+HTTP call happens only on a rules-miss inside `ResolveIntent`. Unknown / unimplemented
+provider names return a clean error that the CLI surfaces verbatim (no panic, no escalation).
 
 ---
 
@@ -534,7 +578,7 @@ clx.ai/
 | Phase | Scope | Key packages |
 |-------|-------|--------------|
 | **Phase 1 — Core Engine** | Rules-first deterministic pipeline (no AI, no policy enforcement) — see [§6.1](#61-phase-1-sub-phases) for breakdown | `config`, `logging`, `environment`, `parser`, `intent` (rules path), `skills` (loader), `capabilities`, `generator`, `executor` (basic), `cmd/clx` |
-| **Phase 2 — AI Integration** | Ollama + OpenAI providers, AI fallback, explanations | `providers/*`, `intent` (AI path), `cache` |
+| **Phase 2 — AI Integration** *(2.1 done; 2.2–2.5 pending — see [`doc/phase-2.md`](phase-2.md))* | Ollama + OpenAI providers, AI fallback, explanations | `providers/*`, `intent` (AI path), `cache` |
 | **Phase 3 — Safety** | Risk engine, policy engine, dry-run, confirmations, access levels | `risk`, `policy`, `executor` (safety hooks) |
 | **Phase 3.5 — Aliases** | Persistent user-global aliases in `~/.clx/aliases.yaml`. `clx alias set/list/rm` subcommand, parser-stage expansion (alias value flows through full risk/policy/exec chain), set-time collision warning against shell verbs and built-in rule example heads. No dependency on `internal/memory` or shell hooks — ships as a self-contained slice between safety and advanced UX. See [§3.16](#316-aliases--internalaliases). | `internal/aliases`, `internal/parser` (expansion hook), `cmd/clx` (`alias` subcommand) |
 | **Phase 4 — Advanced UX** | Shell interception, auto-fix, session context, interactive `clx init` wizard | `memory`, `skills`, shell hooks |

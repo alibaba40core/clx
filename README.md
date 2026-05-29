@@ -6,7 +6,7 @@ CLX is an AI-powered cross-platform command intelligence layer for developers. I
 
 ## Status
 
-> **Phase 1.7 (shell-native exec)** — CLI pipeline: parse → intent → translate → risk → policy → confirm → execute. PATH binaries run as direct argv (`git`, `ping`); PowerShell cmdlets and CMD builtins run via validated host scripts (`Get-Location`, `Select-String`, etc.) — never raw user input in `-Command`. Default config uses dry-run preview (`safety.dry_run: true`); set `safety.dry_run: false` and pass `-y` to execute (e.g. `clx -y pwd` on Windows). Cross-platform e2e matrix and runtime budgets in CI. Flags: `--explain`, `--dry-run`, `-y`. Includes Phase 1.1–1.7.
+> **Phase 2.1 — Ollama AI fallback** — Rules-miss natural-language inputs (e.g. `clx find all files modified today`) now resolve through a local Ollama LLM (default model `qwen3:1.7b`) via schema-constrained JSON output, then run end-to-end through the same parse → intent → translate → risk → policy → confirm → execute pipeline that shipped in Phase 1.7. The AI is appended as one more `intent.Resolver` after rules; PATH binaries still run as direct argv, PowerShell cmdlets / CMD builtins still go through validated host scripts — no provider output ever reaches the shell without passing `Engine.ValidateResolved` and the safety gates. New flag: `--provider` (override `ollama` / `openai` / `azure` per invocation; `openai` and `azure` are stubs until Phase 2.3). Default config still uses dry-run preview. Includes Phase 1.1–2.1.
 
 ## What CLX does
 
