@@ -19,6 +19,15 @@ func Home() (string, error) {
 	return filepath.Join(userHome, homeDirName), nil
 }
 
+// SecretKeyPath returns ~/.clx/.secret-key (fallback encryption key material).
+func SecretKeyPath() (string, error) {
+	home, err := Home()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".secret-key"), nil
+}
+
 // ConfigPath returns the path to config.yaml under the CLX home.
 func ConfigPath() (string, error) {
 	home, err := Home()

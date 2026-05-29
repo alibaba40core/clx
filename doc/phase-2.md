@@ -1,6 +1,6 @@
 # Phase 2 — AI Integration
 
-> **Status:** Phase 2 complete (2.1–2.5). Phase 3 (Safety) or Phase 4 (Advanced UX) next.
+> **Status:** Phase 2 complete (2.1–2.6). Phase 3 (Safety) or Phase 4 (Advanced UX) next.
 >
 > This doc is both the implementation plan **and** the live tracker. Flip
 > checkboxes (`[ ]` → `[x]`) and append to the **Update log** at the bottom as
@@ -18,6 +18,7 @@
 | **2.3** | OpenAI provider + cross-provider fallback | ✅ Done | f47ff62 | OpenAI chat completions, primary/fallback config, chain on ErrUnavailable only. |
 | **2.4** | AI-driven `Explain()` wiring | ✅ Done | 05196f9 | AI explain on --explain + AI/Cache source; explanations.json cache; 2s timeout. |
 | **2.5** | Hardening: redaction audit, docs, CI budget recheck | ✅ Done | 1d48cd4 | providers.timeout, host URL validation, security e2e, Phase 2 close-out. |
+| **2.6** | Provider config CLI + encrypted secrets | ✅ Done | — | `clx config` subcommand, enc:v1 API keys, machine-bound encryption, provider-scoped set/get/show. |
 
 Legend: ⬜ Not started · 🟡 In progress · ✅ Done · 🛑 Blocked
 
@@ -84,6 +85,11 @@ below before Phase 2 started. **Do not redo any of this.**
 | **D13** | **Explanation cache:** separate file `~/.clx/cache/explanations.json`, same bounded LRU/TTL/disk caps as intent cache (`cache:` config). Key: SHA-256 of `intent + shell + joined(argv)`. | Keeps intent cache schema stable; explanations are display-only blobs. |
 | **D14** | **Explain timeout:** hardcoded **2s** ceiling, independent of `execution.timeout` / `providers.timeout`. Never blocks exec. | Fast fallback to static text; exec path unaffected. |
 | **D15** | **Explain output is display-only.** Plain-text LLM response (no JSON schema). Never substituted into argv or templates. Log via `executor.Redact`. | Explain cannot become an RCE vector. |
+| **D16** | **`clx config` subcommand** manages provider settings; no new run-time flags beyond existing `--provider`. | Stable CLI; avoid flag sprawl on every `clx` invocation. |
+| **D17** | **API keys stored as `enc:v1:`** in config.yaml; decrypted only in-process during Load. | Secrets never at rest in plaintext on disk. |
+| **D18** | **Encryption key** derived from OS + user identity; fallback `~/.clx/.secret-key` (0600) when derivation unavailable. | Machine-bound without mandatory OS keychain deps. |
+| **D19** | **`clx config show/get` never prints decrypted secrets** — masked display only. | Prevents accidental key leakage in terminals/logs. |
+| **D20** | **Secret paths reject argv values.** Use `clx config set <secret-path>` or `--stdin` for a hidden terminal prompt; pipe still works for automation. | Keys never on command line or in shell history. |
 
 ---
 
@@ -95,6 +101,7 @@ flowchart LR
     B --> C[2.3 OpenAI + fallback]
     C --> D[2.4 Explain]
     D --> E[2.5 Hardening]
+    E --> F[2.6 Config CLI]
 ```
 
 Each sub-phase is independently shippable. 2.4 may be deferred to Phase 4 with
@@ -342,6 +349,21 @@ green. Mark the box when the commit lands on `development`.
 
 ---
 
+## Phase 2.6 — Provider config CLI & encrypted secrets
+
+> **Goal:** manage AI provider settings from the terminal; encrypt API keys at rest before Phase 3.
+
+- [x] `internal/config` encryption: AES-GCM `enc:v1:`, machine-bound key derivation, fallback `~/.clx/.secret-key`
+- [x] `DecryptConfig` on Load; `PrepareForDisk` + atomic `Save` on write
+- [x] Provider-scoped `SetByPath` / `GetByPath` allowlist; masked secret display
+- [x] `clx config` subcommand: `show`, `get`, `set` (`--stdin`), `provider use/list`, `encrypt-secrets`
+- [x] Route in `cmd/clx/main.go`; help text; no network on config commands
+- [x] Tests: crypto round-trip, Save/Load encrypt, show redaction, set --stdin, provider use validation
+- [x] Docs: `doc/provider-config.md`, architecture §3.1/§3.14, `.gitignore` hardening
+- [x] Update this doc's status snapshot when complete
+
+---
+
 ## Cross-cutting non-negotiables
 
 These apply to every commit in Phase 2. They mirror the workspace rules
@@ -394,6 +416,7 @@ Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short su
 2026-05-29 · P.4   · Intent name in AI explain prompt · a86bee6
 2026-05-29 · P.5   · Deferred budget probe comments; version timing smoke test · 136faed
 2026-05-29 · P.6   · phase-2.md behavior table + R2/R4 close-out · a1c708f
+2026-05-29 · 2.6   · Provider config CLI, enc:v1 API keys, clx config subcommand · (pending)
 ```
 
 ---
