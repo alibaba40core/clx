@@ -80,3 +80,15 @@ func stringSliceToAny(ss []string) []any {
 	}
 	return out
 }
+
+// BuildOpenAIResponseFormat wraps a JSON schema for OpenAI chat response_format.
+func BuildOpenAIResponseFormat(schema map[string]any) map[string]any {
+	return map[string]any{
+		"type": "json_schema",
+		"json_schema": map[string]any{
+			"name":   "clx_intent",
+			"strict": true,
+			"schema": schema,
+		},
+	}
+}

@@ -1,22 +1,20 @@
-package ollama
+package openai
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
-
 )
 
 func TestNewClientNoNetwork(t *testing.T) {
 	t.Parallel()
-	c, err := NewClient("http://127.0.0.1:1", "qwen3:4b", 2*time.Second)
+	c, err := NewClient("sk-test", "gpt-4.1-mini", "", 2*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,28 +26,35 @@ func TestNewClientNoNetwork(t *testing.T) {
 func TestClientChatHappyPath(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/chat" {
+		if r.URL.Path != "/v1/chat/completions" {
 			t.Fatalf("path %s", r.URL.Path)
 		}
 		if got := r.Header.Get("User-Agent"); !strings.HasPrefix(got, "clx/") {
 			t.Fatalf("User-Agent = %q", got)
 		}
-		var req ChatRequest
+		if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer sk-") {
+			t.Fatalf("Authorization = %q", r.Header.Get("Authorization"))
+		}
+		var req chatRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			t.Fatal(err)
 		}
-		if req.Stream || req.Options.Temperature != 0 {
+		if req.Temperature != 0 || req.ResponseFormat == nil {
 			t.Fatalf("req = %+v", req)
 		}
 		_ = json.NewEncoder(w).Encode(chatResponse{
-			Message: struct {
+			Choices: []struct {
+				Message struct {
+					Content string `json:"content"`
+				} `json:"message"`
+			}{{Message: struct {
 				Content string `json:"content"`
-			}{Content: `{"intent":"find_file","params":{"filename":"*.log"},"confidence":0.9}`},
+			}{Content: `{"intent":"find_file","params":{"filename":"*.log"},"confidence":0.9}`}}},
 		})
 	}))
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "qwen3:4b", 5*time.Second)
+	c, err := NewClient("sk-test", "gpt-4.1-mini", srv.URL+"/v1", 5*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,20 +73,20 @@ func TestClientChatHTTP500(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer srv.Close()
-	c, _ := NewClient(srv.URL, "m", time.Second)
+	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", time.Second)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
 	if !errors.Is(err, errUnavailable) {
 		t.Fatalf("err = %v", err)
 	}
 }
 
-func TestClientChatHTTP400(t *testing.T) {
+func TestClientChatHTTP401(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusUnauthorized)
 	}))
 	defer srv.Close()
-	c, _ := NewClient(srv.URL, "m", time.Second)
+	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", time.Second)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
 	if !errors.Is(err, errInvalidResp) {
 		t.Fatalf("err = %v", err)
@@ -92,13 +97,17 @@ func TestClientChatEmptyIntent(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_ = json.NewEncoder(w).Encode(chatResponse{
-			Message: struct {
+			Choices: []struct {
+				Message struct {
+					Content string `json:"content"`
+				} `json:"message"`
+			}{{Message: struct {
 				Content string `json:"content"`
-			}{Content: `{"intent":"","params":{}}`},
+			}{Content: `{"intent":"","params":{}}`}}},
 		})
 	}))
 	defer srv.Close()
-	c, _ := NewClient(srv.URL, "m", time.Second)
+	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", time.Second)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
 	if !errors.Is(err, errNoMatch) {
 		t.Fatalf("err = %v", err)
@@ -109,12 +118,11 @@ func TestClientChatBoundedRead(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		_, _ = io.Copy(w, io.LimitReader(strings.NewReader(`{"message":{"content":"x"}}`), maxResponseBytes+1))
+		_, _ = io.Copy(w, io.LimitReader(strings.NewReader(`{"choices":[{"message":{"content":"x"}}]}`), maxResponseBytes+1))
 	}))
 	defer srv.Close()
-	c, _ := NewClient(srv.URL, "m", time.Second)
+	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", time.Second)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
-	// Truncated JSON should fail parse → ErrInvalidResp
 	if !errors.Is(err, errInvalidResp) {
 		t.Fatalf("err = %v", err)
 	}
@@ -122,15 +130,7 @@ func TestClientChatBoundedRead(t *testing.T) {
 
 func TestClientChatServerDown(t *testing.T) {
 	t.Parallel()
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	addr := ln.Addr().String()
-	if err := ln.Close(); err != nil {
-		t.Fatal(err)
-	}
-	c, err := NewClient("http://"+addr, "m", time.Second)
+	c, err := NewClient("sk-test", "m", "http://127.0.0.1:1/v1", 200*time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func TestClientChatTimeout(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
-	c, _ := NewClient(srv.URL, "m", 50*time.Millisecond)
+	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", 50*time.Millisecond)
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 	_, err := c.Chat(ctx, "s", "u", nil)

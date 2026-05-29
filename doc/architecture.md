@@ -317,8 +317,8 @@ one more `intent.Resolver` via `providers.AsResolver` — the pipeline shape is 
 | Provider | Package | Use case | Status |
 |----------|---------|----------|--------|
 | Ollama | `internal/providers/ollama` | Local-first, offline | Shipped (Phase 2.1) |
-| OpenAI | `internal/providers/openai` | Cloud fallback | Stub — factory returns "not implemented" until Phase 2.3 |
-| Azure | `internal/providers/azure` | Enterprise | Stub — same as OpenAI until Phase 2.3 |
+| OpenAI | `internal/providers/openai` | Cloud fallback | Shipped (Phase 2.3) |
+| Azure | `internal/providers/azure` | Enterprise | Stub — factory returns "not implemented" until a later phase |
 
 **Interface contract:**
 
@@ -371,8 +371,20 @@ remains defense-in-depth before the generator runs.
 **Factory (`internal/providers/factory`):**
 Subpackage to avoid an import cycle (`providers/ollama` imports `providers` for sentinels +
 `IntentRequest`). `NewFromConfig(cfg) → (Provider, error)` does **zero network I/O** — first
-HTTP call happens only on a rules-miss inside `ResolveIntent`. Unknown / unimplemented
-provider names return a clean error that the CLI surfaces verbatim (no panic, no escalation).
+HTTP call happens only on a rules-miss inside `ResolveIntent`.
+
+**Effective primary (D7):** `config.EffectivePrimary(cfg)` returns `providers.primary` when set,
+else top-level `provider`. When `providers.fallback` is set and differs from primary, factory
+returns a chain provider (`internal/providers/chain`) that tries primary then fallback on
+`ErrUnavailable` only (D9). `--provider` clears fallback for that invocation (D10).
+
+```yaml
+providers:
+  primary: ollama          # optional; defaults to provider:
+  fallback: openai         # optional; unset = hard-fail when primary down (D8)
+  ollama: { host, model }
+  openai: { api_key, model }
+```
 
 ---
 
@@ -601,7 +613,7 @@ clx.ai/
 | Phase | Scope | Key packages |
 |-------|-------|--------------|
 | **Phase 1 — Core Engine** | Rules-first deterministic pipeline (no AI, no policy enforcement) — see [§6.1](#61-phase-1-sub-phases) for breakdown | `config`, `logging`, `environment`, `parser`, `intent` (rules path), `skills` (loader), `capabilities`, `generator`, `executor` (basic), `cmd/clx` |
-| **Phase 2 — AI Integration** *(2.1–2.2 done; 2.3–2.5 pending — see [`doc/phase-2.md`](phase-2.md))* | Ollama + OpenAI providers, AI fallback, explanations | `providers/*`, `intent` (AI path), `cache` |
+| **Phase 2 — AI Integration** *(2.1–2.3 done; 2.4–2.5 pending — see [`doc/phase-2.md`](phase-2.md))* | Ollama + OpenAI providers, AI fallback, explanations | `providers/*`, `intent` (AI path), `cache` |
 | **Phase 3 — Safety** | Risk engine, policy engine, dry-run, confirmations, access levels | `risk`, `policy`, `executor` (safety hooks) |
 | **Phase 3.5 — Aliases** | Persistent user-global aliases in `~/.clx/aliases.yaml`. `clx alias set/list/rm` subcommand, parser-stage expansion (alias value flows through full risk/policy/exec chain), set-time collision warning against shell verbs and built-in rule example heads. No dependency on `internal/memory` or shell hooks — ships as a self-contained slice between safety and advanced UX. See [§3.16](#316-aliases--internalaliases). | `internal/aliases`, `internal/parser` (expansion hook), `cmd/clx` (`alias` subcommand) |
 | **Phase 4 — Advanced UX** | Shell interception, auto-fix, session context, interactive `clx init` wizard | `memory`, `skills`, shell hooks |

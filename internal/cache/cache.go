@@ -317,9 +317,16 @@ func (s *Store) saveLocked(ctx context.Context) error {
 		return err
 	}
 	if err := os.Rename(tmpPath, s.path); err != nil {
-		cleanup()
-		s.logWarn("cache rename failed", "err", err)
-		return err
+		if rmErr := os.Remove(s.path); rmErr != nil && !os.IsNotExist(rmErr) {
+			cleanup()
+			s.logWarn("cache rename failed", "err", err)
+			return err
+		}
+		if err := os.Rename(tmpPath, s.path); err != nil {
+			cleanup()
+			s.logWarn("cache rename failed", "err", err)
+			return err
+		}
 	}
 	return nil
 }

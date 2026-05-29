@@ -27,7 +27,7 @@ func TestLoadMergesFile(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.yaml")
-	if err := os.WriteFile(path, []byte("provider: openai\nmodel: gpt-test\n"), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte("provider: openai\nmodel: gpt-test\nproviders:\n  openai:\n    api_key: test-key\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	cfg, err := Load(context.Background(), path)
