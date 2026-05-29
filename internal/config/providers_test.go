@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/alibaba40core/clx/internal/yamlutil"
 )
@@ -57,6 +58,34 @@ func TestValidateFallbackMustDifferFromPrimary(t *testing.T) {
 	cfg.Providers.Fallback = "ollama"
 	if err := Validate(cfg); err == nil || !strings.Contains(err.Error(), "must differ") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestValidateOllamaHostURL(t *testing.T) {
+	t.Parallel()
+	cfg := Default()
+	cfg.Providers.Ollama.Host = "not-a-url"
+	if err := Validate(cfg); err == nil || !strings.Contains(err.Error(), "http") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestProviderTimeoutPrefersProvidersTimeout(t *testing.T) {
+	t.Parallel()
+	cfg := Default()
+	cfg.Execution.Timeout = 30
+	cfg.Providers.Timeout = 45
+	if got := ProviderTimeout(cfg); got != 45*time.Second {
+		t.Fatalf("got %v", got)
+	}
+}
+
+func TestValidateProvidersTimeoutNegative(t *testing.T) {
+	t.Parallel()
+	cfg := Default()
+	cfg.Providers.Timeout = -1
+	if err := Validate(cfg); err == nil {
+		t.Fatal("expected error")
 	}
 }
 

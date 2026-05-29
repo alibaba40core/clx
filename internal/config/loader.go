@@ -80,6 +80,9 @@ func Validate(c Config) error {
 	if c.Cache.MaxDiskBytes <= 0 {
 		return fmt.Errorf("cache.max_disk_bytes must be > 0")
 	}
+	if c.Providers.Timeout < 0 {
+		return fmt.Errorf("providers.timeout must be >= 0")
+	}
 
 	primary := EffectivePrimary(c)
 	if err := validateProviderName(primary, "providers.primary"); err != nil {

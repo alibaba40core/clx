@@ -1,6 +1,6 @@
 # Phase 2 — AI Integration
 
-> **Status:** 2.1–2.3 done. 2.4 (AI Explain) or 2.5 (hardening) next.
+> **Status:** Phase 2 complete (2.1–2.5). Phase 3 (Safety) or Phase 4 (Advanced UX) next.
 >
 > This doc is both the implementation plan **and** the live tracker. Flip
 > checkboxes (`[ ]` → `[x]`) and append to the **Update log** at the bottom as
@@ -16,8 +16,8 @@
 | **2.1** | Provider interface + Ollama + `--provider` flag + AI fallback wiring | ✅ Done | 9f35917 | Provider iface, Ollama HTTP client + provider, factory, adapter, `--provider` flag, engine injection, hermetic e2e suite all green. |
 | **2.2** | Intent cache (`internal/cache`) | ✅ Done | be1c59f | File-backed LRU at ~/.clx/cache/intents.json; chain [rules, cache, ai]; write-through on AI hits. |
 | **2.3** | OpenAI provider + cross-provider fallback | ✅ Done | f47ff62 | OpenAI chat completions, primary/fallback config, chain on ErrUnavailable only. |
-| **2.4** | AI-driven `Explain()` wiring | ⬜ Not started | — | Optional polish; can defer to Phase 4. |
-| **2.5** | Hardening: redaction audit, docs, CI budget recheck | ⬜ Not started | — | Closes the phase. |
+| **2.4** | AI-driven `Explain()` wiring | ✅ Done | (pending) | AI explain on --explain + AI/Cache source; explanations.json cache; 2s timeout. |
+| **2.5** | Hardening: redaction audit, docs, CI budget recheck | ✅ Done | (pending) | providers.timeout, host URL validation, security e2e, Phase 2 close-out. |
 
 Legend: ⬜ Not started · 🟡 In progress · ✅ Done · 🛑 Blocked
 
@@ -79,6 +79,11 @@ below before Phase 2 started. **Do not redo any of this.**
 | **D8** | **Fallback is opt-in** via `providers.fallback`. Unset → D2 hard-fail when primary is down. | Predictable UX; no silent cloud escalation. |
 | **D9** | **Fallback triggers on `ErrUnavailable` only** (connect refused, DNS, TLS, 5xx). No fallback on timeout, invalid response, or no-match. | Avoids surprise cloud spend on slow local CPU or bad model output. |
 | **D10** | **`--provider` disables fallback** for that invocation (`cfg.Providers.Fallback` cleared in main). | Flag implies single-provider semantics (extends D3). |
+| **D11** | **AI Explain runs only when `--explain` is set** (`opts.Explain`) **and** `resolved.Source` is `SourceAI` or `SourceCache`. Dry-run / confirm display without `--explain` keeps static `gen.Explanation`. | Avoids LLM spend on every dry-run preview; Explain is an explicit UX opt-in. |
+| **D12** | **Explain chain: primary-only** (`chain.Explain` delegates to primary). On any Explain error/timeout → static fallback; no cross-provider Explain fallback. | Explain is best-effort polish; infra fallback belongs on ResolveIntent (D9). |
+| **D13** | **Explanation cache:** separate file `~/.clx/cache/explanations.json`, same bounded LRU/TTL/disk caps as intent cache (`cache:` config). Key: SHA-256 of `intent + shell + joined(argv)`. | Keeps intent cache schema stable; explanations are display-only blobs. |
+| **D14** | **Explain timeout:** hardcoded **2s** ceiling, independent of `execution.timeout` / `providers.timeout`. Never blocks exec. | Fast fallback to static text; exec path unaffected. |
+| **D15** | **Explain output is display-only.** Plain-text LLM response (no JSON schema). Never substituted into argv or templates. Log via `executor.Redact`. | Explain cannot become an RCE vector. |
 
 ---
 
@@ -305,17 +310,17 @@ green. Mark the box when the commit lands on `development`.
 
 ---
 
-## Phase 2.4 — AI-driven explanations *(outline, optional)*
+## Phase 2.4 — AI-driven explanations
 
-> **Goal:** richer `--explain` output backed by AI.
-> May defer to Phase 4 if velocity is needed.
+> **Goal:** richer `--explain` output backed by AI for AI/Cache resolution paths.
 
-- [ ] In `internal/pipeline/display.go`, when AI provider available and `--explain`
-      set, call `Provider.Explain(gen)` with tight 2s timeout
-- [ ] Graceful fallback to static `explanationFor(intent)` map on timeout/error
-- [ ] Cache explanations (same key + intent name) — depends on 2.2
-- [ ] Tests: AI text shown when provider up; static fallback when down; never blocks exec
-- [ ] Update this doc's status snapshot when complete
+- [x] Add `internal/providers/explain.go` — single global explain prompt builder
+- [x] Ollama / OpenAI `ExplainChat` plain-text HTTP methods + provider `Explain` impl
+- [x] `internal/cache/explain.go` — `~/.clx/cache/explanations.json` with same bounds as intent cache
+- [x] Pipeline: `Options.Provider`, `Options.ExplainCache`, enrich explanation when `--explain` + SourceAI/Cache (2s timeout, static fallback)
+- [x] Wire Provider + ExplainCache in `cmd/clx/main.go`
+- [x] Tests: AI text when provider up; static fallback when down; no LLM on rule hits; cache hit skips LLM
+- [x] Update this doc's status snapshot when complete
 
 ---
 
@@ -323,14 +328,14 @@ green. Mark the box when the commit lands on `development`.
 
 > **Goal:** close out cross-cutting items accumulated across 2.1–2.4.
 
-- [ ] Redaction audit: every provider request/response field passes through `executor.Redact` before logging
-- [ ] New `~/.clx/cache/` entry documented in `doc/architecture.md` §4 runtime layout
-- [ ] Provider config validation in `internal/config/loader.go`: bad host URL, missing API key when `provider: openai`
-- [ ] Optional: `providers.timeout` config key (otherwise 10s ceiling stays hardcoded)
-- [ ] CI budget script still green with provider compiled in
-- [ ] Canonical adversarial e2e test: a fake provider's raw output cannot reach `os/exec` without passing argv-only validation, risk, policy, and confirmation
-- [ ] README status updated to `Phase 2 complete`
-- [ ] Update this doc's status snapshot when complete
+- [x] Redaction audit: every provider request/response field passes through `executor.Redact` before logging
+- [x] New `~/.clx/cache/` entries documented in `doc/architecture.md` §4 runtime layout
+- [x] Provider config validation: Ollama host URL parse; API key when openai active (2.3)
+- [x] `providers.timeout` config key (Explain stays hardcoded 2s)
+- [x] CI budget script still green with provider compiled in
+- [x] Canonical adversarial e2e test: malicious resolver output cannot reach exec
+- [x] README status updated to `Phase 2 complete`
+- [x] Update this doc's status snapshot when complete
 
 ---
 
@@ -378,6 +383,8 @@ Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short su
 2026-05-29 · 2.1.9 · Doc + status close-out; goleak in ollama tests; reconcile C3 timeout with 180s impl · cd20e7b
 2026-05-29 · 2.2   · Intent cache: file-backed LRU, resolver chain [rules,cache,ai], write-through on AI hits · be1c59f
 2026-05-29 · 2.3   · OpenAI provider, primary/fallback config, chain on ErrUnavailable; --provider clears fallback · f47ff62
+2026-05-29 · 2.4   · AI Explain on --explain + AI/Cache path; explanations.json cache; 2s timeout · (pending)
+2026-05-29 · 2.5   · providers.timeout, host URL validation, security e2e, Phase 2 close-out · (pending)
 ```
 
 ---

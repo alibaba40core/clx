@@ -24,6 +24,7 @@ func Encode(cfg Config, w io.Writer) error {
 		"providers:",
 		"  primary: " + quoteIfNeeded(cfg.Providers.Primary),
 		"  fallback: " + quoteIfNeeded(cfg.Providers.Fallback),
+		"  timeout: " + strconv.Itoa(cfg.Providers.Timeout),
 		"  ollama:",
 		"    host: " + quoteIfNeeded(cfg.Providers.Ollama.Host),
 		"    model: " + cfg.Providers.Ollama.Model,

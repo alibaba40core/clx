@@ -19,6 +19,11 @@ func applyNode(cfg *Config, root *yamlutil.Node) {
 	if v, ok := root.GetString("providers", "fallback"); ok {
 		cfg.Providers.Fallback = v
 	}
+	if v, ok := root.GetString("providers", "timeout"); ok {
+		if n, err := strconv.Atoi(v); err == nil {
+			cfg.Providers.Timeout = n
+		}
+	}
 	if root.Has("providers", "ollama", "host") {
 		if v, ok := root.GetString("providers", "ollama", "host"); ok {
 			cfg.Providers.Ollama.Host = v

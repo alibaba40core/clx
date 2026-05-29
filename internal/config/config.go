@@ -16,6 +16,7 @@ type Config struct {
 type ProvidersConfig struct {
 	Primary  string         `yaml:"primary"`
 	Fallback string         `yaml:"fallback"`
+	Timeout  int            `yaml:"timeout"` // seconds; 0 = use execution.timeout
 	Ollama   OllamaProvider `yaml:"ollama"`
 	OpenAI   OpenAIProvider `yaml:"openai"`
 	Azure    AzureProvider  `yaml:"azure"`

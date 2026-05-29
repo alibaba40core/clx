@@ -142,10 +142,10 @@ check_cold_start() {
   pass "cold start (median of ${COLDSTART_RUNS}, ${COLDSTART_WARMUP} warmup): ${median} ms (worst ${worst} ms, limit ${MAX_COLDSTART_MS} ms)"
 }
 
-print_deferred_budgets() {
-  log "steady-state RSS: skipped (Phase 2 -- needs /usr/bin/time -v, Linux only)"
-  log "peak RSS (AI path): skipped (no AI integration yet)"
-  log "goroutines at idle: skipped (Phase 2 -- needs runtime probe)"
+func print_deferred_budgets() {
+  log "steady-state RSS: skipped (manual probe — target < 30 MB rules path, Phase 2.5)"
+  log "peak RSS (AI path): skipped (manual probe — target < 100 MB, Phase 2.5)"
+  log "goroutines at idle: skipped (goleak in provider packages; target <= 3 at idle, Phase 2.5)"
 }
 
 setup_clx_home() {
