@@ -393,7 +393,7 @@ Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short su
 2026-05-29 · P.3   · Cap providers.timeout at 180s · 0e98fa4
 2026-05-29 · P.4   · Intent name in AI explain prompt · a86bee6
 2026-05-29 · P.5   · Deferred budget probe comments; version timing smoke test · 136faed
-2026-05-29 · P.6   · phase-2.md behavior table + R2/R4 close-out · 8bee591
+2026-05-29 · P.6   · phase-2.md behavior table + R2/R4 close-out · a1c708f
 ```
 
 ---
