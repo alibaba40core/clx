@@ -48,6 +48,9 @@ func buildUserMessage(req IntentRequest, intents, tools []string) string {
 
 	fmt.Fprintf(&b, "OS: %s\nShell: %s\nTerminal: %s",
 		req.Profile.OS, req.Profile.Shell, req.Profile.Terminal)
+	if strings.EqualFold(req.Profile.OS, "windows") {
+		b.WriteString("\nPath hint: use \".\" for the current directory, not \"/\".")
+	}
 
 	b.WriteString("\n\nAvailable tools: ")
 	if len(tools) == 0 {

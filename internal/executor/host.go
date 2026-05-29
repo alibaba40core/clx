@@ -85,19 +85,26 @@ func ResolveCmd() (string, error) {
 	})
 }
 
-// ResolvePosixShell returns sh or $SHELL on Unix.
+// ResolvePosixShell returns sh or $SHELL. On Windows, Git Bash / MSYS / Cygwin
+// sessions expose bash via $SHELL or PATH.
 func ResolvePosixShell() (string, error) {
+	key := "posix"
 	if runtime.GOOS == "windows" {
-		return "", fmt.Errorf("%w: not available on windows", ErrNoPosixShell)
+		key = "posix-win"
 	}
-	return cachedHost("posix", func() (string, error) {
+	return cachedHost(key, func() (string, error) {
 		if shell := os.Getenv("SHELL"); shell != "" {
 			if _, err := os.Stat(shell); err == nil {
 				return shell, nil
 			}
 		}
-		if exe, err := exec.LookPath("sh"); err == nil {
-			return exe, nil
+		for _, name := range []string{"bash", "bash.exe", "sh", "sh.exe"} {
+			if exe, err := exec.LookPath(name); err == nil {
+				return exe, nil
+			}
+		}
+		if runtime.GOOS == "windows" {
+			return "", fmt.Errorf("%w: not available on windows", ErrNoPosixShell)
 		}
 		return "", ErrNoPosixShell
 	})

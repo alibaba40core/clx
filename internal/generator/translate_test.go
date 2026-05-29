@@ -107,6 +107,15 @@ func TestTranslateSeedIntents(t *testing.T) {
 			wantArgv: []string{"Get-ChildItem", "C:\\tmp"},
 		},
 		{
+			name: "list_dir cmd normalizes unix root path",
+			resolved: intent.ResolvedIntent{
+				Intent: "list_dir",
+				Params: map[string]string{"path": "/"},
+			},
+			profile:  environment.SystemProfile{OS: "windows", Shell: "cmd"},
+			wantArgv: []string{"dir", "."},
+		},
+		{
 			name: "list_dir linux",
 			resolved: intent.ResolvedIntent{
 				Intent: "list_dir",
