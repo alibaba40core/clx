@@ -16,7 +16,7 @@ import (
 
 func TestNewClientNoNetwork(t *testing.T) {
 	t.Parallel()
-	c, err := NewClient("sk-test", "gpt-4.1-mini", "", 2*time.Second)
+	c, err := NewClient("sk-test", "gpt-4.1-mini", "", 2*time.Second, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func TestClientChatHappyPath(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := NewClient("sk-test", "gpt-4.1-mini", srv.URL+"/v1", 5*time.Second)
+	c, err := NewClient("sk-test", "gpt-4.1-mini", srv.URL+"/v1", 5*time.Second, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestClientChatHTTP500(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer srv.Close()
-	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", time.Second)
+	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", time.Second, nil)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
 	if !errors.Is(err, errUnavailable) {
 		t.Fatalf("err = %v", err)
@@ -88,7 +88,7 @@ func TestClientChatHTTP401(t *testing.T) {
 		w.WriteHeader(http.StatusUnauthorized)
 	}))
 	defer srv.Close()
-	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", time.Second)
+	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", time.Second, nil)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
 	if !errors.Is(err, errInvalidResp) {
 		t.Fatalf("err = %v", err)
@@ -109,7 +109,7 @@ func TestClientChatEmptyIntent(t *testing.T) {
 		})
 	}))
 	defer srv.Close()
-	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", time.Second)
+	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", time.Second, nil)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
 	if !errors.Is(err, errNoMatch) {
 		t.Fatalf("err = %v", err)
@@ -123,7 +123,7 @@ func TestClientChatBoundedRead(t *testing.T) {
 		_, _ = io.Copy(w, io.LimitReader(strings.NewReader(`{"choices":[{"message":{"content":"x"}}]}`), maxResponseBytes+1))
 	}))
 	defer srv.Close()
-	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", time.Second)
+	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", time.Second, nil)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
 	if !errors.Is(err, errInvalidResp) {
 		t.Fatalf("err = %v", err)
@@ -132,7 +132,7 @@ func TestClientChatBoundedRead(t *testing.T) {
 
 func TestClientChatServerDown(t *testing.T) {
 	t.Parallel()
-	c, err := NewClient("sk-test", "m", "http://127.0.0.1:1/v1", 200*time.Millisecond)
+	c, err := NewClient("sk-test", "m", "http://127.0.0.1:1/v1", 200*time.Millisecond, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +149,7 @@ func TestClientChatTimeout(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
-	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", 50*time.Millisecond)
+	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", 50*time.Millisecond, nil)
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 	_, err := c.Chat(ctx, "s", "u", nil)
@@ -179,7 +179,7 @@ func TestClientExplainChatHappyPath(t *testing.T) {
 		})
 	}))
 	defer srv.Close()
-	c, err := NewClient("sk-test", "m", srv.URL+"/v1", 5*time.Second)
+	c, err := NewClient("sk-test", "m", srv.URL+"/v1", 5*time.Second, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

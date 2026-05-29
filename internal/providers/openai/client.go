@@ -7,12 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/alibaba40core/clx/internal/cliversion"
+	"github.com/alibaba40core/clx/internal/providers"
 )
 
 const (
@@ -27,10 +29,11 @@ type Client struct {
 	apiKey  string
 	model   string
 	http    *http.Client
+	logger  *slog.Logger
 }
 
 // NewClient returns a client for apiKey and model. baseURL may be empty for the default.
-func NewClient(apiKey, model, baseURL string, timeout time.Duration) (*Client, error) {
+func NewClient(apiKey, model, baseURL string, timeout time.Duration, logger *slog.Logger) (*Client, error) {
 	apiKey = strings.TrimSpace(apiKey)
 	if apiKey == "" {
 		return nil, fmt.Errorf("openai: api_key is required")
@@ -51,6 +54,7 @@ func NewClient(apiKey, model, baseURL string, timeout time.Duration) (*Client, e
 		http: &http.Client{
 			Timeout: timeout,
 		},
+		logger: logger,
 	}, nil
 }
 
@@ -128,6 +132,7 @@ func (c *Client) Chat(ctx context.Context, system, user string, schema map[strin
 		return nil, errUnavailable
 	}
 	if resp.StatusCode >= 400 {
+		providers.DebugLogHTTPError(c.logger, "openai", resp.StatusCode, data)
 		return nil, errInvalidResp
 	}
 
@@ -180,6 +185,7 @@ func (c *Client) ExplainChat(ctx context.Context, system, user string) (string, 
 		return "", errUnavailable
 	}
 	if resp.StatusCode >= 400 {
+		providers.DebugLogHTTPError(c.logger, "openai", resp.StatusCode, data)
 		return "", errInvalidResp
 	}
 

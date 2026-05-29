@@ -11,7 +11,7 @@ import (
 func TestNewFromConfigOllama(t *testing.T) {
 	t.Parallel()
 	cfg := config.Default()
-	p, err := NewFromConfig(cfg)
+	p, err := NewFromConfig(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +25,7 @@ func TestNewFromConfigOpenAI(t *testing.T) {
 	cfg := config.Default()
 	cfg.Provider = "openai"
 	cfg.Providers.OpenAI.APIKey = "sk-test"
-	p, err := NewFromConfig(cfg)
+	p, err := NewFromConfig(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestNewFromConfigOpenAIMissingKey(t *testing.T) {
 	t.Parallel()
 	cfg := config.Default()
 	cfg.Provider = "openai"
-	_, err := NewFromConfig(cfg)
+	_, err := NewFromConfig(cfg, nil)
 	if err == nil || !strings.Contains(err.Error(), "api_key required") {
 		t.Fatalf("err = %v", err)
 	}
@@ -49,7 +49,7 @@ func TestNewFromConfigOpenAINotImplementedRemoved(t *testing.T) {
 	cfg := config.Default()
 	cfg.Provider = "openai"
 	cfg.Providers.OpenAI.APIKey = "sk-test"
-	p, err := NewFromConfig(cfg)
+	p, err := NewFromConfig(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestNewFromConfigOllamaMissingHost(t *testing.T) {
 	t.Parallel()
 	cfg := config.Default()
 	cfg.Providers.Ollama.Host = ""
-	_, err := NewFromConfig(cfg)
+	_, err := NewFromConfig(cfg, nil)
 	if err == nil || !strings.Contains(err.Error(), "ollama.host required") {
 		t.Fatalf("err = %v", err)
 	}
@@ -73,7 +73,7 @@ func TestNewFromConfigChain(t *testing.T) {
 	cfg := config.Default()
 	cfg.Providers.Fallback = "openai"
 	cfg.Providers.OpenAI.APIKey = "sk-test"
-	p, err := NewFromConfig(cfg)
+	p, err := NewFromConfig(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestNewFromConfigChain(t *testing.T) {
 func TestNewFromConfigNoChainWithoutFallback(t *testing.T) {
 	t.Parallel()
 	cfg := config.Default()
-	p, err := NewFromConfig(cfg)
+	p, err := NewFromConfig(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestNewFromConfigUsesProvidersPrimary(t *testing.T) {
 	cfg := config.Default()
 	cfg.Providers.Primary = "openai"
 	cfg.Providers.OpenAI.APIKey = "sk-test"
-	p, err := NewFromConfig(cfg)
+	p, err := NewFromConfig(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

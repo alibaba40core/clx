@@ -16,7 +16,7 @@ import (
 
 func TestNewClientNoNetwork(t *testing.T) {
 	t.Parallel()
-	c, err := NewClient("http://127.0.0.1:1", "qwen3:4b", 2*time.Second)
+	c, err := NewClient("http://127.0.0.1:1", "qwen3:4b", 2*time.Second, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestClientChatHappyPath(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := NewClient(srv.URL, "qwen3:4b", 5*time.Second)
+	c, err := NewClient(srv.URL, "qwen3:4b", 5*time.Second, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestClientChatHTTP500(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer srv.Close()
-	c, _ := NewClient(srv.URL, "m", time.Second)
+	c, _ := NewClient(srv.URL, "m", time.Second, nil)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
 	if !errors.Is(err, errUnavailable) {
 		t.Fatalf("err = %v", err)
@@ -81,7 +81,7 @@ func TestClientChatHTTP400(t *testing.T) {
 		w.WriteHeader(http.StatusBadRequest)
 	}))
 	defer srv.Close()
-	c, _ := NewClient(srv.URL, "m", time.Second)
+	c, _ := NewClient(srv.URL, "m", time.Second, nil)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
 	if !errors.Is(err, errInvalidResp) {
 		t.Fatalf("err = %v", err)
@@ -98,7 +98,7 @@ func TestClientChatEmptyIntent(t *testing.T) {
 		})
 	}))
 	defer srv.Close()
-	c, _ := NewClient(srv.URL, "m", time.Second)
+	c, _ := NewClient(srv.URL, "m", time.Second, nil)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
 	if !errors.Is(err, errNoMatch) {
 		t.Fatalf("err = %v", err)
@@ -112,7 +112,7 @@ func TestClientChatBoundedRead(t *testing.T) {
 		_, _ = io.Copy(w, io.LimitReader(strings.NewReader(`{"message":{"content":"x"}}`), maxResponseBytes+1))
 	}))
 	defer srv.Close()
-	c, _ := NewClient(srv.URL, "m", time.Second)
+	c, _ := NewClient(srv.URL, "m", time.Second, nil)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
 	// Truncated JSON should fail parse → ErrInvalidResp
 	if !errors.Is(err, errInvalidResp) {
@@ -130,7 +130,7 @@ func TestClientChatServerDown(t *testing.T) {
 	if err := ln.Close(); err != nil {
 		t.Fatal(err)
 	}
-	c, err := NewClient("http://"+addr, "m", time.Second)
+	c, err := NewClient("http://"+addr, "m", time.Second, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func TestClientChatTimeout(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
-	c, _ := NewClient(srv.URL, "m", 50*time.Millisecond)
+	c, _ := NewClient(srv.URL, "m", 50*time.Millisecond, nil)
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 	_, err := c.Chat(ctx, "s", "u", nil)
@@ -173,7 +173,7 @@ func TestClientExplainChatHappyPath(t *testing.T) {
 		})
 	}))
 	defer srv.Close()
-	c, err := NewClient(srv.URL, "m", 5*time.Second)
+	c, err := NewClient(srv.URL, "m", 5*time.Second, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +196,7 @@ func TestClientExplainChatEmpty(t *testing.T) {
 		})
 	}))
 	defer srv.Close()
-	c, _ := NewClient(srv.URL, "m", time.Second)
+	c, _ := NewClient(srv.URL, "m", time.Second, nil)
 	_, err := c.ExplainChat(context.Background(), "s", "u")
 	if !errors.Is(err, errNoMatch) {
 		t.Fatalf("err = %v", err)

@@ -29,7 +29,7 @@ func TestProviderResolveIntentRoundTrip(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p, err := NewProvider(srv.URL, "qwen3:4b", 5*time.Second)
+	p, err := NewProvider(srv.URL, "qwen3:4b", 5*time.Second, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestProviderExplainRoundTrip(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p, err := NewProvider(srv.URL, "qwen3:4b", 5*time.Second)
+	p, err := NewProvider(srv.URL, "qwen3:4b", 5*time.Second, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

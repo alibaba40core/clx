@@ -3,6 +3,7 @@ package openai
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/alibaba40core/clx/internal/environment"
@@ -16,8 +17,8 @@ type Provider struct {
 }
 
 // NewProvider wires apiKey, model, and HTTP timeout. Does not contact OpenAI until ResolveIntent.
-func NewProvider(apiKey, model string, timeout time.Duration) (*Provider, error) {
-	client, err := NewClient(apiKey, model, "", timeout)
+func NewProvider(apiKey, model string, timeout time.Duration, logger *slog.Logger) (*Provider, error) {
+	client, err := NewClient(apiKey, model, "", timeout, logger)
 	if err != nil {
 		return nil, err
 	}

@@ -3,6 +3,7 @@ package ollama
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/alibaba40core/clx/internal/environment"
@@ -16,8 +17,8 @@ type Provider struct {
 }
 
 // NewProvider wires host, model, and HTTP timeout. Does not contact Ollama until ResolveIntent.
-func NewProvider(host, model string, timeout time.Duration) (*Provider, error) {
-	client, err := NewClient(host, model, timeout)
+func NewProvider(host, model string, timeout time.Duration, logger *slog.Logger) (*Provider, error) {
+	client, err := NewClient(host, model, timeout, logger)
 	if err != nil {
 		return nil, err
 	}

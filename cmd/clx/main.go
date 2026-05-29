@@ -88,7 +88,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	var aiResolver intent.Resolver
 	var aiProvider providers.Provider
-	p, perr := providerfactory.NewFromConfig(cfg)
+	p, perr := providerfactory.NewFromConfig(cfg, logger)
 	if perr != nil {
 		aiResolver = providers.ErrorResolver(perr)
 	} else {
