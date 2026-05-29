@@ -38,6 +38,9 @@ func TestBuildPromptIncludesProfile(t *testing.T) {
 			t.Fatalf("user message missing %q:\n%s", want, user)
 		}
 	}
+	if !strings.Contains(user, `Path hint: use "." for the current directory, not "/".`) {
+		t.Fatalf("missing Windows path hint:\n%s", user)
+	}
 }
 
 func TestBuildPromptSortsIntents(t *testing.T) {

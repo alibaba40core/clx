@@ -16,7 +16,7 @@ func Render(ctx context.Context, resolved intent.ResolvedIntent, selected capabi
 		return GeneratedCommand{}, err
 	}
 
-	params := effectiveParams(resolved.Intent, resolved.Params)
+	params := effectiveParams(resolved.Intent, resolved.Params, profile)
 	var argv []string
 
 	if len(selected.Strategy.Argv) > 0 {

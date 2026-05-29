@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/alibaba40core/clx/internal/environment"
 	"github.com/alibaba40core/clx/internal/generator"
@@ -12,7 +13,7 @@ import (
 
 // effectiveExecHost resolves the subprocess host after PATH lookups. Generator
 // sets ExecHost from strategy key only; promotion and fallbacks live here.
-func effectiveExecHost(gen generator.GeneratedCommand) generator.ExecHost {
+func effectiveExecHost(gen generator.GeneratedCommand, profile environment.SystemProfile) generator.ExecHost {
 	host := gen.ExecHost
 	if host == generator.ExecCmd && len(gen.Argv) > 0 {
 		if _, err := exec.LookPath(gen.Argv[0]); err == nil {
@@ -22,6 +23,9 @@ func effectiveExecHost(gen generator.GeneratedCommand) generator.ExecHost {
 	if host == generator.ExecDirect && len(gen.Argv) > 0 {
 		if _, err := exec.LookPath(gen.Argv[0]); err != nil {
 			if runtime.GOOS == "windows" {
+				if isPosixShellOnWindows(profile) {
+					return generator.ExecPosix
+				}
 				return generator.ExecCmd
 			}
 			return generator.ExecPosix
@@ -30,8 +34,20 @@ func effectiveExecHost(gen generator.GeneratedCommand) generator.ExecHost {
 	return host
 }
 
+func isPosixShellOnWindows(profile environment.SystemProfile) bool {
+	if strings.ToLower(profile.OS) != "windows" {
+		return false
+	}
+	switch strings.ToLower(profile.Shell) {
+	case "bash", "zsh", "sh", "fish":
+		return true
+	default:
+		return false
+	}
+}
+
 func buildCommand(ctx context.Context, gen generator.GeneratedCommand, profile environment.SystemProfile) (*exec.Cmd, error) {
-	host := effectiveExecHost(gen)
+	host := effectiveExecHost(gen, profile)
 	return buildCommandForHost(ctx, host, gen, profile)
 }
 

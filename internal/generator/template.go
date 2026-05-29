@@ -3,6 +3,8 @@ package generator
 import (
 	"fmt"
 	"strings"
+
+	"github.com/alibaba40core/clx/internal/environment"
 )
 
 func substituteSlot(slot string, params map[string]string) (string, error) {
@@ -36,13 +38,29 @@ func validateParamValue(v string) error {
 	return nil
 }
 
+// normalizePathForProfile maps AI/resolver path mistakes to values safe on the target OS.
+// On Windows, "/" is not a valid relative path for cmd's dir and is treated as a switch.
+func normalizePathForProfile(path string, profile environment.SystemProfile) string {
+	if strings.ToLower(profile.OS) != "windows" {
+		return path
+	}
+	switch path {
+	case "/", "//":
+		return "."
+	}
+	return path
+}
+
 // effectiveParams merges resolved params with defaults for optional keys.
 // Defaults exist so that a bare invocation (e.g. `git log` with no -n) can
 // still render a single template containing the parameter placeholder.
-func effectiveParams(intentName string, params map[string]string) map[string]string {
+func effectiveParams(intentName string, params map[string]string, profile environment.SystemProfile) map[string]string {
 	out := make(map[string]string, len(params)+1)
 	for k, v := range params {
 		out[k] = v
+	}
+	if path, ok := out["path"]; ok {
+		out["path"] = normalizePathForProfile(path, profile)
 	}
 	if _, ok := out["path"]; !ok {
 		switch intentName {

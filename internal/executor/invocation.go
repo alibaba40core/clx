@@ -10,7 +10,7 @@ import (
 
 // FormatInvocation returns a display string for the effective subprocess invocation.
 func FormatInvocation(gen generator.GeneratedCommand, profile environment.SystemProfile) (string, error) {
-	host := effectiveExecHost(gen)
+	host := effectiveExecHost(gen, profile)
 	switch host {
 	case generator.ExecDirect:
 		return QuoteArgv(gen.Shell, gen.Argv), nil

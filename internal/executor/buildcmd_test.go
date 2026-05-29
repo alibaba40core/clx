@@ -21,7 +21,7 @@ func TestEffectiveExecHostCmdPromotesFindstr(t *testing.T) {
 		Argv:     []string{"findstr", "x", "y"},
 		ExecHost: generator.ExecCmd,
 	}
-	if got := effectiveExecHost(gen); got != generator.ExecDirect {
+	if got := effectiveExecHost(gen, environment.SystemProfile{OS: "windows", Shell: "cmd"}); got != generator.ExecDirect {
 		t.Fatalf("got %v want ExecDirect", got)
 	}
 }
