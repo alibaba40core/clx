@@ -354,7 +354,38 @@ type IntentResponse struct {
     Params     map[string]string
     Confidence float64
 }
+
+// Optional capability (Phase 2.7): hybrid AI command generation.
+// Providers that implement it can synthesize a full command when rules,
+// cache, and AI-intent all miss. The returned Argv is UNTRUSTED.
+type CommandGenerator interface {
+    GenerateCommand(ctx context.Context, req CommandRequest) (*CommandResponse, error)
+}
+
+type CommandResponse struct {
+    Argv        []string // tokenized; no shell operators
+    Shell       string   // target shell hint (cmd|powershell|bash|sh)
+    Explanation string
+    Confidence  float64
+}
 ```
+
+**Hybrid AI command generation (Phase 2.7).** The default resolver chain stays
+closed-vocabulary (provably safe). When it misses and
+`features.ai_command_generation` is on, the pipeline asks the active provider's
+`CommandGenerator` for a command as a structured `argv` — never a shell string.
+That argv is then forced through the standard gates:
+
+```
+ValidateGeneratedArgv → risk.Assess → policy.Check → dry-run → (risk-based) confirm → argv-only exec
+```
+
+`executor.ValidateGeneratedArgv` rejects shell metacharacters, unbounded token
+counts/lengths, and null bytes, so the command can only ever run argv-only. This
+trades the allowlist's provable safety for heuristic risk classification; it is
+opt-out via config and Medium/High-risk commands always require confirmation.
+The command prompt is grounded with the full system profile (OS+version, shell,
+WSL, package managers, detected tools) so commands match the target platform.
 
 **Sentinel errors (`internal/providers`):**
 

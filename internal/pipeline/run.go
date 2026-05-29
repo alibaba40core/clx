@@ -47,32 +47,15 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 	resolvers := buildResolvers(eng, opts)
 	resolved, err := resolveChain(ctx, req, resolvers, opts.Logger, aiResolverIndex(opts))
 	if err != nil {
-		if miss, ok := intent.AsMiss(err); ok && miss.AIAttempted {
-			if req.InputType == parser.InputNaturalLanguage {
-				fmt.Fprintf(opts.Stderr, "AI could not map this to a known command intent; try a simpler phrase or split into separate commands (e.g. clx pwd, then clx \"list directory .\")\n")
-			} else {
-				fmt.Fprintf(opts.Stderr, "no matching intent after rules and AI\n")
+		// Hybrid fallback: rules/cache/AI-intent all missed. If enabled, ask the
+		// provider to generate a full command (argv) for this platform. The argv
+		// is validated, risk-assessed, policy-gated, and confirmed before exec.
+		if isResolverMiss(err) {
+			if code, handled, aiErr := tryAICommand(ctx, cfg, opts, profile, req); handled {
+				return code, aiErr
 			}
-			return 1, err
 		}
-		if errors.Is(err, intent.ErrNotFound) {
-			if req.InputType == parser.InputNaturalLanguage {
-				fmt.Fprintf(opts.Stderr, "no matching rule for natural language input; try an explicit command (e.g. grep PATTERN FILE)\n")
-			} else {
-				fmt.Fprintf(opts.Stderr, "no matching rule for input\n")
-			}
-			return 1, err
-		}
-		if msg := err.Error(); strings.Contains(msg, "provider unavailable") {
-			fmt.Fprintf(opts.Stderr, "%s\n", msg)
-			return 1, err
-		}
-		if strings.Contains(err.Error(), "provider timeout") {
-			fmt.Fprintf(opts.Stderr, "intent: %v\n", err)
-			return 1, err
-		}
-		fmt.Fprintf(opts.Stderr, "intent: %v\n", err)
-		return 1, err
+		return reportResolveError(opts, req, err)
 	}
 
 	if resolved.Source != intent.SourceRule {
@@ -100,6 +83,53 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 		return 1, err
 	}
 
+	return executePlan(ctx, cfg, opts, profile, resolved, gen)
+}
+
+// isResolverMiss reports whether err means every resolver missed (vs a hard
+// provider/transport error), making AI command generation an eligible fallback.
+func isResolverMiss(err error) bool {
+	if _, ok := intent.AsMiss(err); ok {
+		return true
+	}
+	return errors.Is(err, intent.ErrNotFound)
+}
+
+// reportResolveError prints the appropriate message for a resolution failure and
+// returns the pipeline exit code.
+func reportResolveError(opts Options, req parser.Request, err error) (int, error) {
+	if miss, ok := intent.AsMiss(err); ok && miss.AIAttempted {
+		if req.InputType == parser.InputNaturalLanguage {
+			fmt.Fprintf(opts.Stderr, "AI could not map this to a known command intent; try a simpler phrase or split into separate commands (e.g. clx pwd, then clx \"list directory .\")\n")
+		} else {
+			fmt.Fprintf(opts.Stderr, "no matching intent after rules and AI\n")
+		}
+		return 1, err
+	}
+	if errors.Is(err, intent.ErrNotFound) {
+		if req.InputType == parser.InputNaturalLanguage {
+			fmt.Fprintf(opts.Stderr, "no matching rule for natural language input; try an explicit command (e.g. grep PATTERN FILE)\n")
+		} else {
+			fmt.Fprintf(opts.Stderr, "no matching rule for input\n")
+		}
+		return 1, err
+	}
+	if msg := err.Error(); strings.Contains(msg, "provider unavailable") {
+		fmt.Fprintf(opts.Stderr, "%s\n", msg)
+		return 1, err
+	}
+	if strings.Contains(err.Error(), "provider timeout") {
+		fmt.Fprintf(opts.Stderr, "intent: %v\n", err)
+		return 1, err
+	}
+	fmt.Fprintf(opts.Stderr, "intent: %v\n", err)
+	return 1, err
+}
+
+// executePlan runs the shared safety + execution stage for a generated command,
+// whether it came from a rule/intent or from AI command generation:
+// risk → policy → dry-run → (risk-based) confirm → argv-only exec.
+func executePlan(ctx context.Context, cfg config.Config, opts Options, profile environment.SystemProfile, resolved intent.ResolvedIntent, gen generator.GeneratedCommand) (int, error) {
 	ra, err := risk.Assess(ctx, gen)
 	if err != nil {
 		fmt.Fprintf(opts.Stderr, "risk: %v\n", err)
@@ -125,7 +155,7 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 
 	if cfg.Features.Explain || opts.Explain || effectiveDryRun || !opts.Yes {
 		displayGen := gen
-		if shouldEnrichExplanation(opts, resolved) {
+		if !gen.AIGenerated && shouldEnrichExplanation(opts, resolved) {
 			displayGen.Explanation = enrichExplanation(ctx, opts, resolved, gen)
 		}
 		if err := printDisplay(opts.Stdout, resolved, displayGen, ra); err != nil {

@@ -58,4 +58,34 @@ func (c *Provider) Explain(ctx context.Context, gen generator.GeneratedCommand) 
 	return c.primary.Explain(ctx, gen)
 }
 
-var _ providers.Provider = (*Provider)(nil)
+// GenerateCommand tries primary, then fallback only when primary returns
+// ErrUnavailable, mirroring ResolveIntent (D9). A child that does not implement
+// CommandGenerator is treated as unavailable for this capability.
+func (c *Provider) GenerateCommand(ctx context.Context, req providers.CommandRequest) (*providers.CommandResponse, error) {
+	primary, ok := c.primary.(providers.CommandGenerator)
+	if ok {
+		resp, err := primary.GenerateCommand(ctx, req)
+		if err == nil {
+			return resp, nil
+		}
+		if !errors.Is(err, providers.ErrUnavailable) {
+			return nil, err
+		}
+		if c.logger != nil {
+			c.logger.Debug("provider fallback (command)",
+				"primary", c.primaryName,
+				"fallback", c.fallbackName,
+			)
+		}
+	}
+	fallback, ok := c.fallback.(providers.CommandGenerator)
+	if !ok {
+		return nil, providers.ErrUnavailable
+	}
+	return fallback.GenerateCommand(ctx, req)
+}
+
+var (
+	_ providers.Provider         = (*Provider)(nil)
+	_ providers.CommandGenerator = (*Provider)(nil)
+)
