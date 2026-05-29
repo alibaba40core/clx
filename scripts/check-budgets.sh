@@ -143,9 +143,9 @@ check_cold_start() {
 }
 
 func print_deferred_budgets() {
-  log "steady-state RSS: skipped (manual probe — target < 30 MB rules path, Phase 2.5)"
-  log "peak RSS (AI path): skipped (manual probe — target < 100 MB, Phase 2.5)"
-  log "goroutines at idle: skipped (goleak in provider packages; target <= 3 at idle, Phase 2.5)"
+  log "steady-state RSS: skipped (manual Phase 3+ probe — target < 30 MB rules path; not a CI blocker)"
+  log "peak RSS (AI path): skipped (manual Phase 3+ probe — target < 100 MB; not a CI blocker)"
+  log "goroutines at idle: skipped (goleak in provider packages; target <= 3 at idle; not a CI blocker)"
 }
 
 setup_clx_home() {
