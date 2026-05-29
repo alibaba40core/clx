@@ -48,6 +48,11 @@ func Default() Config {
 			CacheCommands: true,
 			LearningMode:  false,
 		},
+		Cache: CacheConfig{
+			MaxEntries:   1024,
+			TTLDays:      30,
+			MaxDiskBytes: 5 * 1024 * 1024,
+		},
 		Logging: LoggingConfig{
 			Enabled: true,
 			Level:   "info",

@@ -70,6 +70,21 @@ func applyNode(cfg *Config, root *yamlutil.Node) {
 	if v, ok := root.GetString("features", "learning_mode"); ok {
 		cfg.Features.LearningMode = parseBool(v)
 	}
+	if v, ok := root.GetString("cache", "max_entries"); ok {
+		if n, err := strconv.Atoi(v); err == nil {
+			cfg.Cache.MaxEntries = n
+		}
+	}
+	if v, ok := root.GetString("cache", "ttl_days"); ok {
+		if n, err := strconv.Atoi(v); err == nil {
+			cfg.Cache.TTLDays = n
+		}
+	}
+	if v, ok := root.GetString("cache", "max_disk_bytes"); ok {
+		if n, err := strconv.Atoi(v); err == nil {
+			cfg.Cache.MaxDiskBytes = n
+		}
+	}
 	if v, ok := root.GetString("logging", "enabled"); ok {
 		cfg.Logging.Enabled = parseBool(v)
 	}

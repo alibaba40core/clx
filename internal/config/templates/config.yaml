@@ -34,6 +34,11 @@ features:
   cache_commands: true
   learning_mode: false
 
+cache:
+  max_entries: 1024
+  ttl_days: 30
+  max_disk_bytes: 5242880
+
 logging:
   enabled: true
   level: info

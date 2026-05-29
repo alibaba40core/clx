@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/alibaba40core/clx/internal/cliversion"
+	"github.com/alibaba40core/clx/internal/cache"
 	"github.com/alibaba40core/clx/internal/config"
 	"github.com/alibaba40core/clx/internal/environment"
 	"github.com/alibaba40core/clx/internal/intent"
@@ -96,6 +97,21 @@ func run(args []string, stdout, stderr io.Writer) int {
 		})
 	}
 
+	var cacheStore *cache.Store
+	if cfg.Features.CacheCommands && cfg.Cache.MaxEntries > 0 {
+		cachePath, cerr := config.CacheIntentsPath()
+		if cerr != nil {
+			logger.Warn("cache unavailable", "err", cerr)
+		} else {
+			store, lerr := cache.Load(ctx, cachePath, cfg.Cache, logger)
+			if lerr != nil {
+				logger.Warn("cache unavailable", "err", lerr)
+			} else {
+				cacheStore = store
+			}
+		}
+	}
+
 	rawInput := strings.Join(fs.Args(), " ")
 	skipConfirm := *yes || *yesLong
 	code, err := pipeline.Run(ctx, cfg, rawInput, pipeline.Options{
@@ -106,6 +122,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		Stdout:     stdout,
 		Stderr:     stderr,
 		Engine:     eng,
+		Cache:      cacheStore,
 		AIResolver: aiResolver,
 	})
 	if err != nil && code == 0 {

@@ -406,11 +406,34 @@ skills/git/
 
 ### 3.13 Cache — `internal/cache`
 
-**Responsibility:** Memoize resolved intents and AI translations to avoid repeated LLM calls.
+**Responsibility:** Memoize AI-resolved intents to skip repeat LLM calls on identical
+inputs. Sits in the resolver chain between the rule engine and the AI provider.
 
-**Storage:** `~/.clx/cache/`
+**Storage:** single JSON file `~/.clx/cache/intents.json` (atomic tmp + rename writes).
 
-**Cache key:** hash of (input + os + shell + installed_tools_hash)
+**Cache key:** SHA-256 hex of NUL-delimited:
+`InputType | tokens | profile.OS | profile.Shell | sorted(profile.AvailableTools)`.
+
+**Bounds** (from `config.yaml` → `cache:`):
+
+| Key | Default |
+|-----|---------|
+| `max_entries` | 1024 (LRU eviction by `last_used`) |
+| `ttl_days` | 30 (entries older than TTL dropped on read/write) |
+| `max_disk_bytes` | 5242880 (5 MiB; oldest entries dropped until serialized size fits) |
+
+**Feature gate:** `features.cache_commands: true` (default). When false, no cache
+resolver is wired and every rules-miss goes to AI.
+
+**Write policy:** write-through on AI hits only (`Source: AI`). Rule hits, AI misses,
+and low-confidence results are never persisted.
+
+**Failure modes:** missing file → empty store; corrupt JSON / schema mismatch → log
+warning, empty store, overwrite on next write; disk write failure → log warning,
+return the resolved intent anyway (pipeline continues).
+
+**Validation:** cache hits return `Source: Cache` and pass through `Engine.ValidateResolved`
+before the generator runs (same gate as AI output).
 
 ---
 
@@ -578,7 +601,7 @@ clx.ai/
 | Phase | Scope | Key packages |
 |-------|-------|--------------|
 | **Phase 1 — Core Engine** | Rules-first deterministic pipeline (no AI, no policy enforcement) — see [§6.1](#61-phase-1-sub-phases) for breakdown | `config`, `logging`, `environment`, `parser`, `intent` (rules path), `skills` (loader), `capabilities`, `generator`, `executor` (basic), `cmd/clx` |
-| **Phase 2 — AI Integration** *(2.1 done; 2.2–2.5 pending — see [`doc/phase-2.md`](phase-2.md))* | Ollama + OpenAI providers, AI fallback, explanations | `providers/*`, `intent` (AI path), `cache` |
+| **Phase 2 — AI Integration** *(2.1–2.2 done; 2.3–2.5 pending — see [`doc/phase-2.md`](phase-2.md))* | Ollama + OpenAI providers, AI fallback, explanations | `providers/*`, `intent` (AI path), `cache` |
 | **Phase 3 — Safety** | Risk engine, policy engine, dry-run, confirmations, access levels | `risk`, `policy`, `executor` (safety hooks) |
 | **Phase 3.5 — Aliases** | Persistent user-global aliases in `~/.clx/aliases.yaml`. `clx alias set/list/rm` subcommand, parser-stage expansion (alias value flows through full risk/policy/exec chain), set-time collision warning against shell verbs and built-in rule example heads. No dependency on `internal/memory` or shell hooks — ships as a self-contained slice between safety and advanced UX. See [§3.16](#316-aliases--internalaliases). | `internal/aliases`, `internal/parser` (expansion hook), `cmd/clx` (`alias` subcommand) |
 | **Phase 4 — Advanced UX** | Shell interception, auto-fix, session context, interactive `clx init` wizard | `memory`, `skills`, shell hooks |

@@ -8,6 +8,7 @@ type Config struct {
 	Execution ExecutionConfig `yaml:"execution"`
 	Safety    SafetyConfig    `yaml:"safety"`
 	Features  FeaturesConfig  `yaml:"features"`
+	Cache     CacheConfig     `yaml:"cache"`
 	Logging   LoggingConfig   `yaml:"logging"`
 }
 
@@ -68,6 +69,13 @@ type FeaturesConfig struct {
 	Explain       bool `yaml:"explain"`
 	CacheCommands bool `yaml:"cache_commands"`
 	LearningMode  bool `yaml:"learning_mode"`
+}
+
+// CacheConfig bounds the file-backed intent cache (~/.clx/cache/intents.json).
+type CacheConfig struct {
+	MaxEntries   int `yaml:"max_entries"`
+	TTLDays      int `yaml:"ttl_days"`
+	MaxDiskBytes int `yaml:"max_disk_bytes"`
 }
 
 // LoggingConfig controls structured logging.

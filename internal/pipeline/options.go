@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/alibaba40core/clx/internal/cache"
 	"github.com/alibaba40core/clx/internal/intent"
 )
 
@@ -25,6 +26,9 @@ type Options struct {
 	// AIResolver, when non-nil, runs after the rule engine misses.
 	// Phase 2.1 wires the Ollama/OpenAI provider here.
 	AIResolver intent.Resolver
+
+	// Cache, when non-nil, sits between rules and AI in the resolver chain.
+	Cache *cache.Store
 }
 
 // WithDefaults fills nil writers and stdin.
