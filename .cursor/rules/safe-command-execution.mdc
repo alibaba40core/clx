@@ -15,7 +15,7 @@ CLX's job is to run shell commands generated from user and AI input. A single ar
 - **Policy gating is mandatory.** Every command must pass through `internal/policy` after risk and before exec. Order: `Generate → Risk → Policy → DryRun → Confirm → Exec`. No skipping.
 - **Path inputs are validated.** Any path that came from user, AI, or rule template substitution goes through `internal/executor.CleanAndValidatePath(p)` which rejects `..`, null bytes, shell metacharacters, and absolute paths outside an explicit allowlist.
 - **Shell-specific quoting lives in exactly one place:** `internal/executor/quote.go`, with `QuotePOSIX`, `QuotePowerShell`, `QuoteCmd`. All three have a shared table-driven test matrix. No ad-hoc quoting elsewhere.
-- **AI provider output is untrusted.** Validate every `ResolvedIntent` against the rule schema (intent name in known set, params match declared types) before any substitution into a command template.
+- **AI provider output is untrusted.** Validate every `ResolvedIntent` against the rule schema (intent name in known set, params match declared types) before any substitution into a command template. For AI-generated commands (the hybrid fallback), validate the returned `argv` with `internal/executor.ValidateGeneratedArgv` (no shell metacharacters, bounded token count/length, no null bytes) before it reaches risk/policy/exec.
 - **Redact secrets** (matching common token/key patterns) from argv, stdout, stderr, logs, and `internal/memory` before persistence or display.
 
 ## MUST NOT
@@ -23,7 +23,7 @@ CLX's job is to run shell commands generated from user and AI input. A single ar
 - No `exec.Command("sh", "-c", x)`, `exec.Command("bash", "-c", x)`, `exec.Command("powershell", "-Command", x)`, `exec.Command("cmd", "/C", x)` where `x` contains any user, AI, or template-substituted content.
 - No `os/exec` calls outside `internal/executor`. Other packages call the executor interface.
 - No string concatenation to build commands: `"git checkout " + branch` is forbidden. Use argv slices and template parameters.
-- No executing AI output verbatim. AI returns a *resolved intent*, the generator renders the template, the executor runs the argv. The LLM never writes the final command string directly.
+- No executing AI output verbatim **as a shell string**. The LLM never writes the final command string that is handed to a shell interpreter. Two AI output shapes are allowed: (a) a *resolved intent* (intent name + typed params) that the generator renders from a vetted template; and (b) a *generated command* expressed as a structured `argv` array. In both cases the executor runs **argv-only** — the AI text is never interpolated into `sh -c` / `cmd /c` as a string, and `argv` always passes `ValidateGeneratedArgv` + risk + policy before exec.
 - No silently dropping the risk or policy step "because the command looks safe."
 - No new shell-quoting helpers. Extend `internal/executor/quote.go` or it doesn't exist.
 
@@ -98,6 +98,34 @@ if err := intent.ValidateAgainstSchema(resolved); err != nil {
 resp, _ := provider.RawCompletion(ctx, prompt)
 exec.Command("sh", "-c", resp.Text).Run() // ship-stopper
 ```
+
+### AI command generation (hybrid fallback)
+
+When rules, cache, and AI-intent resolution all miss, a provider implementing
+`providers.CommandGenerator` may generate a full command — but as a structured
+`argv`, never a shell string. The argv flows through the same gates as everything
+else: `ValidateGeneratedArgv → risk.Assess → policy.Check → dry-run → confirm → argv-only exec`.
+
+```go
+// GOOD — AI returns structured argv; validated, gated, run argv-only
+resp, err := cg.GenerateCommand(ctx, providers.CommandRequest{RawInput: in, Profile: prof})
+if err := executor.ValidateGeneratedArgv(resp.Argv, resp.Shell); err != nil {
+    return fmt.Errorf("ai command rejected: %w", err) // metachars / unbounded / null byte
+}
+gen := generator.NewAICommand(resp.Argv, resp.Shell, resp.Explanation, prof)
+// risk + policy + confirm still run; executor never builds sh -c from resp text.
+```
+
+```go
+// BAD — letting the model hand us a command string and shelling out
+resp, _ := cg.GenerateCommand(ctx, req)
+exec.Command("cmd", "/c", strings.Join(resp.Argv, " ")).Run() // re-introduces injection
+```
+
+Note: AI command generation trades the provable safety of the closed-intent
+allowlist for heuristic risk classification. It is gated behind
+`features.ai_command_generation` and risk-based confirmation (Medium/High always
+confirm). Keep the destructive-pattern lists in `internal/risk` current.
 
 ## Enforcement
 

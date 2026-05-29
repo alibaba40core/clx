@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/alibaba40core/clx/internal/environment"
 	"github.com/alibaba40core/clx/internal/executor"
 )
 
@@ -46,11 +47,7 @@ func BuildPrompt(req IntentRequest) (system, user string, err error) {
 func buildUserMessage(req IntentRequest, intents, tools []string) string {
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "OS: %s\nShell: %s\nTerminal: %s",
-		req.Profile.OS, req.Profile.Shell, req.Profile.Terminal)
-	if strings.EqualFold(req.Profile.OS, "windows") {
-		b.WriteString("\nPath hint: use \".\" for the current directory, not \"/\".")
-	}
+	writePlatformContext(&b, req.Profile)
 
 	b.WriteString("\n\nAvailable tools: ")
 	if len(tools) == 0 {
@@ -82,6 +79,51 @@ func buildUserMessage(req IntentRequest, intents, tools []string) string {
 	b.WriteString(executor.Redact(req.RawInput))
 
 	return b.String()
+}
+
+// writePlatformContext renders the machine profile lines shared by the intent
+// and command-generation prompts so the model targets the correct OS/shell.
+func writePlatformContext(b *strings.Builder, profile environment.SystemProfile) {
+	osLine := profile.OS
+	if v := strings.TrimSpace(profile.OSVersion); v != "" {
+		osLine = osLine + " " + v
+	}
+	shellLine := profile.Shell
+	if v := strings.TrimSpace(profile.ShellVersion); v != "" {
+		shellLine = shellLine + " " + v
+	}
+
+	fmt.Fprintf(b, "OS: %s\nShell: %s\nTerminal: %s", osLine, shellLine, profile.Terminal)
+	if profile.WSLEnabled {
+		b.WriteString("\nWSL: available")
+	}
+	if pkgs := dedupeLower(profile.PackageManagers); len(pkgs) > 0 {
+		fmt.Fprintf(b, "\nPackage managers: %s", strings.Join(pkgs, ", "))
+	}
+	if strings.EqualFold(profile.OS, "windows") {
+		b.WriteString("\nPath hint: use \".\" for the current directory, not \"/\".")
+	}
+}
+
+// dedupeLower lowercases, trims, and de-duplicates a string slice preserving order.
+func dedupeLower(in []string) []string {
+	if len(in) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(in))
+	out := make([]string, 0, len(in))
+	for _, s := range in {
+		key := strings.ToLower(strings.TrimSpace(s))
+		if key == "" {
+			continue
+		}
+		if _, dup := seen[key]; dup {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, key)
+	}
+	return out
 }
 
 func filterTools(available []string) []string {

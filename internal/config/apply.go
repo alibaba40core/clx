@@ -81,6 +81,9 @@ func applyNode(cfg *Config, root *yamlutil.Node) {
 	if v, ok := root.GetString("features", "learning_mode"); ok {
 		cfg.Features.LearningMode = parseBool(v)
 	}
+	if v, ok := root.GetString("features", "ai_command_generation"); ok {
+		cfg.Features.AICommandGeneration = parseBool(v)
+	}
 	if v, ok := root.GetString("cache", "max_entries"); ok {
 		if n, err := strconv.Atoi(v); err == nil {
 			cfg.Cache.MaxEntries = n

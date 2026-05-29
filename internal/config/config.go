@@ -72,6 +72,11 @@ type FeaturesConfig struct {
 	Explain       bool `yaml:"explain"`
 	CacheCommands bool `yaml:"cache_commands"`
 	LearningMode  bool `yaml:"learning_mode"`
+	// AICommandGeneration enables the hybrid fallback where, after rules and
+	// cache miss, a configured AI provider generates a full command (argv).
+	// The generated argv is still validated, risk-assessed, policy-gated, and
+	// confirmed before exec. Default on (see config.Default).
+	AICommandGeneration bool `yaml:"ai_command_generation"`
 }
 
 // CacheConfig bounds the file-backed intent cache (~/.clx/cache/intents.json).

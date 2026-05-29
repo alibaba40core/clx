@@ -44,9 +44,10 @@ func Default() Config {
 			DryRun:              true,
 		},
 		Features: FeaturesConfig{
-			Explain:       true,
-			CacheCommands: true,
-			LearningMode:  false,
+			Explain:             true,
+			CacheCommands:       true,
+			LearningMode:        false,
+			AICommandGeneration: true,
 		},
 		Cache: CacheConfig{
 			MaxEntries:   1024,
