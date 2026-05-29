@@ -7,12 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/alibaba40core/clx/internal/cliversion"
+	"github.com/alibaba40core/clx/internal/providers"
 )
 
 const maxResponseBytes = 64 * 1024
@@ -22,10 +24,11 @@ type Client struct {
 	baseURL string
 	model   string
 	http    *http.Client
+	logger  *slog.Logger
 }
 
 // NewClient returns a client for host (e.g. http://localhost:11434) and model name.
-func NewClient(host, model string, timeout time.Duration) (*Client, error) {
+func NewClient(host, model string, timeout time.Duration, logger *slog.Logger) (*Client, error) {
 	host = strings.TrimSpace(host)
 	if host == "" {
 		return nil, fmt.Errorf("ollama: host is required")
@@ -41,6 +44,7 @@ func NewClient(host, model string, timeout time.Duration) (*Client, error) {
 		http: &http.Client{
 			Timeout: timeout,
 		},
+		logger: logger,
 	}, nil
 }
 
@@ -115,6 +119,7 @@ func (c *Client) Chat(ctx context.Context, system, user string, format map[strin
 		return nil, errUnavailable
 	}
 	if resp.StatusCode >= 400 {
+		providers.DebugLogHTTPError(c.logger, "ollama", resp.StatusCode, data)
 		return nil, errInvalidResp
 	}
 
@@ -167,6 +172,7 @@ func (c *Client) ExplainChat(ctx context.Context, system, user string) (string, 
 		return "", errUnavailable
 	}
 	if resp.StatusCode >= 400 {
+		providers.DebugLogHTTPError(c.logger, "ollama", resp.StatusCode, data)
 		return "", errInvalidResp
 	}
 

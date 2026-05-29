@@ -32,7 +32,7 @@ func TestProviderResolveIntentRoundTrip(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := NewClient("sk-test", "gpt-4.1-mini", srv.URL+"/v1", 5*time.Second)
+	c, err := NewClient("sk-test", "gpt-4.1-mini", srv.URL+"/v1", 5*time.Second, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

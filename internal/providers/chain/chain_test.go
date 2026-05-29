@@ -3,6 +3,8 @@ package chain
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"strings"
 	"testing"
 
 	"github.com/alibaba40core/clx/internal/generator"
@@ -69,6 +71,22 @@ func TestChainNoFallbackOnTimeout(t *testing.T) {
 	}
 	if fallback.calls != 0 {
 		t.Fatalf("fallback calls = %d", fallback.calls)
+	}
+}
+
+func TestChainFallbackLogsOnUnavailable(t *testing.T) {
+	t.Parallel()
+	var logBuf strings.Builder
+	logger := slog.New(slog.NewTextHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	primary := &stubProvider{name: "ollama", err: providers.ErrUnavailable}
+	fallback := &stubProvider{name: "openai", resp: &providers.IntentResponse{Intent: "current_dir", Confidence: 0.9}}
+	c := New("ollama", primary, "openai", fallback, logger)
+	_, err := c.ResolveIntent(context.Background(), providers.IntentRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(logBuf.String(), "provider fallback") {
+		t.Fatalf("expected fallback log, got: %s", logBuf.String())
 	}
 }
 

@@ -3,6 +3,7 @@ package factory
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -14,9 +15,9 @@ import (
 )
 
 // NewFromConfig constructs the configured Provider. No network I/O occurs here.
-func NewFromConfig(cfg config.Config) (providers.Provider, error) {
+func NewFromConfig(cfg config.Config, logger *slog.Logger) (providers.Provider, error) {
 	primaryName := config.EffectivePrimary(cfg)
-	primary, err := newNamedProvider(cfg, primaryName)
+	primary, err := newNamedProvider(cfg, primaryName, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -26,19 +27,19 @@ func NewFromConfig(cfg config.Config) (providers.Provider, error) {
 		return primary, nil
 	}
 
-	fallback, err := newNamedProvider(cfg, fallbackName)
+	fallback, err := newNamedProvider(cfg, fallbackName, logger)
 	if err != nil {
 		return nil, err
 	}
-	return chain.New(primaryName, primary, fallbackName, fallback, nil), nil
+	return chain.New(primaryName, primary, fallbackName, fallback, logger), nil
 }
 
-func newNamedProvider(cfg config.Config, name string) (providers.Provider, error) {
+func newNamedProvider(cfg config.Config, name string, logger *slog.Logger) (providers.Provider, error) {
 	switch name {
 	case "ollama":
-		return newOllamaFromConfig(cfg)
+		return newOllamaFromConfig(cfg, logger)
 	case "openai":
-		return newOpenAIFromConfig(cfg)
+		return newOpenAIFromConfig(cfg, logger)
 	case "azure":
 		return nil, fmt.Errorf("azure provider not implemented yet (Phase 2.3)")
 	default:
@@ -46,7 +47,7 @@ func newNamedProvider(cfg config.Config, name string) (providers.Provider, error
 	}
 }
 
-func newOllamaFromConfig(cfg config.Config) (providers.Provider, error) {
+func newOllamaFromConfig(cfg config.Config, logger *slog.Logger) (providers.Provider, error) {
 	host := strings.TrimSpace(cfg.Providers.Ollama.Host)
 	if host == "" {
 		return nil, fmt.Errorf("ollama.host required when provider is ollama")
@@ -59,10 +60,10 @@ func newOllamaFromConfig(cfg config.Config) (providers.Provider, error) {
 		model = config.DefaultOllamaModel
 	}
 	timeout := providerTimeout(cfg)
-	return ollama.NewProvider(host, model, timeout)
+	return ollama.NewProvider(host, model, timeout, logger)
 }
 
-func newOpenAIFromConfig(cfg config.Config) (providers.Provider, error) {
+func newOpenAIFromConfig(cfg config.Config, logger *slog.Logger) (providers.Provider, error) {
 	apiKey := strings.TrimSpace(cfg.Providers.OpenAI.APIKey)
 	if apiKey == "" {
 		return nil, fmt.Errorf("openai.api_key required when provider is openai")
@@ -75,7 +76,7 @@ func newOpenAIFromConfig(cfg config.Config) (providers.Provider, error) {
 		model = "gpt-4.1-mini"
 	}
 	timeout := providerTimeout(cfg)
-	return openai.NewProvider(apiKey, model, timeout)
+	return openai.NewProvider(apiKey, model, timeout, logger)
 }
 
 func providerTimeout(cfg config.Config) time.Duration {
