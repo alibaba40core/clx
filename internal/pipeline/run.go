@@ -116,7 +116,11 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 	effectiveDryRun := opts.DryRun || cfg.Safety.DryRun
 
 	if cfg.Features.Explain || opts.Explain || effectiveDryRun || !opts.Yes {
-		if err := printDisplay(opts.Stdout, resolved, gen, ra); err != nil {
+		displayGen := gen
+		if shouldEnrichExplanation(opts, resolved) {
+			displayGen.Explanation = enrichExplanation(ctx, opts, resolved, gen)
+		}
+		if err := printDisplay(opts.Stdout, resolved, displayGen, ra); err != nil {
 			return 1, err
 		}
 	}

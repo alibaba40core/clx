@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/alibaba40core/clx/internal/environment"
+	"github.com/alibaba40core/clx/internal/generator"
 	"github.com/alibaba40core/clx/internal/providers"
 )
 
@@ -44,5 +45,32 @@ func TestProviderResolveIntentRoundTrip(t *testing.T) {
 	}
 	if out.Intent != "list_dir" {
 		t.Fatalf("intent = %q", out.Intent)
+	}
+}
+
+func TestProviderExplainRoundTrip(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(chatResponse{
+			Message: struct {
+				Content string `json:"content"`
+			}{Content: "Lists files in the directory."},
+		})
+	}))
+	defer srv.Close()
+
+	p, err := NewProvider(srv.URL, "qwen3:4b", 5*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := p.Explain(context.Background(), generator.GeneratedCommand{
+		Shell: "bash",
+		Argv:  []string{"ls", "-la"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if text != "Lists files in the directory." {
+		t.Fatalf("text = %q", text)
 	}
 }

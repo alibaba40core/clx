@@ -129,6 +129,58 @@ func (c *Client) Chat(ctx context.Context, system, user string, format map[strin
 	return parseIntentContent(chat.Message.Content)
 }
 
+// ExplainChat sends a plain-text chat completion for command explanation (Phase 2.4).
+func (c *Client) ExplainChat(ctx context.Context, system, user string) (string, error) {
+	body, err := json.Marshal(ChatRequest{
+		Model: c.model,
+		Messages: []chatMessage{
+			{Role: "system", Content: system},
+			{Role: "user", Content: user},
+		},
+		Stream:  false,
+		Options: chatOptions{Temperature: 0},
+	})
+	if err != nil {
+		return "", fmt.Errorf("ollama: encode request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/api/chat", bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "clx/"+cliversion.Version)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return "", mapRoundTripError(err)
+	}
+	defer resp.Body.Close()
+
+	limited := io.LimitReader(resp.Body, maxResponseBytes)
+	data, err := io.ReadAll(limited)
+	if err != nil {
+		return "", errInvalidResp
+	}
+
+	if resp.StatusCode >= 500 {
+		return "", errUnavailable
+	}
+	if resp.StatusCode >= 400 {
+		return "", errInvalidResp
+	}
+
+	var chat chatResponse
+	if err := json.Unmarshal(data, &chat); err != nil {
+		return "", errInvalidResp
+	}
+	text := strings.TrimSpace(chat.Message.Content)
+	if text == "" {
+		return "", errNoMatch
+	}
+	return text, nil
+}
+
 // parsedIntent is the JSON shape we expect inside message.content.
 type parsedIntent struct {
 	Intent     string            `json:"intent"`

@@ -7,6 +7,7 @@ import (
 
 	"github.com/alibaba40core/clx/internal/cache"
 	"github.com/alibaba40core/clx/internal/intent"
+	"github.com/alibaba40core/clx/internal/providers"
 )
 
 // Options configures pipeline execution.
@@ -29,6 +30,12 @@ type Options struct {
 
 	// Cache, when non-nil, sits between rules and AI in the resolver chain.
 	Cache *cache.Store
+
+	// Provider, when non-nil, supplies AI Explain for --explain on AI/Cache hits.
+	Provider providers.Provider
+
+	// ExplainCache, when non-nil, caches AI explanations at ~/.clx/cache/explanations.json.
+	ExplainCache *cache.ExplainStore
 }
 
 // WithDefaults fills nil writers and stdin.

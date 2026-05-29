@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/alibaba40core/clx/internal/environment"
 	"github.com/alibaba40core/clx/internal/generator"
 	"github.com/alibaba40core/clx/internal/providers"
 )
@@ -64,7 +65,19 @@ func mapClientError(err error) error {
 	}
 }
 
-// Explain is deferred to Phase 2.4.
-func (p *Provider) Explain(context.Context, generator.GeneratedCommand) (string, error) {
-	return "", nil
+// Explain calls OpenAI for a plain-text command explanation (Phase 2.4).
+func (p *Provider) Explain(ctx context.Context, gen generator.GeneratedCommand) (string, error) {
+	profile, err := environment.LoadOrDetect(ctx)
+	if err != nil {
+		return "", err
+	}
+	system, user, err := providers.BuildExplainPrompt(gen, profile)
+	if err != nil {
+		return "", err
+	}
+	text, err := p.client.ExplainChat(ctx, system, user)
+	if err != nil {
+		return "", mapClientError(err)
+	}
+	return text, nil
 }
