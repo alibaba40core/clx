@@ -123,9 +123,28 @@ func TestE2EAIProviderFlagOverrideOpenAI(t *testing.T) {
 	}
 	cfg := config.Default()
 	cfg.Provider = "openai"
-	_, err := providerfactory.NewFromConfig(cfg)
-	if err == nil || !strings.Contains(err.Error(), "not implemented") {
+	cfg.Providers.OpenAI.APIKey = "sk-test"
+	p, err := providerfactory.NewFromConfig(cfg)
+	if err != nil {
 		t.Fatalf("factory err = %v", err)
+	}
+	if p.Name() != "openai" {
+		t.Fatalf("name = %q", p.Name())
+	}
+}
+
+func TestE2EAIProviderFlagDisablesFallback(t *testing.T) {
+	cfg := config.Default()
+	cfg.Providers.Fallback = "openai"
+	cfg.Providers.OpenAI.APIKey = "sk-test"
+	cfg.Provider = "ollama"
+	cfg.Providers.Fallback = ""
+	p, err := providerfactory.NewFromConfig(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Name() != "ollama" {
+		t.Fatalf("name = %q, want single ollama provider", p.Name())
 	}
 }
 

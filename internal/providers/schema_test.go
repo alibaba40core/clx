@@ -30,3 +30,21 @@ func TestBuildResponseSchemaRejectsEmptyIntents(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestBuildOpenAIResponseFormat(t *testing.T) {
+	t.Parallel()
+	schema, err := BuildResponseSchema(IntentRequest{
+		KnownIntents: []string{"list_dir"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	format := BuildOpenAIResponseFormat(schema)
+	if format["type"] != "json_schema" {
+		t.Fatalf("format = %v", format)
+	}
+	js := format["json_schema"].(map[string]any)
+	if js["name"] != "clx_intent" || js["strict"] != true {
+		t.Fatalf("json_schema = %v", js)
+	}
+}

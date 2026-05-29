@@ -13,6 +13,12 @@ func applyNode(cfg *Config, root *yamlutil.Node) {
 	if v, ok := root.GetString("model"); ok {
 		cfg.Model = v
 	}
+	if v, ok := root.GetString("providers", "primary"); ok {
+		cfg.Providers.Primary = v
+	}
+	if v, ok := root.GetString("providers", "fallback"); ok {
+		cfg.Providers.Fallback = v
+	}
 	if root.Has("providers", "ollama", "host") {
 		if v, ok := root.GetString("providers", "ollama", "host"); ok {
 			cfg.Providers.Ollama.Host = v

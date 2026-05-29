@@ -74,6 +74,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	if *providerFlag != "" {
 		cfg.Provider = *providerFlag
+		cfg.Providers.Fallback = ""
 		if err := config.Validate(cfg); err != nil {
 			fmt.Fprintf(stderr, "config: %v\n", err)
 			return 2

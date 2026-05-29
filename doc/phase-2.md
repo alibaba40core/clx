@@ -1,6 +1,6 @@
 # Phase 2 — AI Integration
 
-> **Status:** 2.1–2.2 done. 2.3 (OpenAI provider) ready to start.
+> **Status:** 2.1–2.3 done. 2.4 (AI Explain) or 2.5 (hardening) next.
 >
 > This doc is both the implementation plan **and** the live tracker. Flip
 > checkboxes (`[ ]` → `[x]`) and append to the **Update log** at the bottom as
@@ -15,7 +15,7 @@
 |-----------|-------|--------|-------------|-------|
 | **2.1** | Provider interface + Ollama + `--provider` flag + AI fallback wiring | ✅ Done | 9f35917 | Provider iface, Ollama HTTP client + provider, factory, adapter, `--provider` flag, engine injection, hermetic e2e suite all green. |
 | **2.2** | Intent cache (`internal/cache`) | ✅ Done | be1c59f | File-backed LRU at ~/.clx/cache/intents.json; chain [rules, cache, ai]; write-through on AI hits. |
-| **2.3** | OpenAI provider | ⬜ Not started | — | Adds cross-provider fallback option. |
+| **2.3** | OpenAI provider + cross-provider fallback | ✅ Done | (pending) | OpenAI chat completions, primary/fallback config, chain on ErrUnavailable only. |
 | **2.4** | AI-driven `Explain()` wiring | ⬜ Not started | — | Optional polish; can defer to Phase 4. |
 | **2.5** | Hardening: redaction audit, docs, CI budget recheck | ⬜ Not started | — | Closes the phase. |
 
@@ -74,6 +74,11 @@ below before Phase 2 started. **Do not redo any of this.**
 | **D3** | **`--provider` flag ships in 2.1**, even though only Ollama is implemented. | Stable CLI surface from day one. `--provider openai` returns a clean "not implemented yet" error in 2.1 and starts working in 2.3 without a flag rename. |
 | **D4** | **Default Ollama model is `qwen3:1.7b`** (~1.4 GB, Apache 2.0, schema/JSON). **Quality tier:** `qwen3:4b` when GPU/RAM allows. Benchmark: `scripts/bench-ollama-models.ps1` on CPU — `gemma3:270m` fast but wrong intent; `qwen3:1.7b` ~67s correct; `qwen3:4b` ~179s correct. Alternates in `defaults.go`: `qwen2.5:7b`, `llama3.1:8b`. | Intent resolution is closed-vocabulary classification + light param extraction. `qwen3:1.7b` is the best speed/accuracy tradeoff on CPU-only hosts; `qwen3:4b` when latency budget allows. Avoid: `gemma3:270m` (unreliable intent pick), `llama3` / `llama3:latest` (predates tool JSON line, large), `llama3.2:3b`, `phi3.5:mini`. |
 | **D5** | **Schema-constrained structured outputs (`format: <jsonschema>`) from day one.** Schema built dynamically from `Engine.KnownIntents()` + `Rule.Params` in 2.1.3 (`internal/providers/schema.go`). `ValidateResolved` remains defense-in-depth. | Grammar-constrained decoding makes out-of-vocab intents and undeclared param keys physically impossible at the wire, not only rejected at the gate. |
+| **D6** | **`ProvidersConfig.Primary` / `Fallback` alongside nested provider settings (option A).** Top-level `provider:` remains backward-compatible. | Minimal config churn; existing `providers.ollama` / `openai` / `azure` blocks unchanged. |
+| **D7** | **Effective primary** = `providers.primary` if non-empty, else `provider`. Factory builds one provider or chain from this. | Explicit chain config without breaking existing single-provider setups. |
+| **D8** | **Fallback is opt-in** via `providers.fallback`. Unset → D2 hard-fail when primary is down. | Predictable UX; no silent cloud escalation. |
+| **D9** | **Fallback triggers on `ErrUnavailable` only** (connect refused, DNS, TLS, 5xx). No fallback on timeout, invalid response, or no-match. | Avoids surprise cloud spend on slow local CPU or bad model output. |
+| **D10** | **`--provider` disables fallback** for that invocation (`cfg.Providers.Fallback` cleared in main). | Flag implies single-provider semantics (extends D3). |
 
 ---
 
@@ -285,18 +290,18 @@ green. Mark the box when the commit lands on `development`.
 
 ---
 
-## Phase 2.3 — OpenAI provider + cross-provider fallback *(outline)*
+## Phase 2.3 — OpenAI provider + cross-provider fallback
 
 > **Goal:** second provider impl, optional fallback chain.
 
-- [ ] Create `internal/providers/openai/` mirroring the Ollama package layout
-- [ ] REST client to OpenAI chat completions, JSON-mode response, key from `cfg.Providers.OpenAI.APIKey`
-- [ ] API key never logged; redacted on display
-- [ ] Add `providers:` config section: `primary`, `fallback` (optional)
-- [ ] Factory returns a chain provider that tries primary then fallback on `ErrUnavailable`
-- [ ] Adversarial test suite mirrors 2.1 (`ValidateResolved` is the unified gate)
-- [ ] `--provider` flag now accepts `openai`
-- [ ] Update this doc's status snapshot when complete
+- [x] Create `internal/providers/openai/` mirroring the Ollama package layout
+- [x] REST client to OpenAI chat completions, JSON-mode response, key from `cfg.Providers.OpenAI.APIKey`
+- [x] API key never logged; redacted on display
+- [x] Add `providers.primary` / `providers.fallback` alongside nested provider settings (option A, D6)
+- [x] Factory returns a chain provider that tries primary then fallback on `ErrUnavailable`
+- [x] Adversarial test suite mirrors 2.1 (`ValidateResolved` is the unified gate)
+- [x] `--provider` flag now accepts `openai`
+- [x] Update this doc's status snapshot when complete
 
 ---
 
@@ -371,7 +376,8 @@ Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short su
 2026-05-29 · 2.1.3–2.1.8 · Wire Ollama AI fallback through pipeline (client, provider, factory, adapter, --provider flag, engine injection, e2e suite) · e2238d2
 2026-05-29 · 2.1   · Default Ollama to qwen3:1.7b; tighten AI param validation · 9f35917
 2026-05-29 · 2.1.9 · Doc + status close-out; goleak in ollama tests; reconcile C3 timeout with 180s impl · cd20e7b
-2026-05-29 · 2.2   · Intent cache: file-backed LRU, resolver chain [rules,cache,ai], write-through on AI hits · 2f09846
+2026-05-29 · 2.2   · Intent cache: file-backed LRU, resolver chain [rules,cache,ai], write-through on AI hits · be1c59f
+2026-05-29 · 2.3   · OpenAI provider, primary/fallback config, chain on ErrUnavailable; --provider clears fallback · (pending)
 ```
 
 ---

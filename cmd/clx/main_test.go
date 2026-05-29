@@ -64,6 +64,18 @@ func TestRunProviderFlagInvalidValue(t *testing.T) {
 	}
 }
 
+func TestRunProviderOpenAIMissingKey(t *testing.T) {
+	setupCLIHome(t)
+	var stderr bytes.Buffer
+	code := run([]string{"--provider", "openai", "find logs"}, &bytes.Buffer{}, &stderr)
+	if code != 2 {
+		t.Fatalf("exit %d, want 2, stderr=%s", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "api_key") {
+		t.Fatalf("stderr=%q", stderr.String())
+	}
+}
+
 func TestRunHelp(t *testing.T) {
 	var stdout bytes.Buffer
 	code := run([]string{"--help"}, &stdout, &stderrWriter{t: t})

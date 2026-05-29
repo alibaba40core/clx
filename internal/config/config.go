@@ -12,11 +12,13 @@ type Config struct {
 	Logging   LoggingConfig   `yaml:"logging"`
 }
 
-// ProvidersConfig holds per-provider settings.
+// ProvidersConfig holds per-provider settings and optional fallback chain (D6).
 type ProvidersConfig struct {
-	Ollama OllamaProvider `yaml:"ollama"`
-	OpenAI OpenAIProvider `yaml:"openai"`
-	Azure  AzureProvider  `yaml:"azure"`
+	Primary  string         `yaml:"primary"`
+	Fallback string         `yaml:"fallback"`
+	Ollama   OllamaProvider `yaml:"ollama"`
+	OpenAI   OpenAIProvider `yaml:"openai"`
+	Azure    AzureProvider  `yaml:"azure"`
 }
 
 // OllamaProvider configures the local Ollama provider.

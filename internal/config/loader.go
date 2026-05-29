@@ -80,5 +80,27 @@ func Validate(c Config) error {
 	if c.Cache.MaxDiskBytes <= 0 {
 		return fmt.Errorf("cache.max_disk_bytes must be > 0")
 	}
+
+	primary := EffectivePrimary(c)
+	if err := validateProviderName(primary, "providers.primary"); err != nil {
+		return err
+	}
+	if err := validateProviderSettings(c, primary); err != nil {
+		return err
+	}
+
+	fallback := normalizeProviderName(c.Providers.Fallback)
+	if fallback != "" {
+		if err := validateProviderName(fallback, "providers.fallback"); err != nil {
+			return err
+		}
+		if fallback == primary {
+			return fmt.Errorf("providers.fallback must differ from effective primary %q", primary)
+		}
+		if err := validateProviderSettings(c, fallback); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
