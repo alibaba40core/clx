@@ -30,6 +30,9 @@ desktop.ini
 # Local runtime scratch (mirrors ~/.clx/ for dev testing)
 .local-clx*/
 *.local.yaml
+.clx/
+config.yaml
+**/.secret-key
 
 # Build artifacts
 /dist/

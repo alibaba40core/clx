@@ -45,8 +45,16 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 	}
 
 	resolvers := buildResolvers(eng, opts)
-	resolved, err := resolveChain(ctx, req, resolvers, opts.Logger)
+	resolved, err := resolveChain(ctx, req, resolvers, opts.Logger, aiResolverIndex(opts))
 	if err != nil {
+		if miss, ok := intent.AsMiss(err); ok && miss.AIAttempted {
+			if req.InputType == parser.InputNaturalLanguage {
+				fmt.Fprintf(opts.Stderr, "AI could not map this to a known command intent; try a simpler phrase or split into separate commands (e.g. clx pwd, then clx \"list directory .\")\n")
+			} else {
+				fmt.Fprintf(opts.Stderr, "no matching intent after rules and AI\n")
+			}
+			return 1, err
+		}
 		if errors.Is(err, intent.ErrNotFound) {
 			if req.InputType == parser.InputNaturalLanguage {
 				fmt.Fprintf(opts.Stderr, "no matching rule for natural language input; try an explicit command (e.g. grep PATTERN FILE)\n")

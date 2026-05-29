@@ -6,7 +6,7 @@ CLX is an AI-powered cross-platform command intelligence layer for developers. I
 
 ## Status
 
-> **Phase 2 complete** — Rules-miss natural-language inputs resolve through Ollama (default `qwen3:1.7b`) or OpenAI when configured, with optional `providers.fallback` chain (primary down → fallback on infrastructure errors only). Repeat inputs hit a file-backed intent cache at `~/.clx/cache/intents.json`; AI explanations cache separately at `explanations.json`. `--explain` on AI/Cache hits can enrich display via a 2s-capped LLM call with static fallback. Schema-constrained JSON output, `Engine.ValidateResolved`, and the full safety pipeline unchanged. Flags: `--provider` (`ollama` / `openai`; `azure` stub), `--explain`, `--dry-run`, `-y`. Includes Phase 1.1–2.5.
+> **Phase 2 complete (2.6)** — Rules-miss natural-language inputs resolve through Ollama (default `qwen3:1.7b`) or OpenAI when configured, with optional `providers.fallback` chain (primary down → fallback on infrastructure errors only). Repeat inputs hit a file-backed intent cache at `~/.clx/cache/intents.json`; AI explanations cache separately at `explanations.json`. Configure providers with `clx config` (API keys encrypted at rest). `--explain` on AI/Cache hits can enrich display via a 2s-capped LLM call with static fallback. Schema-constrained JSON output, `Engine.ValidateResolved`, and the full safety pipeline unchanged. Flags: `--provider` (`ollama` / `openai`; `azure` stub), `--explain`, `--dry-run`, `-y`. See [doc/provider-config.md](doc/provider-config.md). Includes Phase 1.1–2.6.
 
 ## What CLX does
 
@@ -90,6 +90,8 @@ Runtime config lives in `~/.clx/` (created on first run):
 ```
 
 See [configs/config.example.yaml](configs/config.example.yaml) for the default config template.
+
+Manage AI provider settings from the CLI (`clx config show`, `clx config set`, `clx config provider use`). API keys are encrypted at rest in `config.yaml`. See [doc/provider-config.md](doc/provider-config.md).
 
 ## Customizing rules
 

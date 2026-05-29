@@ -90,6 +90,19 @@ Each component lives in `internal/<name>/` as a private Go package. Interfaces a
 | `--yes` / `-y` | Skip confirmation prompt |
 | `--provider` | Override AI provider for this invocation |
 
+**Subcommands:**
+
+| Command | Purpose |
+|---------|---------|
+| `clx config show` | Display provider-related settings (secrets masked) |
+| `clx config get <path>` | Read one setting (secrets masked) |
+| `clx config set <path> [value]` | Persist a setting; secret paths prompt with hidden input |
+| `clx config provider use <name>` | Set active provider |
+| `clx config provider list` | List supported providers |
+| `clx config encrypt-secrets` | Re-encrypt plaintext API keys on disk |
+
+See [doc/provider-config.md](provider-config.md) for paths, encryption, and security notes.
+
 **Binaries:**
 
 - **`clx`** — Fast, rules-first, single-shot translation/execution.
@@ -455,7 +468,9 @@ before the generator runs (same gate as AI output).
 
 ### 3.14 Config — `internal/config`
 
-**Responsibility:** Load, validate, and provide defaults for `~/.clx/config.yaml`.
+**Responsibility:** Load, validate, and provide defaults for `~/.clx/config.yaml`. Phase 2.6 adds `Save`, encrypted API key fields (`enc:v1:`), and the `clx config` subcommand for provider-scoped updates.
+
+**Secret storage:** `providers.openai.api_key` and `providers.azure.api_key` are AES-GCM encrypted at rest with a machine-bound key (fallback: `~/.clx/.secret-key`). Decrypted only in-process during `Load`; `show`/`get` mask secrets.
 
 ```yaml
 provider: ollama

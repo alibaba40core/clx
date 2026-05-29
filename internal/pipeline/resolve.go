@@ -14,10 +14,12 @@ import (
 // resolveChain tries resolvers in order. The first non-ErrNotFound result
 // (success or hard error) wins. ErrNotFound propagates only if every
 // resolver misses. Honors ctx between hops.
-func resolveChain(ctx context.Context, req parser.Request, resolvers []intent.Resolver, logger *slog.Logger) (intent.ResolvedIntent, error) {
+// aiHopIndex is the chain index of the AI resolver, or -1 when AI is not wired.
+func resolveChain(ctx context.Context, req parser.Request, resolvers []intent.Resolver, logger *slog.Logger, aiHopIndex int) (intent.ResolvedIntent, error) {
 	if len(resolvers) == 0 {
 		return intent.ResolvedIntent{}, intent.ErrNotFound
 	}
+	var aiAttempted bool
 	for i, r := range resolvers {
 		if err := ctx.Err(); err != nil {
 			return intent.ResolvedIntent{}, err
@@ -38,8 +40,11 @@ func resolveChain(ctx context.Context, req parser.Request, resolvers []intent.Re
 		if !errors.Is(err, intent.ErrNotFound) {
 			return intent.ResolvedIntent{}, err
 		}
+		if aiHopIndex >= 0 && i == aiHopIndex {
+			aiAttempted = true
+		}
 	}
-	return intent.ResolvedIntent{}, intent.ErrNotFound
+	return intent.ResolvedIntent{}, &intent.MissError{AIAttempted: aiAttempted}
 }
 
 // buildResolvers assembles the resolution chain: rules, optional cache read,
@@ -57,4 +62,16 @@ func buildResolvers(eng *intent.Engine, opts Options) []intent.Resolver {
 		out = append(out, ai)
 	}
 	return out
+}
+
+// aiResolverIndex returns the resolver-chain index of the AI hop, or -1 when AI is not wired.
+func aiResolverIndex(opts Options) int {
+	if opts.AIResolver == nil {
+		return -1
+	}
+	idx := 1
+	if opts.Cache != nil {
+		idx++
+	}
+	return idx
 }

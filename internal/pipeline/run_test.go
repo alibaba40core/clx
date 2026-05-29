@@ -273,6 +273,25 @@ func TestRunAIResolverValidIntentExplain(t *testing.T) {
 	}
 }
 
+func TestRunAIMissNaturalLanguage(t *testing.T) {
+	t.Setenv("CLX_HOME", t.TempDir())
+	_, _ = config.Bootstrap(context.Background())
+	testProfile(t, "linux", "bash")
+
+	var stderr bytes.Buffer
+	code, err := Run(context.Background(), config.Default(), "find all files modified today", Options{
+		AIResolver: &fakeAIResolver{err: intent.ErrNotFound},
+		Stderr:     &stderr,
+		Stdout:     &bytes.Buffer{},
+	})
+	if code != 1 || err == nil {
+		t.Fatalf("code=%d err=%v", code, err)
+	}
+	if !strings.Contains(stderr.String(), "AI could not map") {
+		t.Fatalf("stderr=%q", stderr.String())
+	}
+}
+
 func TestRunNotFoundNL(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())

@@ -29,6 +29,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if len(args) > 0 && args[0] == "doctor" {
 		return runDoctor(args[1:], stdout, stderr)
 	}
+	if len(args) > 0 && args[0] == "config" {
+		return runConfig(args[1:], stdout, stderr)
+	}
 
 	fs := flag.NewFlagSet("clx", flag.ContinueOnError)
 	fs.SetOutput(stderr)
@@ -222,6 +225,7 @@ func printHelp(w io.Writer) {
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "  clx [flags] <command...>")
 	fmt.Fprintln(w, "  clx doctor [flags]")
+	fmt.Fprintln(w, "  clx config <subcommand>")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Examples:")
 	fmt.Fprintln(w, "  clx grep errors logs.txt")
@@ -232,6 +236,7 @@ func printHelp(w io.Writer) {
 	fmt.Fprintln(w, "Commands:")
 	fmt.Fprintln(w, "  doctor [--refresh]  Detect environment and write ~/.clx/system_profile.json")
 	fmt.Fprintln(w, "                      (run first-time or after installing tools / switching shells)")
+	fmt.Fprintln(w, "  config              View or update AI provider settings (see clx config help)")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Flags:")
 	fmt.Fprintln(w, "  --explain       Show intent and translation without executing")

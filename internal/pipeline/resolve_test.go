@@ -32,7 +32,7 @@ func (s *stubResolver) Resolve(ctx context.Context, req parser.Request) (intent.
 }
 
 func TestResolveChainEmpty(t *testing.T) {
-	_, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"pwd"}}, nil, nil)
+	_, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"pwd"}}, nil, nil, -1)
 	if !errors.Is(err, intent.ErrNotFound) {
 		t.Fatalf("got %v want ErrNotFound", err)
 	}
@@ -45,7 +45,7 @@ func TestResolveChainSingleHit(t *testing.T) {
 			Source: intent.SourceRule,
 		},
 	}
-	got, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"pwd"}}, []intent.Resolver{r}, nil)
+	got, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"pwd"}}, []intent.Resolver{r}, nil, -1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestResolveChainFirstMissSecondHit(t *testing.T) {
 			Source: intent.SourceAI,
 		},
 	}
-	got, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"locate", "x"}}, []intent.Resolver{miss, hit}, nil)
+	got, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"locate", "x"}}, []intent.Resolver{miss, hit}, nil, -1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestResolveChainHardErrorPropagates(t *testing.T) {
 	second := &stubResolver{
 		result: intent.ResolvedIntent{Intent: "should_not_run"},
 	}
-	_, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"x"}}, []intent.Resolver{first, second}, nil)
+	_, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"x"}}, []intent.Resolver{first, second}, nil, -1)
 	if !errors.Is(err, hard) {
 		t.Fatalf("got %v want %v", err, hard)
 	}
@@ -95,7 +95,7 @@ func TestResolveChainHardErrorPropagates(t *testing.T) {
 func TestResolveChainCtxCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err := resolveChain(ctx, parser.Request{Tokens: []string{"pwd"}}, []intent.Resolver{&stubResolver{}}, nil)
+	_, err := resolveChain(ctx, parser.Request{Tokens: []string{"pwd"}}, []intent.Resolver{&stubResolver{}}, nil, -1)
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("got %v", err)
 	}
@@ -108,7 +108,7 @@ func TestResolveChainShortCircuitOnHit(t *testing.T) {
 	second := &stubResolver{
 		result: intent.ResolvedIntent{Intent: "b", Source: intent.SourceAI},
 	}
-	got, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"pwd"}}, []intent.Resolver{first, second}, nil)
+	got, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"pwd"}}, []intent.Resolver{first, second}, nil, -1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,9 +134,13 @@ func TestBuildResolversWithAI(t *testing.T) {
 		t.Fatal(err)
 	}
 	ai := &stubResolver{result: intent.ResolvedIntent{Intent: "x"}}
-	resolvers := buildResolvers(eng, Options{AIResolver: ai})
+	opts := Options{AIResolver: ai}
+	resolvers := buildResolvers(eng, opts)
 	if len(resolvers) != 2 {
 		t.Fatalf("len=%d want 2", len(resolvers))
+	}
+	if aiResolverIndex(opts) != 1 {
+		t.Fatalf("ai index = %d want 1", aiResolverIndex(opts))
 	}
 }
 
@@ -146,7 +150,7 @@ func TestResolveChainDebugLogging(t *testing.T) {
 	r := &stubResolver{
 		result: intent.ResolvedIntent{Intent: "current_dir", Source: intent.SourceRule},
 	}
-	_, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"pwd"}}, []intent.Resolver{r}, logger)
+	_, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"pwd"}}, []intent.Resolver{r}, logger, -1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,9 +165,25 @@ func TestResolveChainDebugLogging(t *testing.T) {
 func TestResolveChainAllMiss(t *testing.T) {
 	miss1 := &stubResolver{err: intent.ErrNotFound}
 	miss2 := &stubResolver{err: intent.ErrNotFound}
-	_, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"unknown"}}, []intent.Resolver{miss1, miss2}, nil)
+	_, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"unknown"}}, []intent.Resolver{miss1, miss2}, nil, 1)
 	if !errors.Is(err, intent.ErrNotFound) {
 		t.Fatalf("got %v", err)
+	}
+	miss, ok := intent.AsMiss(err)
+	if !ok || !miss.AIAttempted {
+		t.Fatalf("want AIAttempted miss, got %v ok=%v", err, ok)
+	}
+}
+
+func TestResolveChainAllMissNoAI(t *testing.T) {
+	miss1 := &stubResolver{err: intent.ErrNotFound}
+	_, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"unknown"}}, []intent.Resolver{miss1}, nil, -1)
+	if !errors.Is(err, intent.ErrNotFound) {
+		t.Fatalf("got %v", err)
+	}
+	miss, ok := intent.AsMiss(err)
+	if !ok || miss.AIAttempted {
+		t.Fatalf("want rules-only miss, got %v", err)
 	}
 }
 
@@ -173,7 +193,7 @@ func TestResolveChainNoLogger(t *testing.T) {
 		result: intent.ResolvedIntent{Intent: "current_dir", Source: intent.SourceRule},
 	}
 	start := time.Now()
-	_, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"pwd"}}, []intent.Resolver{r}, nil)
+	_, err := resolveChain(context.Background(), parser.Request{Tokens: []string{"pwd"}}, []intent.Resolver{r}, nil, -1)
 	if err != nil {
 		t.Fatal(err)
 	}

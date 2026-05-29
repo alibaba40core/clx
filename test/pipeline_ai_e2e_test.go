@@ -161,7 +161,7 @@ func TestE2EAILowConfidenceTreatedAsMiss(t *testing.T) {
 	if code != 1 || err == nil {
 		t.Fatalf("code=%d err=%v", code, err)
 	}
-	if !strings.Contains(stderr.String(), "no matching rule") {
+	if !strings.Contains(stderr.String(), "AI could not map") {
 		t.Fatalf("stderr=%q", stderr.String())
 	}
 }

@@ -1,0 +1,82 @@
+# Provider configuration
+
+CLX AI provider settings live in `~/.clx/config.yaml`. Use the CLI to view and update them — you do not need to edit the file by hand.
+
+## Quick reference
+
+```bash
+# View provider settings (API keys masked)
+clx config show
+
+# Switch active provider
+clx config provider use ollama
+clx config provider use openai
+
+# Set provider details
+clx config set providers.ollama.host http://localhost:11434
+clx config set providers.ollama.model qwen3:1.7b
+clx config set providers.openai.model gpt-4.1-mini
+clx config set providers.fallback openai
+
+# Set API keys (interactive hidden prompt — no shell helpers needed)
+clx config set providers.openai.api_key
+# Or explicitly:
+clx config set providers.openai.api_key --stdin
+
+# Migrate existing plaintext keys to encrypted form
+clx config encrypt-secrets
+```
+
+Run `clx config help` for the full command list.
+
+## Configurable paths
+
+| Path | Purpose |
+|------|---------|
+| `provider` | Active provider (`ollama`, `openai`, `azure`) |
+| `model` | Default model when provider block omits one |
+| `providers.primary` | Optional chain primary (overrides `provider` when set) |
+| `providers.fallback` | Optional fallback provider (infrastructure errors only) |
+| `providers.timeout` | Provider HTTP timeout in seconds |
+| `providers.ollama.host` | Ollama base URL |
+| `providers.ollama.model` | Ollama model tag |
+| `providers.openai.api_key` | OpenAI API key (encrypted at rest) |
+| `providers.openai.model` | OpenAI model name |
+| `providers.azure.endpoint` | Azure OpenAI endpoint |
+| `providers.azure.api_key` | Azure API key (encrypted at rest) |
+| `providers.azure.deployment` | Azure deployment name |
+
+## Encrypted secrets
+
+API keys are stored as `enc:v1:…` blobs in `config.yaml`, never in plaintext on disk.
+
+- **Encryption key** is derived from OS + user identity (Windows MachineGuid, Linux `/etc/machine-id`, macOS hostname+user). If derivation fails, CLX creates `~/.clx/.secret-key` (mode `0600`) as fallback key material.
+- **In memory**, keys are decrypted only during config load for provider use.
+- **`clx config show`** and **`clx config get`** on secret paths always mask values (last 4 chars only).
+- **Plaintext keys** in an existing config are re-encrypted automatically on the next `config set` or `config encrypt-secrets`.
+
+Machine-bound encryption protects against casual file copy. It is not a substitute for full-disk encryption or OS access controls.
+
+## Security practices
+
+1. **Never commit `~/.clx/`** or local copies of `config.yaml` to git. The repo `.gitignore` blocks common accidental paths (`config.yaml`, `.clx/`, `.secret-key`).
+2. **Set API keys interactively:** `clx config set providers.openai.api_key` — CLX prompts with hidden input; the key never appears on the command line or in shell history.
+3. **Do not pass keys as arguments** — `clx config set providers.openai.api_key sk-...` is rejected.
+4. **File permissions**: config and secret key files are written with mode `0600`; `~/.clx/` directories use `0700`.
+
+## Run-time override
+
+`--provider` on a normal `clx` invocation overrides the active provider for that run only and disables fallback (Phase 2 decision D10). All other provider settings still come from config.
+
+```bash
+clx --provider openai "find logs modified today"
+```
+
+## Alternate config file
+
+```bash
+clx --config /path/to/config.yaml ...
+clx config show --config /path/to/config.yaml
+```
+
+Set `CLX_HOME` to relocate the entire runtime directory (default `~/.clx`).

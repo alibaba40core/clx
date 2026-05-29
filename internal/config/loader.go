@@ -47,6 +47,10 @@ func Load(ctx context.Context, path string) (Config, error) {
 	}
 	applyNode(&cfg, root)
 
+	if err := DecryptConfig(&cfg); err != nil {
+		return Config{}, err
+	}
+
 	if err := Validate(cfg); err != nil {
 		return Config{}, err
 	}
