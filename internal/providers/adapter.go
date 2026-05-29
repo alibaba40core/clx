@@ -15,7 +15,9 @@ import (
 
 const (
 	defaultMinConfidence = 0.5
-	maxAdapterTimeout      = 10 * time.Second
+	// maxAdapterTimeout is the hard ceiling for AI resolution. Local Ollama on CPU
+	// can exceed 30s on cold start or schema-constrained generation.
+	maxAdapterTimeout = 180 * time.Second
 )
 
 // AdapterConfig tunes the Provider → intent.Resolver bridge.
@@ -145,10 +147,11 @@ func ruleParamsFromEngine(eng *intent.Engine) map[string][]string {
 		if !ok {
 			continue
 		}
-		if len(rule.Params) == 0 {
+		keys, err := intent.ExampleParamKeys(rule)
+		if err != nil || len(keys) == 0 {
 			continue
 		}
-		out[name] = append([]string(nil), rule.Params...)
+		out[name] = keys
 	}
 	return out
 }

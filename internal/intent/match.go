@@ -2,6 +2,7 @@ package intent
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/alibaba40core/clx/internal/tokenize"
@@ -84,7 +85,75 @@ func validateResolvedParams(rule Rule, params map[string]string) error {
 			return fmt.Errorf("unexpected param %q", k)
 		}
 	}
+	required, err := requiredParamsFromExamples(rule)
+	if err != nil {
+		return err
+	}
+	for p := range required {
+		if _, ok := params[p]; !ok {
+			return fmt.Errorf("missing param %q", p)
+		}
+	}
 	return nil
+}
+
+// ExampleParamKeys returns declared rule params, or the union of {{placeholders}} in examples.
+func ExampleParamKeys(rule Rule) ([]string, error) {
+	if len(rule.Params) > 0 {
+		out := append([]string(nil), rule.Params...)
+		sort.Strings(out)
+		return out, nil
+	}
+	allowed, err := paramNamesFromExamples(rule)
+	if err != nil {
+		return nil, err
+	}
+	if len(allowed) == 0 {
+		return nil, nil
+	}
+	out := make([]string, 0, len(allowed))
+	for k := range allowed {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out, nil
+}
+
+func requiredParamsFromExamples(rule Rule) (map[string]struct{}, error) {
+	if len(rule.Examples) == 0 {
+		return nil, nil
+	}
+	var inter map[string]struct{}
+	for i, ex := range rule.Examples {
+		names, err := paramNamesFromExample(ex)
+		if err != nil {
+			return nil, err
+		}
+		if i == 0 {
+			inter = names
+			continue
+		}
+		for k := range inter {
+			if _, ok := names[k]; !ok {
+				delete(inter, k)
+			}
+		}
+	}
+	return inter, nil
+}
+
+func paramNamesFromExample(ex string) (map[string]struct{}, error) {
+	tokens, err := tokenize.Tokenize(ex)
+	if err != nil {
+		return nil, err
+	}
+	names := make(map[string]struct{})
+	for _, tok := range tokens {
+		if name, ok := paramName(tok); ok {
+			names[name] = struct{}{}
+		}
+	}
+	return names, nil
 }
 
 func paramNamesFromExamples(rule Rule) (map[string]struct{}, error) {
