@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/alibaba40core/clx/internal/providers"
 )
 
 func TestNewClientNoNetwork(t *testing.T) {
@@ -193,7 +195,7 @@ func TestClientExplainChatHappyPath(t *testing.T) {
 func TestRedactBodyStripsSensitivePatterns(t *testing.T) {
 	t.Parallel()
 	body := []byte(`{"error":{"message":"Invalid api_key=sk-secret1234567890abcdef"}}`)
-	redacted := RedactBody(body)
+	redacted := providers.RedactHTTPBody(body)
 	if strings.Contains(redacted, "sk-secret1234567890abcdef") {
 		t.Fatalf("secret leaked: %q", redacted)
 	}

@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/alibaba40core/clx/internal/cliversion"
-	"github.com/alibaba40core/clx/internal/executor"
 )
 
 const (
@@ -233,7 +232,3 @@ func mapRoundTripError(err error) error {
 	return errUnavailable
 }
 
-// RedactBody is used in tests and logging helpers for safe error snippets.
-func RedactBody(body []byte) string {
-	return executor.Redact(string(body))
-}
