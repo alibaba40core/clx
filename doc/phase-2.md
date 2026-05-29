@@ -113,14 +113,17 @@ no impact on the rest.
 |-------|----------------|----------------|--------|
 | Rule match (`git status`) | any | n/a | Rules path. Provider **never called**. |
 | Rule miss + NL | `ollama` | up | AI resolves → `ValidateResolved` → translate → run |
-| Rule miss + NL | `ollama` | down (refused / 5xx / timeout) | **Hard-fail.** Stderr `provider unavailable: …`. Exit 1. |
-| Rule miss + NL | `openai` | n/a | Stderr `openai provider not implemented yet (Phase 2.3)`. Exit 1. |
+| Rule miss + NL | `ollama` | down (refused / 5xx / timeout) | **Hard-fail** (or chain fallback when `providers.fallback` set). Stderr `provider unavailable: …`. Exit 1. |
+| Rule miss + NL | `openai` | up | AI resolves via OpenAI → `ValidateResolved` → translate → run |
+| Rule miss + NL | `openai` | down | **Hard-fail**, or chain fallback when primary is down and fallback configured (2.3) |
+| Rule miss + NL | `openai` | n/a (missing key) | Stderr `openai.api_key required when provider is openai`. Exit 2. |
 | Rule miss + AI returns `rm_rf_slash` | `ollama` | up | Pipeline rejects via `ValidateResolved`. Exit 1. |
 | Rule miss + AI returns extra param | `ollama` | up | Same rejection path. |
 | Rule miss + AI confidence < 0.5 | `ollama` | up | Treated as miss → `ErrNotFound` propagates. |
-| `--provider openai foo` | (any) | n/a | Flag wins over config; same not-implemented error. |
+| `--provider openai foo` | (any) | up (key set) | Flag wins over config; OpenAI resolves when `openai.api_key` configured (2.3). |
 | `--provider bogus foo` | (any) | n/a | Exit 2 (flag error). |
 | `--explain` on rule miss | `ollama` | up | AI called, intent shown, **no exec**. |
+| `--explain` on AI/cache hit | any AI provider | up | AI-enriched explanation (2.4); 2s timeout; static fallback on error. |
 | `--dry-run` on rule miss | `ollama` | up | AI called, `dry-run: would execute: …` printed. |
 
 ### 2.1 — Files to add
@@ -365,9 +368,9 @@ These apply to every commit in Phase 2. They mirror the workspace rules
 | # | Item | Owner | Status |
 |---|------|-------|--------|
 | R1 | Ollama `/api/chat` schema-constrained `format` requires Ollama ≥ 0.5. Fallback: `format: "json"` and rely on `ValidateResolved`; older fallback: `/api/generate` with one-shot prompt (1-line change in `client.go`). | TBD | Open |
-| R2 | Cold-start budget impact of importing `net/http` (~few hundred KB binary growth). Confirm with `make budgets` after 2.1.7. | TBD | Open |
+| R2 | Cold-start budget impact of importing `net/http` (~few hundred KB binary growth). CI enforces binary size + cold start via `scripts/check-budgets.sh`; RSS/goroutine probes deferred to Phase 3+. | TBD | Closed |
 | R3 | Confidence threshold of 0.5 is a guess. Tune after first round of real Ollama responses. | TBD | Open |
-| R4 | `cfg.Provider == "ollama"` but `Ollama.Host` empty: factory should fail with a clear "ollama.host required" message, not crash. | Covered in 2.1.5 | Open |
+| R4 | `cfg.Provider == "ollama"` but `Ollama.Host` empty: factory should fail with a clear "ollama.host required" message, not crash. | Covered in 2.1.5 | Closed |
 | R5 | What happens on Windows when `cfg.Providers.Ollama.Host` is `localhost` and Ollama is in WSL? Document but defer; Phase 4 owns shell/host integration. | TBD | Open |
 
 ---
@@ -385,6 +388,12 @@ Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short su
 2026-05-29 · 2.3   · OpenAI provider, primary/fallback config, chain on ErrUnavailable; --provider clears fallback · f47ff62
 2026-05-29 · 2.4   · AI Explain on --explain + AI/Cache path; explanations.json cache; 2s timeout · 05196f9
 2026-05-29 · 2.5   · providers.timeout, host URL validation, security e2e, Phase 2 close-out · 1d48cd4
+2026-05-29 · P.1   · Centralize provider redaction; redact explain fallback errors · 848408c
+2026-05-29 · P.2   · Factory logger through chain and HTTP clients · 9f6db65
+2026-05-29 · P.3   · Cap providers.timeout at 180s · 0e98fa4
+2026-05-29 · P.4   · Intent name in AI explain prompt · a86bee6
+2026-05-29 · P.5   · Deferred budget probe comments; version timing smoke test · 136faed
+2026-05-29 · P.6   · phase-2.md behavior table + R2/R4 close-out · 8bee591
 ```
 
 ---
