@@ -386,6 +386,10 @@ providers:
   openai: { api_key, model }
 ```
 
+**Explain (Phase 2.4):** When `--explain` is set and the resolved intent came from AI or cache, the factory provider may enrich the display explanation via a plain-text LLM call (2s timeout, static fallback). Cached at `~/.clx/cache/explanations.json`.
+
+**Provider timeout (Phase 2.5):** `providers.timeout` (seconds) caps ResolveIntent HTTP/resolver time; when unset, `execution.timeout` applies. Explain always uses a hardcoded 2s ceiling (D14).
+
 ---
 
 ### 3.11 Memory — `internal/memory`
@@ -549,6 +553,8 @@ Created on first run / install — **not committed to the repo.**
 ├── aliases.yaml       # user-global alias shortcuts (see §3.16)
 ├── system_profile.json
 ├── cache/
+│   ├── intents.json       # intent resolution cache (Phase 2.2)
+│   └── explanations.json  # AI explain cache (Phase 2.4)
 ├── memory/
 ├── sessions/
 ├── policies/
@@ -613,7 +619,7 @@ clx.ai/
 | Phase | Scope | Key packages |
 |-------|-------|--------------|
 | **Phase 1 — Core Engine** | Rules-first deterministic pipeline (no AI, no policy enforcement) — see [§6.1](#61-phase-1-sub-phases) for breakdown | `config`, `logging`, `environment`, `parser`, `intent` (rules path), `skills` (loader), `capabilities`, `generator`, `executor` (basic), `cmd/clx` |
-| **Phase 2 — AI Integration** *(2.1–2.3 done; 2.4–2.5 pending — see [`doc/phase-2.md`](phase-2.md))* | Ollama + OpenAI providers, AI fallback, explanations | `providers/*`, `intent` (AI path), `cache` |
+| **Phase 2 — AI Integration** *(complete — see [`doc/phase-2.md`](phase-2.md))* | Ollama + OpenAI providers, AI fallback, explanations, cache | `providers/*`, `intent` (AI path), `cache` |
 | **Phase 3 — Safety** | Risk engine, policy engine, dry-run, confirmations, access levels | `risk`, `policy`, `executor` (safety hooks) |
 | **Phase 3.5 — Aliases** | Persistent user-global aliases in `~/.clx/aliases.yaml`. `clx alias set/list/rm` subcommand, parser-stage expansion (alias value flows through full risk/policy/exec chain), set-time collision warning against shell verbs and built-in rule example heads. No dependency on `internal/memory` or shell hooks — ships as a self-contained slice between safety and advanced UX. See [§3.16](#316-aliases--internalaliases). | `internal/aliases`, `internal/parser` (expansion hook), `cmd/clx` (`alias` subcommand) |
 | **Phase 4 — Advanced UX** | Shell interception, auto-fix, session context, interactive `clx init` wizard | `memory`, `skills`, shell hooks |

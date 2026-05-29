@@ -10,6 +10,7 @@ providers:
   # Optional chain (Phase 2.3): primary defaults to top-level provider when unset.
   primary: ""
   fallback: ""
+  timeout: 0
   ollama:
     host: "http://localhost:11434"
     # Alternates: qwen3:4b (quality), qwen2.5:7b, llama3.1:8b

@@ -79,9 +79,5 @@ func newOpenAIFromConfig(cfg config.Config) (providers.Provider, error) {
 }
 
 func providerTimeout(cfg config.Config) time.Duration {
-	timeout := time.Duration(cfg.Execution.Timeout) * time.Second
-	if timeout <= 0 {
-		timeout = 30 * time.Second
-	}
-	return timeout
+	return config.ProviderTimeout(cfg)
 }
