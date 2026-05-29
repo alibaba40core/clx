@@ -155,3 +155,50 @@ func TestClientChatTimeout(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+func TestClientExplainChatHappyPath(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req ChatRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatal(err)
+		}
+		if req.Format != nil {
+			t.Fatal("explain chat must not use format")
+		}
+		_ = json.NewEncoder(w).Encode(chatResponse{
+			Message: struct {
+				Content string `json:"content"`
+			}{Content: "Lists files in the current directory."},
+		})
+	}))
+	defer srv.Close()
+	c, err := NewClient(srv.URL, "m", 5*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := c.ExplainChat(context.Background(), "sys", "user")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if text != "Lists files in the current directory." {
+		t.Fatalf("text = %q", text)
+	}
+}
+
+func TestClientExplainChatEmpty(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(chatResponse{
+			Message: struct {
+				Content string `json:"content"`
+			}{Content: "   "},
+		})
+	}))
+	defer srv.Close()
+	c, _ := NewClient(srv.URL, "m", time.Second)
+	_, err := c.ExplainChat(context.Background(), "s", "u")
+	if !errors.Is(err, errNoMatch) {
+		t.Fatalf("err = %v", err)
+	}
+}

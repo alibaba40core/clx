@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"time"
 
 	"github.com/alibaba40core/clx/internal/cliversion"
 	"github.com/alibaba40core/clx/internal/cache"
@@ -88,17 +87,20 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 
 	var aiResolver intent.Resolver
+	var aiProvider providers.Provider
 	p, perr := providerfactory.NewFromConfig(cfg)
 	if perr != nil {
 		aiResolver = providers.ErrorResolver(perr)
 	} else {
-		timeout := time.Duration(cfg.Execution.Timeout) * time.Second
+		aiProvider = p
+		timeout := config.ProviderTimeout(cfg)
 		aiResolver = providers.AsResolver(p, eng, logger, providers.AdapterConfig{
 			Timeout: timeout,
 		})
 	}
 
 	var cacheStore *cache.Store
+	var explainStore *cache.ExplainStore
 	if cfg.Features.CacheCommands && cfg.Cache.MaxEntries > 0 {
 		cachePath, cerr := config.CacheIntentsPath()
 		if cerr != nil {
@@ -109,6 +111,17 @@ func run(args []string, stdout, stderr io.Writer) int {
 				logger.Warn("cache unavailable", "err", lerr)
 			} else {
 				cacheStore = store
+			}
+		}
+		explainPath, eerr := config.CacheExplanationsPath()
+		if eerr != nil {
+			logger.Warn("explain cache unavailable", "err", eerr)
+		} else {
+			estore, lerr := cache.LoadExplain(ctx, explainPath, cfg.Cache, logger)
+			if lerr != nil {
+				logger.Warn("explain cache unavailable", "err", lerr)
+			} else {
+				explainStore = estore
 			}
 		}
 	}
@@ -122,9 +135,11 @@ func run(args []string, stdout, stderr io.Writer) int {
 		Logger:     logger,
 		Stdout:     stdout,
 		Stderr:     stderr,
-		Engine:     eng,
-		Cache:      cacheStore,
-		AIResolver: aiResolver,
+		Engine:       eng,
+		Cache:        cacheStore,
+		ExplainCache: explainStore,
+		Provider:     aiProvider,
+		AIResolver:   aiResolver,
 	})
 	if err != nil && code == 0 {
 		return 1

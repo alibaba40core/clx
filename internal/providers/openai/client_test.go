@@ -155,3 +155,46 @@ func TestClientChatTimeout(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+func TestClientExplainChatHappyPath(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req chatRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatal(err)
+		}
+		if req.ResponseFormat != nil {
+			t.Fatal("explain chat must not use response_format")
+		}
+		_ = json.NewEncoder(w).Encode(chatResponse{
+			Choices: []struct {
+				Message struct {
+					Content string `json:"content"`
+				} `json:"message"`
+			}{{Message: struct {
+				Content string `json:"content"`
+			}{Content: "Shows git working tree status."}}},
+		})
+	}))
+	defer srv.Close()
+	c, err := NewClient("sk-test", "m", srv.URL+"/v1", 5*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := c.ExplainChat(context.Background(), "sys", "user")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if text != "Shows git working tree status." {
+		t.Fatalf("text = %q", text)
+	}
+}
+
+func TestRedactBodyStripsSensitivePatterns(t *testing.T) {
+	t.Parallel()
+	body := []byte(`{"error":{"message":"Invalid api_key=sk-secret1234567890abcdef"}}`)
+	redacted := RedactBody(body)
+	if strings.Contains(redacted, "sk-secret1234567890abcdef") {
+		t.Fatalf("secret leaked: %q", redacted)
+	}
+}

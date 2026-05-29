@@ -143,6 +143,61 @@ func (c *Client) Chat(ctx context.Context, system, user string, schema map[strin
 	return parseIntentContent(chat.Choices[0].Message.Content)
 }
 
+// ExplainChat sends a plain-text chat completion for command explanation (Phase 2.4).
+func (c *Client) ExplainChat(ctx context.Context, system, user string) (string, error) {
+	body, err := json.Marshal(chatRequest{
+		Model: c.model,
+		Messages: []chatMessage{
+			{Role: "system", Content: system},
+			{Role: "user", Content: user},
+		},
+		Temperature: 0,
+	})
+	if err != nil {
+		return "", fmt.Errorf("openai: encode request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("User-Agent", "clx/"+cliversion.Version)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return "", mapRoundTripError(err)
+	}
+	defer resp.Body.Close()
+
+	limited := io.LimitReader(resp.Body, maxResponseBytes)
+	data, err := io.ReadAll(limited)
+	if err != nil {
+		return "", errInvalidResp
+	}
+
+	if resp.StatusCode >= 500 {
+		return "", errUnavailable
+	}
+	if resp.StatusCode >= 400 {
+		return "", errInvalidResp
+	}
+
+	var chat chatResponse
+	if err := json.Unmarshal(data, &chat); err != nil {
+		return "", errInvalidResp
+	}
+	if len(chat.Choices) == 0 {
+		return "", errNoMatch
+	}
+	text := strings.TrimSpace(chat.Choices[0].Message.Content)
+	if text == "" {
+		return "", errNoMatch
+	}
+	return text, nil
+}
+
 type parsedIntent struct {
 	Intent     string            `json:"intent"`
 	Params     map[string]string `json:"params"`
