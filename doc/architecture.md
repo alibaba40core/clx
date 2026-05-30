@@ -100,6 +100,11 @@ Each component lives in `internal/<name>/` as a private Go package. Interfaces a
 | `clx config provider use <name>` | Set active provider |
 | `clx config provider list` | List supported providers |
 | `clx config encrypt-secrets` | Re-encrypt plaintext API keys on disk |
+| `clx safety show` | Display active safety mode and per-risk behavior |
+| `clx safety set mode=<low\|medium\|high\|custom>` | Set safety preset |
+| `clx safety set require_confirmation=<bool>` | Custom toggle (switches mode to custom) |
+| `clx safety set dry_run=<bool>` | Custom toggle (switches mode to custom) |
+| `clx safety set explain=<bool>` | Custom toggle (switches mode to custom) |
 
 See [doc/provider-config.md](provider-config.md) for paths, encryption, and security notes.
 
@@ -302,8 +307,26 @@ allowed:
 **Flow:**
 
 ```
-Generate Command → Risk Scan → Policy Check → Dry Run Preview → User Confirmation → Execute
+Generate Command → Risk Scan → Policy Check → Safety mode gate → Dry Run Preview (optional) → User Confirmation (optional) → Execute
 ```
+
+**Two concepts:**
+
+| Concept | Source | Meaning |
+|---------|--------|---------|
+| **Command risk** | `internal/risk` | Intrinsic label per command: low / medium / high |
+| **Safety mode** | `config.yaml` / `clx safety` | User tolerance: maps `(mode, risk)` → run / explain / preview / confirm |
+
+**Preset matrix** (`internal/config/safety.go`):
+
+| Safety mode | Low risk | Medium risk | High risk |
+|-------------|----------|-------------|-----------|
+| **low** | run | run | confirm |
+| **medium** (default) | run | explain + confirm | explain + confirm |
+| **high** | explain + confirm | explain + preview + confirm + run | explain + preview + confirm + run |
+| **custom** | global `require_confirmation`, `dry_run`, `features.explain` toggles | same | same |
+
+In **high** mode, `-y` cannot skip confirmation for medium/high-risk commands. Custom `dry_run: true` without confirm is preview-only and cannot be bypassed by `-y`.
 
 **Config knobs** (from `config.yaml`):
 
@@ -313,8 +336,8 @@ execution:
   timeout: 30
 safety:
   mode: medium
-  require_confirmation: true
-  dry_run: true
+  require_confirmation: true   # custom mode only
+  dry_run: false               # custom mode only
 ```
 
 ---
@@ -530,7 +553,7 @@ execution:
 safety:
   mode: medium
   require_confirmation: true
-  dry_run: true
+  dry_run: false
 
 features:
   explain: true
@@ -676,7 +699,7 @@ Phase 1 is split into six dependency-ordered slices. Each slice is independently
 
 | Sub-phase | Scope | Packages | Exit criteria |
 |-----------|-------|----------|---------------|
-| **1.1 — Foundation & Bootstrap** | Config schema + loader, structured logging, install scripts, first-run bootstrap of `~/.clx/` (config, dirs, logs). Default config baked in: `provider: ollama`, `safety.mode: medium`, `dry_run: true`. No interactive prompts. | `internal/config`, `internal/logging`, `scripts/install.sh`, `scripts/install.ps1` | `clx --version` works; first run creates the full `~/.clx/` tree with `config.yaml` from `configs/config.example.yaml`. |
+| **1.1 — Foundation & Bootstrap** | Config schema + loader, structured logging, install scripts, first-run bootstrap of `~/.clx/` (config, dirs, logs). Default config baked in: `provider: ollama`, `safety.mode: medium`. No interactive prompts. | `internal/config`, `internal/logging`, `scripts/install.sh`, `scripts/install.ps1` | `clx --version` works; first run creates the full `~/.clx/` tree with `config.yaml` from `configs/config.example.yaml`. |
 | **1.2 — Environment Detection** | Detect OS, OS version, shell, shell version, terminal, package managers, installed tools, WSL state, key paths. Persist to `~/.clx/system_profile.json`. Ship `clx doctor` to refresh on demand. | `internal/environment` | `clx doctor` writes a complete, accurate `system_profile.json` on Windows (PowerShell + CMD), macOS, Linux, and WSL. |
 | **1.3 — Parser** | Normalize raw input into a `Request`. Classify as `Shell`, `NaturalLanguage`, `PartialShell`, or `CLXInvocation`. Strip the `clx` prefix and tokenize args. | `internal/parser` | Unit tests pass for all four input types across representative samples. |
 | **1.4 — Rules-First Intent Resolver** | YAML rule loader for built-in rules/skills (`internal/builtin/`, embedded in binary) and optional user overlays (`~/.clx/rules/`, `~/.clx/skills/`). Match input → `ResolvedIntent` with extracted params. Skill pack loader (loader only — no AI prompts yet). **No AI fallback, no cache, no memory.** | `internal/intent` (rule path), `internal/skills` (loader), `internal/builtin` | Seed rule set (e.g. `find_file`, `search_text_in_file`, `list_dir`, `current_dir`, `disk_usage`) resolves correctly with `Source: Rule`. |

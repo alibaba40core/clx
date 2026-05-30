@@ -32,9 +32,9 @@ execution:
   shell_integration: false
 
 safety:
-  mode: medium
-  require_confirmation: true
-  dry_run: true
+  mode: medium          # low | medium | high | custom — see clx safety help
+  require_confirmation: true   # used when mode=custom
+  dry_run: false               # used when mode=custom (preview-only when confirm=false)
 
 features:
   explain: true
