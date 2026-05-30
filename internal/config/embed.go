@@ -11,6 +11,9 @@ var embeddedPolicyYAML []byte
 //go:embed templates/aliases.yaml
 var embeddedAliasesYAML []byte
 
+//go:embed templates/shell-integration.txt
+var embeddedShellIntegration []byte
+
 // EmbeddedConfigYAML returns the default config template bytes.
 func EmbeddedConfigYAML() []byte {
 	return embeddedConfigYAML
@@ -24,4 +27,9 @@ func EmbeddedPolicyYAML() []byte {
 // EmbeddedAliasesYAML returns the default aliases template bytes.
 func EmbeddedAliasesYAML() []byte {
 	return embeddedAliasesYAML
+}
+
+// EmbeddedShellIntegration returns install instructions for shell hooks.
+func EmbeddedShellIntegration() []byte {
+	return embeddedShellIntegration
 }
