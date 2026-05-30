@@ -53,6 +53,12 @@ cache:
 aliases:
   max_aliases: 256
 
+memory:
+  enabled: true
+  max_entries_per_session: 64
+  max_sessions: 32
+  ttl_days: 7
+
 logging:
   enabled: true
   level: info

@@ -110,6 +110,24 @@ func applyNode(cfg *Config, root *yamlutil.Node) {
 			cfg.Aliases.MaxAliases = n
 		}
 	}
+	if v, ok := root.GetString("memory", "enabled"); ok {
+		cfg.Memory.Enabled = parseBool(v)
+	}
+	if v, ok := root.GetString("memory", "max_entries_per_session"); ok {
+		if n, err := strconv.Atoi(v); err == nil {
+			cfg.Memory.MaxEntriesPerSession = n
+		}
+	}
+	if v, ok := root.GetString("memory", "max_sessions"); ok {
+		if n, err := strconv.Atoi(v); err == nil {
+			cfg.Memory.MaxSessions = n
+		}
+	}
+	if v, ok := root.GetString("memory", "ttl_days"); ok {
+		if n, err := strconv.Atoi(v); err == nil {
+			cfg.Memory.TTLDays = n
+		}
+	}
 	if v, ok := root.GetString("logging", "enabled"); ok {
 		cfg.Logging.Enabled = parseBool(v)
 	}
