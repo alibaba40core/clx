@@ -10,6 +10,9 @@ func DecryptConfig(cfg *Config) error {
 	if err := decryptField(&cfg.Providers.Azure.APIKey, "providers.azure.api_key"); err != nil {
 		return err
 	}
+	if err := decryptField(&cfg.Providers.Gemini.APIKey, "providers.gemini.api_key"); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -41,6 +44,12 @@ func PrepareForDisk(cfg Config) (Config, error) {
 			return Config{}, fmt.Errorf("encrypt providers.azure.api_key: %w", err)
 		}
 	}
+	if out.Providers.Gemini.APIKey != "" && !IsEncrypted(out.Providers.Gemini.APIKey) {
+		out.Providers.Gemini.APIKey, err = EncryptSecret(out.Providers.Gemini.APIKey)
+		if err != nil {
+			return Config{}, fmt.Errorf("encrypt providers.gemini.api_key: %w", err)
+		}
+	}
 	return out, nil
 }
 
@@ -52,6 +61,7 @@ func EncryptSecretsOnDisk(cfg *Config) error {
 	}
 	cfg.Providers.OpenAI.APIKey = prepared.Providers.OpenAI.APIKey
 	cfg.Providers.Azure.APIKey = prepared.Providers.Azure.APIKey
+	cfg.Providers.Gemini.APIKey = prepared.Providers.Gemini.APIKey
 	return nil
 }
 
@@ -69,7 +79,7 @@ func MaskSecret(value string) string {
 // IsSecretPath reports whether path holds a credential field.
 func IsSecretPath(path string) bool {
 	switch path {
-	case "providers.openai.api_key", "providers.azure.api_key":
+	case "providers.openai.api_key", "providers.azure.api_key", "providers.gemini.api_key":
 		return true
 	default:
 		return false

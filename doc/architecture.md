@@ -665,7 +665,7 @@ clx.ai/
 | Phase | Scope | Key packages |
 |-------|-------|--------------|
 | **Phase 1 — Core Engine** | Rules-first deterministic pipeline (no AI, no policy enforcement) — see [§6.1](#61-phase-1-sub-phases) for breakdown | `config`, `logging`, `environment`, `parser`, `intent` (rules path), `skills` (loader), `capabilities`, `generator`, `executor` (basic), `cmd/clx` |
-| **Phase 2 — AI Integration** *(complete — see [`doc/phase-2.md`](phase-2.md))* | Ollama + OpenAI providers, AI fallback, explanations, cache | `providers/*`, `intent` (AI path), `cache` |
+| **Phase 2 — AI Integration** *(complete — see [`doc/phase-2.md`](phase-2.md))* | Ollama + OpenAI + Gemini providers, AI fallback, explanations, cache | `providers/*`, `intent` (AI path), `cache` |
 | **Phase 3 — Safety** | Risk engine, policy engine, dry-run, confirmations, access levels | `risk`, `policy`, `executor` (safety hooks) |
 | **Phase 3.5 — Aliases** | Persistent user-global aliases in `~/.clx/aliases.yaml`. `clx alias set/list/rm` subcommand, parser-stage expansion (alias value flows through full risk/policy/exec chain), set-time collision warning against shell verbs and built-in rule example heads. No dependency on `internal/memory` or shell hooks — ships as a self-contained slice between safety and advanced UX. See [§3.16](#316-aliases--internalaliases). | `internal/aliases`, `internal/parser` (expansion hook), `cmd/clx` (`alias` subcommand) |
 | **Phase 4 — Advanced UX** | Shell interception, auto-fix, session context, interactive `clx init` wizard | `memory`, `skills`, shell hooks |

@@ -49,6 +49,12 @@ func applyNode(cfg *Config, root *yamlutil.Node) {
 	if v, ok := root.GetString("providers", "azure", "deployment"); ok {
 		cfg.Providers.Azure.Deployment = v
 	}
+	if v, ok := root.GetString("providers", "gemini", "api_key"); ok {
+		cfg.Providers.Gemini.APIKey = v
+	}
+	if v, ok := root.GetString("providers", "gemini", "model"); ok {
+		cfg.Providers.Gemini.Model = v
+	}
 	if v, ok := root.GetString("execution", "auto_execute"); ok {
 		cfg.Execution.AutoExecute = parseBool(v)
 	}

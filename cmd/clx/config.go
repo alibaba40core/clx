@@ -48,13 +48,14 @@ func printConfigHelp(w io.Writer) {
 	fmt.Fprintln(w, "  clx config set <secret-path> [--stdin] [--config path]")
 	fmt.Fprintln(w, "  clx config set <path> --stdin [--config path]")
 	fmt.Fprintln(w, "  clx config provider list")
-	fmt.Fprintln(w, "  clx config provider use <ollama|openai|azure> [--config path]")
+	fmt.Fprintln(w, "  clx config provider use <ollama|openai|azure|gemini> [--config path]")
 	fmt.Fprintln(w, "  clx config encrypt-secrets [--config path]")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Provider paths: provider, model, providers.primary, providers.fallback,")
 	fmt.Fprintln(w, "  providers.timeout, providers.ollama.host, providers.ollama.model,")
 	fmt.Fprintln(w, "  providers.openai.api_key, providers.openai.model,")
-	fmt.Fprintln(w, "  providers.azure.endpoint, providers.azure.api_key, providers.azure.deployment")
+	fmt.Fprintln(w, "  providers.azure.endpoint, providers.azure.api_key, providers.azure.deployment,")
+	fmt.Fprintln(w, "  providers.gemini.api_key, providers.gemini.model")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Secret paths (api_key): omit the value or use --stdin for a hidden prompt.")
 	fmt.Fprintln(w, "Do not pass API keys as command-line arguments.")
@@ -120,6 +121,12 @@ func runConfigSet(args []string, stdout, stderr io.Writer) int {
 	var value string
 	var err error
 	switch {
+	case isSecret && useStdin:
+		value, err = readPlainStdin(os.Stdin)
+		if err != nil {
+			fmt.Fprintf(stderr, "config set: read stdin: %v\n", err)
+			return 1
+		}
 	case isSecret:
 		value, err = readSecretValue(os.Stdin, stderr, pathKey)
 		if err != nil {
@@ -169,6 +176,7 @@ func runConfigProvider(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stdout, "ollama")
 		fmt.Fprintln(stdout, "openai")
 		fmt.Fprintln(stdout, "azure")
+		fmt.Fprintln(stdout, "gemini")
 		return 0
 	case "use":
 		return runConfigProviderUse(args[1:], stdout, stderr)
@@ -191,7 +199,7 @@ func runConfigProviderUse(args []string, stdout, stderr io.Writer) int {
 	}
 	name := strings.ToLower(strings.TrimSpace(fs.Arg(0)))
 	switch name {
-	case "ollama", "openai", "azure":
+	case "ollama", "openai", "azure", "gemini":
 	default:
 		fmt.Fprintf(stderr, "config provider use: invalid provider %q\n", name)
 		return 2

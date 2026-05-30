@@ -13,6 +13,11 @@ package config
 //   - llama3.1:8b  — Meta-ecosystem alternate; avoid plain llama3 (weak tool JSON)
 const DefaultOllamaModel = "qwen3:1.7b"
 
+// DefaultGeminiModel is the shipped default model for the Gemini provider.
+// gemini-2.0-flash: fast, supports structured output (responseSchema), good at
+// classification tasks. Free tier limited to 15 RPM.
+const DefaultGeminiModel = "gemini-2.0-flash"
+
 // Default returns the built-in default configuration.
 func Default() Config {
 	return Config{
@@ -31,6 +36,10 @@ func Default() Config {
 				Endpoint:   "",
 				APIKey:     "",
 				Deployment: "",
+			},
+			Gemini: GeminiProvider{
+				APIKey: "",
+				Model:  DefaultGeminiModel,
 			},
 		},
 		Execution: ExecutionConfig{

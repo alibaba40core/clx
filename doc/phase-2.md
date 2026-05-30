@@ -1,6 +1,6 @@
 # Phase 2 — AI Integration
 
-> **Status:** Phase 2 complete (2.1–2.6). Phase 3 (Safety) or Phase 4 (Advanced UX) next.
+> **Status:** Phase 2 complete (2.1–2.7). Phase 3 (Safety) or Phase 4 (Advanced UX) next.
 >
 > This doc is both the implementation plan **and** the live tracker. Flip
 > checkboxes (`[ ]` → `[x]`) and append to the **Update log** at the bottom as
@@ -19,6 +19,7 @@
 | **2.4** | AI-driven `Explain()` wiring | ✅ Done | 05196f9 | AI explain on --explain + AI/Cache source; explanations.json cache; 2s timeout. |
 | **2.5** | Hardening: redaction audit, docs, CI budget recheck | ✅ Done | 1d48cd4 | providers.timeout, host URL validation, security e2e, Phase 2 close-out. |
 | **2.6** | Provider config CLI + encrypted secrets | ✅ Done | — | `clx config` subcommand, enc:v1 API keys, machine-bound encryption, provider-scoped set/get/show. |
+| **2.7** | Google Gemini provider | ✅ Done | — | Gemini generateContent API, structured output via responseSchema, schema adaptation (strip additionalProperties), CommandGenerator support, enc:v1 secret, default model gemini-2.0-flash. |
 
 Legend: ⬜ Not started · 🟡 In progress · ✅ Done · 🛑 Blocked
 

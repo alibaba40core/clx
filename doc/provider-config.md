@@ -11,6 +11,7 @@ clx config show
 # Switch active provider
 clx config provider use ollama
 clx config provider use openai
+clx config provider use gemini
 
 # Set provider details
 clx config set providers.ollama.host http://localhost:11434
@@ -20,6 +21,7 @@ clx config set providers.fallback openai
 
 # Set API keys (interactive hidden prompt — no shell helpers needed)
 clx config set providers.openai.api_key
+clx config set providers.gemini.api_key
 # Or explicitly:
 clx config set providers.openai.api_key --stdin
 
@@ -33,7 +35,7 @@ Run `clx config help` for the full command list.
 
 | Path | Purpose |
 |------|---------|
-| `provider` | Active provider (`ollama`, `openai`, `azure`) |
+| `provider` | Active provider (`ollama`, `openai`, `azure`, `gemini`) |
 | `model` | Default model when provider block omits one |
 | `providers.primary` | Optional chain primary (overrides `provider` when set) |
 | `providers.fallback` | Optional fallback provider (infrastructure errors only) |
@@ -45,6 +47,8 @@ Run `clx config help` for the full command list.
 | `providers.azure.endpoint` | Azure OpenAI endpoint |
 | `providers.azure.api_key` | Azure API key (encrypted at rest) |
 | `providers.azure.deployment` | Azure deployment name |
+| `providers.gemini.api_key` | Gemini API key (encrypted at rest) |
+| `providers.gemini.model` | Gemini model name (default: `gemini-2.0-flash`) |
 
 ## Encrypted secrets
 

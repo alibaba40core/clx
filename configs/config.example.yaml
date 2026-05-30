@@ -22,6 +22,9 @@ providers:
     endpoint: ""
     api_key: ""
     deployment: ""
+  gemini:
+    api_key: ""
+    model: gemini-2.0-flash
 
 execution:
   auto_execute: false
@@ -37,6 +40,10 @@ features:
   explain: true
   cache_commands: true
   learning_mode: false
+  # Hybrid fallback: when no rule/cache matches, let the AI generate a full
+  # command (argv). Generated commands are still validated, risk-assessed,
+  # policy-gated, and confirmed before execution.
+  ai_command_generation: true
 
 logging:
   enabled: true

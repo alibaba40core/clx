@@ -20,6 +20,7 @@ type ProvidersConfig struct {
 	Ollama   OllamaProvider `yaml:"ollama"`
 	OpenAI   OpenAIProvider `yaml:"openai"`
 	Azure    AzureProvider  `yaml:"azure"`
+	Gemini   GeminiProvider `yaml:"gemini"`
 }
 
 // OllamaProvider configures the local Ollama provider.
@@ -39,6 +40,12 @@ type AzureProvider struct {
 	Endpoint   string `yaml:"endpoint"`
 	APIKey     string `yaml:"api_key"`
 	Deployment string `yaml:"deployment"`
+}
+
+// GeminiProvider configures the Google Gemini provider.
+type GeminiProvider struct {
+	APIKey string `yaml:"api_key"`
+	Model  string `yaml:"model"`
 }
 
 // ExecutionConfig controls command execution behavior.
