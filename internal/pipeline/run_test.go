@@ -82,7 +82,7 @@ func TestRunDryRun(t *testing.T) {
 	}
 }
 
-func TestRunDryRunFromConfig(t *testing.T) {
+func TestRunMediumModeLowRiskNoDryRun(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
 	policy.ResetCache()
@@ -90,6 +90,54 @@ func TestRunDryRunFromConfig(t *testing.T) {
 
 	var stdout bytes.Buffer
 	code, err := Run(context.Background(), config.Default(), "pwd", Options{
+		Explain: true,
+		Stdout:  &stdout,
+		Stderr:  &bytes.Buffer{},
+	})
+	if err != nil || code != 0 {
+		t.Fatalf("code=%d err=%v stdout=%s", code, err, stdout.String())
+	}
+	if strings.Contains(stdout.String(), "dry-run:") {
+		t.Fatalf("medium mode low risk should not dry-run, stdout=%q", stdout.String())
+	}
+}
+
+func TestRunCustomDryRunPreviewOnly(t *testing.T) {
+	t.Setenv("CLX_HOME", t.TempDir())
+	_, _ = config.Bootstrap(context.Background())
+	policy.ResetCache()
+	testProfile(t, "linux", "bash")
+
+	cfg := config.Default()
+	cfg.Safety.Mode = "custom"
+	cfg.Safety.DryRun = true
+	cfg.Safety.RequireConfirmation = false
+
+	var stdout bytes.Buffer
+	code, err := Run(context.Background(), cfg, "pwd", Options{
+		Yes:    true,
+		Stdout: &stdout,
+		Stderr: &bytes.Buffer{},
+	})
+	if err != nil || code != 0 {
+		t.Fatalf("code=%d err=%v stdout=%s", code, err, stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "dry-run:") {
+		t.Fatalf("custom dry_run should preview, stdout=%q", stdout.String())
+	}
+}
+
+func TestRunDryRunFromConfig(t *testing.T) {
+	t.Setenv("CLX_HOME", t.TempDir())
+	_, _ = config.Bootstrap(context.Background())
+	policy.ResetCache()
+	testProfile(t, "linux", "bash")
+
+	var stdout bytes.Buffer
+	cfg := config.Default()
+	cfg.Safety.Mode = "custom"
+	cfg.Safety.DryRun = true
+	code, err := Run(context.Background(), cfg, "pwd", Options{
 		Stdout: &stdout,
 		Stderr: &bytes.Buffer{},
 	})
@@ -108,7 +156,10 @@ func TestRunYesDoesNotBypassConfigDryRun(t *testing.T) {
 	testProfile(t, "linux", "bash")
 
 	var stdout bytes.Buffer
-	code, err := Run(context.Background(), config.Default(), "pwd", Options{
+	cfg := config.Default()
+	cfg.Safety.Mode = "custom"
+	cfg.Safety.DryRun = true
+	code, err := Run(context.Background(), cfg, "pwd", Options{
 		Yes:    true,
 		Stdout: &stdout,
 		Stderr: &bytes.Buffer{},

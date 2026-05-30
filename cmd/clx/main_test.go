@@ -109,15 +109,15 @@ func setupCLIHome(t *testing.T) {
 	}
 }
 
-func TestRunDryRunByDefault(t *testing.T) {
+func TestRunMediumModeDefaultNoDryRun(t *testing.T) {
 	setupCLIHome(t)
 	var stdout, stderr bytes.Buffer
-	code := run([]string{"pwd"}, &stdout, &stderr)
+	code := run([]string{"--explain", "pwd"}, &stdout, &stderr)
 	if code != 0 {
 		t.Fatalf("exit %d stderr=%s", code, stderr.String())
 	}
-	if !strings.Contains(stdout.String(), "dry-run:") {
-		t.Fatalf("expected dry-run line, stdout=%q", stdout.String())
+	if strings.Contains(stdout.String(), "dry-run:") {
+		t.Fatalf("default medium should not dry-run low risk, stdout=%q", stdout.String())
 	}
 }
 

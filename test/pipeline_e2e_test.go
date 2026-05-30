@@ -344,8 +344,8 @@ func TestE2EExplainHostStrategyWindowsCmd(t *testing.T) {
 // -----------------------------------------------------------------------------
 // Exec — real binaries
 //
-// All exec tests opt out of the default dry-run via cfg.Safety.DryRun = false
-// and pass Yes: true to bypass confirm. They are additionally gated by
+// All exec tests set cfg.Safety.DryRun = false (or use low-risk + -y) and pass
+// Yes: true to bypass confirm where needed.
 // runtime.GOOS or exec.LookPath where the underlying binary isn't portable.
 // -----------------------------------------------------------------------------
 
@@ -500,13 +500,16 @@ func TestE2EPolicyBlocks(t *testing.T) {
 	}
 }
 
-// TestE2EConfigDryRunDefault verifies the fresh-install default
-// (safety.dry_run: true) prevents real execution even when the caller passes
-// Yes: true and no --dry-run flag. This is the Step 2 exit-criterion test.
-func TestE2EConfigDryRunDefault(t *testing.T) {
+// TestE2EConfigCustomDryRun verifies custom dry_run prevents exec even with -y.
+func TestE2EConfigCustomDryRun(t *testing.T) {
 	setupCLXHomeForHost(t, nil)
 
-	r := runPipeline(t, config.Default(), "pwd", pipeline.Options{Yes: true})
+	cfg := config.Default()
+	cfg.Safety.Mode = "custom"
+	cfg.Safety.DryRun = true
+	cfg.Safety.RequireConfirmation = false
+
+	r := runPipeline(t, cfg, "pwd", pipeline.Options{Yes: true})
 	if r.code != 0 || r.err != nil {
 		t.Fatalf("code=%d err=%v stderr=%s", r.code, r.err, r.stderr)
 	}
