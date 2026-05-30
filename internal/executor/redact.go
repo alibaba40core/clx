@@ -24,3 +24,16 @@ func Redact(s string) string {
 	}
 	return out
 }
+
+// ContainsSecret reports whether s matches any secret-shaped pattern used by Redact.
+func ContainsSecret(s string) bool {
+	if len(s) > maxRedactInput {
+		s = s[:maxRedactInput]
+	}
+	for _, re := range secretPatterns {
+		if re.MatchString(s) {
+			return true
+		}
+	}
+	return false
+}

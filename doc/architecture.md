@@ -326,7 +326,7 @@ Generate Command → Risk Scan → Policy Check → Safety mode gate → Dry Run
 | **high** | explain + confirm | explain + preview + confirm + run | explain + preview + confirm + run |
 | **custom** | global `require_confirmation`, `dry_run`, `features.explain` toggles | same | same |
 
-In **high** mode, `-y` cannot skip confirmation for medium/high-risk commands. Custom `dry_run: true` without confirm is preview-only and cannot be bypassed by `-y`.
+In **high** mode, `-y` and `execution.auto_execute` cannot skip confirmation for medium/high-risk commands (`BlockYes` in `internal/config/safety.go`). Custom `dry_run: true` without confirm is preview-only and cannot be bypassed by `-y`.
 
 **Config knobs** (from `config.yaml`):
 

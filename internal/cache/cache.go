@@ -18,6 +18,7 @@ import (
 
 	"github.com/alibaba40core/clx/internal/config"
 	"github.com/alibaba40core/clx/internal/environment"
+	"github.com/alibaba40core/clx/internal/executor"
 	"github.com/alibaba40core/clx/internal/parser"
 )
 
@@ -139,6 +140,13 @@ func (s *Store) Put(ctx context.Context, key string, intent string, params map[s
 	now := s.now()
 	if params == nil {
 		params = map[string]string{}
+	}
+
+	for _, v := range params {
+		if executor.ContainsSecret(v) {
+			s.logDebug("cache write skipped: secret-shaped param value")
+			return nil
+		}
 	}
 
 	found := false
@@ -334,6 +342,12 @@ func (s *Store) saveLocked(ctx context.Context) error {
 func (s *Store) logWarn(msg string, args ...any) {
 	if s.logger != nil {
 		s.logger.Warn(msg, args...)
+	}
+}
+
+func (s *Store) logDebug(msg string, args ...any) {
+	if s.logger != nil {
+		s.logger.Debug(msg, args...)
 	}
 }
 
