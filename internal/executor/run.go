@@ -28,7 +28,7 @@ func Run(ctx context.Context, gen generator.GeneratedCommand, opts ...Option) er
 	if !cfg.HasPolicy {
 		return ErrMissingPolicy
 	}
-	if !cfg.Policy.Allowed {
+	if !cfg.Policy.ExecAllowed {
 		return fmt.Errorf("%w: %s", policy.ErrBlocked, cfg.Policy.Reason)
 	}
 	if len(gen.Argv) == 0 {

@@ -50,7 +50,7 @@ func TestRunSurfacesTimeout(t *testing.T) {
 	start := time.Now()
 	err := Run(context.Background(), gen,
 		WithRisk(risk.RiskAssessment{Level: risk.Low}),
-		WithPolicy(policy.Result{Allowed: true}),
+		WithPolicy(policy.AllowedResult()),
 		WithProfile(profile),
 		WithTimeout(timeout),
 		WithIO(io.Discard, io.Discard),
@@ -79,7 +79,7 @@ func TestRunRejectsMissingProfileForShellHost(t *testing.T) {
 	}
 	err := Run(context.Background(), gen,
 		WithRisk(risk.RiskAssessment{Level: risk.Low}),
-		WithPolicy(policy.Result{Allowed: true}),
+		WithPolicy(policy.AllowedResult()),
 		WithTimeout(time.Second),
 	)
 	if err != ErrMissingProfile {
@@ -92,7 +92,7 @@ func TestRunRejectsBlockedPolicy(t *testing.T) {
 	gen := generator.GeneratedCommand{Argv: []string{"rm", "-rf", "/"}}
 	err := Run(context.Background(), gen,
 		WithRisk(risk.RiskAssessment{Level: risk.High}),
-		WithPolicy(policy.Result{Allowed: false, Reason: "test"}),
+		WithPolicy(policy.Result{Allowed: false, ExecAllowed: false, Reason: "test"}),
 		WithTimeout(time.Second),
 	)
 	if err == nil {

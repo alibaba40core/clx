@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -78,6 +80,40 @@ func TestRunDryRun(t *testing.T) {
 		t.Fatalf("code=%d err=%v stdout=%s", code, err, stdout.String())
 	}
 	if !strings.Contains(stdout.String(), "dry-run:") {
+		t.Fatalf("stdout=%q", stdout.String())
+	}
+}
+
+func TestRunExplainHighAllowListWarns(t *testing.T) {
+	t.Setenv("CLX_HOME", t.TempDir())
+	_, _ = config.Bootstrap(context.Background())
+	policy.ResetCache()
+	testProfile(t, "linux", "bash")
+
+	polPath, err := config.PolicyPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(polPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(polPath, []byte("allowed:\n  - git\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	policy.ResetCache()
+
+	cfg := config.Default()
+	cfg.Safety.Mode = "high"
+	var stdout bytes.Buffer
+	code, err := Run(context.Background(), cfg, "pwd", Options{
+		Explain: true,
+		Stdout:  &stdout,
+		Stderr:  &bytes.Buffer{},
+	})
+	if err != nil || code != 0 {
+		t.Fatalf("code=%d err=%v", code, err)
+	}
+	if !strings.Contains(stdout.String(), "Policy (exec):") {
 		t.Fatalf("stdout=%q", stdout.String())
 	}
 }

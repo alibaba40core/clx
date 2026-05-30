@@ -2,13 +2,20 @@ package policy
 
 import (
 	"context"
+	"strings"
 
 	"github.com/alibaba40core/clx/internal/generator"
 	"github.com/alibaba40core/clx/internal/risk"
 )
 
-// Check applies block-list, allow-list, and access-level policy.
-func Check(ctx context.Context, gen generator.GeneratedCommand, ra risk.RiskAssessment) (Result, error) {
+// CheckOptions tunes policy for safety mode and explain-only runs.
+type CheckOptions struct {
+	SafetyMode  string
+	ExplainOnly bool
+}
+
+// Check applies block-list, allow-list (high safety only), and access-level policy.
+func Check(ctx context.Context, gen generator.GeneratedCommand, ra risk.RiskAssessment, opts CheckOptions) (Result, error) {
 	if err := ctx.Err(); err != nil {
 		return Result{}, err
 	}
@@ -22,20 +29,26 @@ func Check(ctx context.Context, gen generator.GeneratedCommand, ra risk.RiskAsse
 		return AllowedResult(), nil
 	}
 
+	explain := opts.ExplainOnly
+
 	for _, pattern := range pol.Blocked {
 		tokens := tokenizePattern(pattern)
 		if argvMatchesBlocked(gen.Argv, tokens) {
-			return Result{Allowed: false, Reason: "matches blocked pattern: " + pattern}, nil
+			return denyResult("matches blocked pattern: "+pattern, explain), nil
 		}
 	}
 
-	if len(pol.Allowed) > 0 && !verbOnAllowList(gen.Argv, pol.Allowed) {
-		return Result{Allowed: false, Reason: "command verb not on allow list"}, nil
+	if enforceAllowList(opts.SafetyMode) && len(pol.Allowed) > 0 && !verbOnAllowList(gen.Argv, pol.Allowed) {
+		return denyResult("command verb not on allow list", explain), nil
 	}
 
 	if ok, reason := accessLevelAllows(ra, pol.AccessLevel); !ok {
-		return Result{Allowed: false, Reason: reason}, nil
+		return denyResult(reason, explain), nil
 	}
 
 	return AllowedResult(), nil
+}
+
+func enforceAllowList(safetyMode string) bool {
+	return strings.EqualFold(strings.TrimSpace(safetyMode), "high")
 }
