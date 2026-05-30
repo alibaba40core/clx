@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/alibaba40core/clx/internal/config"
+	"github.com/alibaba40core/clx/internal/policy"
 )
 
 func runSafety(args []string, stdout, stderr io.Writer) int {
@@ -41,7 +42,8 @@ func printSafetyHelp(w io.Writer) {
 	fmt.Fprintln(w, "Safety mode controls what happens after a command is classified by risk:")
 	fmt.Fprintln(w, "  low     low/medium risk run; high risk confirm")
 	fmt.Fprintln(w, "  medium  low risk run; medium/high explain + confirm (default)")
-	fmt.Fprintln(w, "  high    low explain + confirm; medium/high preview + explain + confirm")
+	fmt.Fprintln(w, "  high    low explain + confirm; medium/high preview + explain + confirm;")
+	fmt.Fprintln(w, "          enforces policy allow-list (see clx policy allow/list/rm)")
 	fmt.Fprintln(w, "  custom  use require_confirmation, dry_run, and explain toggles globally")
 }
 
@@ -110,6 +112,15 @@ func runSafetySet(args []string, stdout, stderr io.Writer) int {
 	if err := saveConfig(context.Background(), configPath, cfg, stderr); err != nil {
 		fmt.Fprintf(stderr, "safety set: %v\n", err)
 		return 1
+	}
+	ctx := context.Background()
+	if strings.EqualFold(cfg.Safety.Mode, "high") {
+		if err := policy.EnsureHighDefaults(ctx); err != nil {
+			fmt.Fprintf(stderr, "policy defaults: %v\n", err)
+			return 1
+		}
+		fmt.Fprintln(stdout, "policy: seeded allow-list defaults for high mode (git, docker, npm)")
+		fmt.Fprintln(stdout, "extend with: clx policy allow <verb>")
 	}
 	fmt.Fprintf(stdout, "safety mode: %s\n", cfg.Safety.Mode)
 	return 0
