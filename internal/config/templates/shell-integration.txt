@@ -1,0 +1,13 @@
+# CLX shell integration (explain-only V1)
+#
+# Hooks call `clx --explain` only — review output before running commands.
+# Enable in config: execution.shell_integration: true
+#
+# Bash / Zsh (~/.bashrc or ~/.zshrc):
+#   source /path/to/clx/scripts/clx-hook.sh
+#
+# PowerShell ($PROFILE):
+#   . C:\path\to\clx\scripts\clx-hook.ps1
+#
+# Then try: clx_translate your natural language request
+# Or (bash): rely on command_not_found_handle when enabled in clx-hook.sh
