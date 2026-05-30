@@ -145,7 +145,7 @@ func TestParseMatrix(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := Parse(ctx, tc.input, tc.profile)
+			got, err := Parse(ctx, tc.input, tc.profile, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -173,7 +173,7 @@ func TestParseMatrix(t *testing.T) {
 
 func TestParseEmptyInput(t *testing.T) {
 	t.Parallel()
-	_, err := Parse(context.Background(), "  ", testProfileLinux())
+	_, err := Parse(context.Background(), "  ", testProfileLinux(), nil)
 	if err != errEmptyInput {
 		t.Fatalf("got %v", err)
 	}
@@ -183,7 +183,7 @@ func TestParseContextCanceled(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err := Parse(ctx, "grep x", testProfileLinux())
+	_, err := Parse(ctx, "grep x", testProfileLinux(), nil)
 	if err != context.Canceled {
 		t.Fatalf("got %v", err)
 	}

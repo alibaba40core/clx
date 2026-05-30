@@ -14,7 +14,8 @@ import (
 var errEmptyInput = errors.New("empty input")
 
 // Parse normalizes raw user input into a Request.
-func Parse(ctx context.Context, raw string, profile environment.SystemProfile) (Request, error) {
+// When lookup is non-nil, the first token may be expanded via a user alias (single-level).
+func Parse(ctx context.Context, raw string, profile environment.SystemProfile, lookup AliasLookup) (Request, error) {
 	if err := ctx.Err(); err != nil {
 		return Request{}, err
 	}
@@ -25,6 +26,7 @@ func Parse(ctx context.Context, raw string, profile environment.SystemProfile) (
 	}
 
 	body, hadCLXPrefix := stripCLXPrefix(trimmed)
+	body = expandFirstToken(body, lookup)
 
 	if err := ctx.Err(); err != nil {
 		return Request{}, err

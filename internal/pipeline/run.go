@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alibaba40core/clx/internal/aliases"
 	"github.com/alibaba40core/clx/internal/config"
 	"github.com/alibaba40core/clx/internal/environment"
 	"github.com/alibaba40core/clx/internal/executor"
@@ -28,7 +29,16 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 		return 1, err
 	}
 
-	req, err := parser.Parse(ctx, rawInput, profile)
+	var aliasLookup parser.AliasLookup
+	if opts.AliasStore != nil {
+		aliasLookup = opts.AliasStore
+	} else if store, aerr := aliases.Open(ctx, cfg.Aliases.MaxAliases); aerr == nil {
+		aliasLookup = store
+	} else if opts.Logger != nil {
+		opts.Logger.Warn("aliases unavailable, continuing without expansion", "err", aerr)
+	}
+
+	req, err := parser.Parse(ctx, rawInput, profile, aliasLookup)
 	if err != nil {
 		fmt.Fprintf(opts.Stderr, "parse: %v\n", err)
 		return 1, err
