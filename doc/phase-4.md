@@ -30,4 +30,8 @@
 
 ```
 2026-05-30 · 4.1 · memory: add session-scoped JSON store with bounded command history · dd68b14
+2026-05-30 · 4.2 · intent: wire memory resolver for session follow-ups and post-run append · eb5b6d6
+2026-05-30 · 4.3 · scripts: add opt-in shell integration hooks for bash and powershell · 9d81ffb
+2026-05-30 · 4.4 · cmd: add interactive clx init setup wizard · 13a9c2b
+2026-05-30 · 4.5 · providers: load per-skill prompt templates for AI resolution · 85c9d7c
 ```
