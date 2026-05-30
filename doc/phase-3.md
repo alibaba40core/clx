@@ -16,7 +16,7 @@
 | **P.1** | Prerequisites: YAML decoder, config drift, auto_execute fix, cache secret guard | ✅ Done | — | Unblocks Phase 3 start; see update log. |
 | **3.1** | Risk engine hardening | ✅ Done | — | Destructive patterns extended; RequiresConfirmation removed. |
 | **3.2** | Policy allow-list + argv-aware matching | ✅ Done | — | Argv block match, allow-list, mtime reload. |
-| **3.3** | Access levels (Safe / Moderate / Full) | ⬜ Not started | — | Architecture §3.8; distinct from safety mode. |
+| **3.3** | Access levels (Safe / Moderate / Full) | ✅ Done | — | `access_level` in policy.yaml; gated in policy.Check. |
 
 Legend: ⬜ Not started · 🟡 In progress · ✅ Done · 🛑 Blocked
 
@@ -62,7 +62,7 @@ expansion, embeddings.
 | Concept | Values | Source | Status |
 |---------|--------|--------|--------|
 | **Safety mode** | `low` / `medium` / `high` / `custom` | `config.yaml` / `clx safety` | ✅ Phase 2.8 |
-| **Policy access level** | `Safe (0)` / `Moderate (1)` / `Full (2)` | `~/.clx/policies/policy.yaml` | ⬜ Phase 3.3 |
+| **Policy access level** | `safe` / `moderate` / `full` | `~/.clx/policies/policy.yaml` | ✅ Phase 3.3 |
 
 Safety mode controls UX gates (explain / preview / confirm) after risk
 classification. Access level controls which command categories may execute at
@@ -124,11 +124,11 @@ all. Both run in the pipeline; neither bypasses the other.
 
 > **Goal:** Safe / Moderate / Full access levels from architecture §3.8.
 
-- [ ] Add `access_level` (or equivalent) to policy config schema
-- [ ] Wire access level into `policy.Check` after block/allow lists
-- [ ] CLI or config path to set access level
-- [ ] Tests: Safe = explain-only, Moderate = read-only auto-allow, Full = most ops
-- [ ] Reconcile architecture §3.8 docs with implementation
+- [x] Add `access_level` (or equivalent) to policy config schema
+- [x] Wire access level into `policy.Check` after block/allow lists
+- [x] CLI or config path to set access level
+- [x] Tests: Safe = explain-only, Moderate = read-only auto-allow, Full = most ops
+- [x] Reconcile architecture §3.8 docs with implementation
 
 ---
 
@@ -148,8 +148,8 @@ all. Both run in the pipeline; neither bypasses the other.
 
 | # | Item | Owner | Status |
 |---|------|-------|--------|
-| R1 | Policy matching strategy: argv token match vs normalized command string | TBD | Open |
-| R2 | Access level config shape: policy.yaml field vs config.yaml | TBD | Open |
+| R1 | Policy matching strategy: argv token match vs normalized command string | — | Resolved: argv subsequence |
+| R2 | Access level config shape: policy.yaml field vs config.yaml | — | Resolved: `policy.yaml` `access_level` |
 | R3 | Legacy `safety.level` key in config (`apply.go` TODO) — deprecate and warn? | TBD | Open |
 | R4 | Risk pattern maintenance cadence with AI command generation enabled | TBD | Open |
 
@@ -163,7 +163,8 @@ Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short su
 2026-05-30 · P.1 · Phase 3 prerequisites: YAML inline comments, config drift, auto_execute fix, cache secret guard · (pending)
 2026-05-30 · 3.1 · risk: harden destructive-pattern classifier and drop vestigial RequiresConfirmation · 8036768
 2026-05-30 · 3.2 · policy: replace substring block matching with argv-aware token matching · 2de873a
-2026-05-30 · 3.3 · policy: implement allow-list semantics and mtime-based reload · (pending)
+2026-05-30 · 3.3 · policy: implement allow-list semantics and mtime-based reload · 09ae8f9
+2026-05-30 · 3.4 · policy: add safe/moderate/full access levels gating execution · (pending)
 ```
 
 ---

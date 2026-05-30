@@ -265,11 +265,12 @@ type GeneratedCommand struct {
 
 ```go
 type RiskAssessment struct {
-    Level                RiskLevel // Low | Medium | High
-    Reason               string
-    RequiresConfirmation bool
+    Level  RiskLevel // Low | Medium | High
+    Reason string
 }
 ```
+
+Confirmation is enforced by `config.DecideSafetyAction` (safety mode × risk), not `RiskAssessment`.
 
 ---
 
@@ -277,17 +278,18 @@ type RiskAssessment struct {
 
 **Responsibility:** Enforce user-defined allow/block lists and access levels.
 
-**Access levels:**
+**Access levels** (`access_level` in `policy.yaml`; distinct from `safety.mode` in `config.yaml`):
 
 | Level | Behavior |
 |-------|----------|
-| **Safe (0)** | Explain only — no execution |
-| **Moderate (1)** | Read-only + safe ops auto-allowed |
-| **Full (2)** | Most ops allowed; still blocks destructive OS-level commands |
+| **Safe** | Deny all execution in `policy.Check` (explain-only) |
+| **Moderate** | Allow only commands classified `risk.Low`; medium/high blocked |
+| **Full** (default) | Allow any command that passes block/allow lists; destructive patterns still blocked |
 
 **Policy file** (`~/.clx/policies/policy.yaml`):
 
 ```yaml
+access_level: full   # safe | moderate | full
 blocked:
   - "rm -rf /"
   - "shutdown"
@@ -297,6 +299,8 @@ allowed:
   - "docker"
   - "npm"
 ```
+
+Block patterns match as ordered token subsequences on `gen.Argv`. When `allowed` is non-empty, only `argv[0]` verbs on the list may run.
 
 ---
 

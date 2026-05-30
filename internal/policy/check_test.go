@@ -154,6 +154,74 @@ func TestCheckAllowList(t *testing.T) {
 	})
 }
 
+func TestCheckAccessLevel(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("CLX_HOME", dir)
+	ResetCache()
+
+	polDir := filepath.Join(dir, "policies")
+	if err := os.MkdirAll(polDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	writePolicy := func(yaml string) {
+		t.Helper()
+		ResetCache()
+		if err := os.WriteFile(filepath.Join(polDir, "policy.yaml"), []byte(yaml), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	genLow := generator.GeneratedCommand{Argv: []string{"grep", "x"}, Command: "grep x"}
+	genMed := generator.GeneratedCommand{Argv: []string{"mkdir", "x"}, Command: "mkdir x"}
+	raLow := risk.RiskAssessment{Level: risk.Low}
+	raMed := risk.RiskAssessment{Level: risk.Medium}
+
+	t.Run("safe_denies_all", func(t *testing.T) {
+		writePolicy("access_level: safe\n")
+		got, err := Check(context.Background(), genLow, raLow)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Allowed {
+			t.Fatal("safe must deny execution")
+		}
+	})
+
+	t.Run("moderate_allows_low", func(t *testing.T) {
+		writePolicy("access_level: moderate\n")
+		got, err := Check(context.Background(), genLow, raLow)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !got.Allowed {
+			t.Fatalf("moderate should allow low: %s", got.Reason)
+		}
+	})
+
+	t.Run("moderate_denies_medium", func(t *testing.T) {
+		writePolicy("access_level: moderate\n")
+		got, err := Check(context.Background(), genMed, raMed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Allowed {
+			t.Fatal("moderate must deny medium risk")
+		}
+	})
+
+	t.Run("full_allows_medium", func(t *testing.T) {
+		writePolicy("access_level: full\n")
+		got, err := Check(context.Background(), genMed, raMed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !got.Allowed {
+			t.Fatalf("full should allow: %s", got.Reason)
+		}
+	})
+}
+
 func TestCheckAllowListEmptyMeansNoGate(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("CLX_HOME", dir)

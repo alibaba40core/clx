@@ -3,6 +3,9 @@
 #
 # blocked: argv token patterns (ordered subsequence match on gen.Argv).
 # allowed: when non-empty, only argv[0] verbs listed here may run (after block check).
+# access_level: safe (no exec) | moderate (low-risk only) | full (default).
+
+access_level: full
 
 blocked:
   - "rm -rf /"
