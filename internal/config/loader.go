@@ -13,7 +13,7 @@ var (
 		"ollama": {}, "openai": {}, "azure": {}, "gemini": {},
 	}
 	validSafetyModes = map[string]struct{}{
-		"low": {}, "medium": {}, "high": {},
+		"low": {}, "medium": {}, "high": {}, "custom": {},
 	}
 	validLogLevels = map[string]struct{}{
 		"debug": {}, "info": {}, "warn": {}, "error": {},
@@ -63,7 +63,7 @@ func Validate(c Config) error {
 		return fmt.Errorf("invalid provider %q: must be ollama, openai, azure, or gemini", c.Provider)
 	}
 	if _, ok := validSafetyModes[c.Safety.Mode]; !ok {
-		return fmt.Errorf("invalid safety.mode %q: must be low, medium, or high", c.Safety.Mode)
+		return fmt.Errorf("invalid safety.mode %q: must be low, medium, high, or custom", c.Safety.Mode)
 	}
 	if c.Execution.Timeout <= 0 {
 		return fmt.Errorf("execution.timeout must be > 0")

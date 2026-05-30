@@ -50,7 +50,7 @@ func Default() Config {
 		Safety: SafetyConfig{
 			Mode:                "medium",
 			RequireConfirmation: true,
-			DryRun:              true,
+			DryRun:              false,
 		},
 		Features: FeaturesConfig{
 			Explain:             true,

@@ -55,19 +55,17 @@ type ExecutionConfig struct {
 	ShellIntegration bool `yaml:"shell_integration"`
 }
 
-// SafetyConfig controls safety defaults.
+// SafetyConfig controls how commands are gated after risk classification.
 //
-// Mode is the user-facing safety preset. Currently informational; Phase 3
-// will wire it to behavior bundles:
+// Mode selects a preset matrix (see DecideSafetyAction in safety.go):
 //
-//   - low: execute directly, no dry-run, no confirm (risk-engine High-risk
-//     override still applies for destructive commands)
-//   - medium: dry-run preview, then y/n confirm before exec (default)
-//   - high: dry-run preview plus verbose display; refuses -y shortcut;
-//     always requires explicit confirm
+//   - low:    low/medium risk run; high risk confirm
+//   - medium: low risk run; medium/high explain + confirm (default)
+//   - high:   low explain + confirm; medium/high preview + explain + confirm;
+//             -y cannot skip confirm for medium/high risk
+//   - custom: RequireConfirmation, DryRun, and Features.Explain apply globally
 //
-// DryRun and RequireConfirmation remain explicit overrides; when set, they
-// win over the Mode-implied default.
+// RequireConfirmation and DryRun only drive behavior when Mode is custom.
 type SafetyConfig struct {
 	Mode                string `yaml:"mode"`
 	RequireConfirmation bool   `yaml:"require_confirmation"`
