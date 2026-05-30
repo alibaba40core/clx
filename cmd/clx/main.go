@@ -38,6 +38,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if len(args) > 0 && args[0] == "alias" {
 		return runAlias(args[1:], stdout, stderr)
 	}
+	if len(args) > 0 && args[0] == "policy" {
+		return runPolicy(args[1:], stdout, stderr)
+	}
 	if len(args) > 0 && args[0] == "init" {
 		return runInit(args[1:], stdout, stderr)
 	}
@@ -236,6 +239,7 @@ func printHelp(w io.Writer) {
 	fmt.Fprintln(w, "  clx doctor [flags]")
 	fmt.Fprintln(w, "  clx config <subcommand>")
 	fmt.Fprintln(w, "  clx safety <subcommand>")
+	fmt.Fprintln(w, "  clx policy <subcommand>")
 	fmt.Fprintln(w, "  clx alias <subcommand>")
 	fmt.Fprintln(w, "  clx init")
 	fmt.Fprintln(w)
@@ -250,6 +254,7 @@ func printHelp(w io.Writer) {
 	fmt.Fprintln(w, "                      (run first-time or after installing tools / switching shells)")
 	fmt.Fprintln(w, "  config              View or update AI provider settings (see clx config help)")
 	fmt.Fprintln(w, "  safety              Set safety mode and custom toggles (see clx safety help)")
+	fmt.Fprintln(w, "  policy              Manage allow-list verbs for high safety (see clx policy help)")
 	fmt.Fprintln(w, "  alias               Manage user-global command aliases (see clx alias help)")
 	fmt.Fprintln(w, "  init                Interactive first-run setup wizard")
 	fmt.Fprintln(w)

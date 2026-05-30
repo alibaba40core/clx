@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/alibaba40core/clx/internal/config"
+	"github.com/alibaba40core/clx/internal/policy"
 )
 
 func runInit(args []string, stdout, stderr io.Writer) int {
@@ -107,6 +108,12 @@ func runInit(args []string, stdout, stderr io.Writer) int {
 	if err := config.Save(ctx, cfgPath, cfg); err != nil {
 		fmt.Fprintf(stderr, "save config: %v\n", err)
 		return 1
+	}
+	if safety == 2 {
+		if err := policy.EnsureHighDefaults(ctx); err != nil {
+			fmt.Fprintf(stderr, "policy defaults: %v\n", err)
+			return 1
+		}
 	}
 	fmt.Fprintln(stdout, "Configuration saved.")
 
