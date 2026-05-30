@@ -7,6 +7,7 @@ import (
 
 	"github.com/alibaba40core/clx/internal/aliases"
 	"github.com/alibaba40core/clx/internal/cache"
+	"github.com/alibaba40core/clx/internal/memory"
 	"github.com/alibaba40core/clx/internal/intent"
 	"github.com/alibaba40core/clx/internal/providers"
 )
@@ -40,6 +41,9 @@ type Options struct {
 
 	// AliasStore, when set, is used for parser-stage alias expansion (tests).
 	AliasStore *aliases.Store
+
+	// MemoryStore, when set, is used for session follow-ups and append (tests).
+	MemoryStore *memory.Store
 }
 
 // WithDefaults fills nil writers and stdin.

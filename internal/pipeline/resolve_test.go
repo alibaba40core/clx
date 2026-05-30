@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alibaba40core/clx/internal/config"
 	"github.com/alibaba40core/clx/internal/intent"
 	"github.com/alibaba40core/clx/internal/parser"
 )
@@ -122,7 +123,8 @@ func TestBuildResolversRulesOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resolvers := buildResolvers(eng, Options{})
+	cfg := config.Default()
+	resolvers := buildResolvers(eng, Options{}, cfg)
 	if len(resolvers) != 1 {
 		t.Fatalf("len=%d want 1", len(resolvers))
 	}
@@ -135,12 +137,13 @@ func TestBuildResolversWithAI(t *testing.T) {
 	}
 	ai := &stubResolver{result: intent.ResolvedIntent{Intent: "x"}}
 	opts := Options{AIResolver: ai}
-	resolvers := buildResolvers(eng, opts)
+	cfg := config.Default()
+	resolvers := buildResolvers(eng, opts, cfg)
 	if len(resolvers) != 2 {
 		t.Fatalf("len=%d want 2", len(resolvers))
 	}
-	if aiResolverIndex(opts) != 1 {
-		t.Fatalf("ai index = %d want 1", aiResolverIndex(opts))
+	if aiResolverIndex(opts, cfg) != 1 {
+		t.Fatalf("ai index = %d want 1", aiResolverIndex(opts, cfg))
 	}
 }
 
