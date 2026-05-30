@@ -22,7 +22,10 @@ func TestRunSafetyShowDefault(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit %d", code)
 	}
-	if !strings.Contains(stdout.String(), "safety mode: medium") {
+	if !strings.Contains(stdout.String(), "Safety mode: medium") {
+		t.Fatalf("stdout=%q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "Command risk") {
 		t.Fatalf("stdout=%q", stdout.String())
 	}
 }
