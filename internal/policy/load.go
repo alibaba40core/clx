@@ -13,35 +13,68 @@ import (
 
 const maxPolicyBytes = 32 * 1024
 
+const policyMissingModNS int64 = -1
+
 // File holds parsed policy rules.
 type File struct {
 	Blocked []string
-	Allowed []string // ignored in Phase 1.6
+	Allowed []string
 }
 
 var (
-	loadOnce sync.Once
-	cached   File
-	loadErr  error
+	cacheMu     sync.Mutex
+	cached      File
+	cachedModNS int64
+	loadErr     error
 )
 
-// Load reads and caches the policy file from ~/.clx/policies/policy.yaml.
+// Load reads the policy file from ~/.clx/policies/policy.yaml, reloading when mtime changes.
 func Load(ctx context.Context) (File, error) {
 	if err := ctx.Err(); err != nil {
 		return File{}, err
 	}
-	loadOnce.Do(func() {
-		cached, loadErr = loadFile(ctx)
-	})
+
+	path, err := config.PolicyPath()
+	if err != nil {
+		return File{}, err
+	}
+
+	modNS, err := policyModTime(path)
+	if err != nil {
+		return File{}, err
+	}
+
+	cacheMu.Lock()
+	defer cacheMu.Unlock()
+	if modNS == cachedModNS {
+		return cached, loadErr
+	}
+
+	if modNS == policyMissingModNS {
+		cached = File{}
+		loadErr = nil
+		cachedModNS = policyMissingModNS
+		return cached, nil
+	}
+
+	cached, loadErr = loadFile(ctx, path)
+	cachedModNS = modNS
 	return cached, loadErr
 }
 
-func loadFile(ctx context.Context) (File, error) {
-	if err := ctx.Err(); err != nil {
-		return File{}, err
-	}
-	path, err := config.PolicyPath()
+func policyModTime(path string) (int64, error) {
+	fi, err := os.Stat(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return policyMissingModNS, nil
+		}
+		return 0, err
+	}
+	return fi.ModTime().UnixNano(), nil
+}
+
+func loadFile(ctx context.Context, path string) (File, error) {
+	if err := ctx.Err(); err != nil {
 		return File{}, err
 	}
 	f, err := os.Open(path)
@@ -78,7 +111,9 @@ func normalizePatterns(in []string) []string {
 
 // ResetCache clears the in-process policy cache (tests only).
 func ResetCache() {
-	loadOnce = sync.Once{}
+	cacheMu.Lock()
 	cached = File{}
+	cachedModNS = 0
 	loadErr = nil
+	cacheMu.Unlock()
 }

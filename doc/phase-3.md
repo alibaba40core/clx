@@ -15,7 +15,7 @@
 |-----------|-------|--------|-------------|-------|
 | **P.1** | Prerequisites: YAML decoder, config drift, auto_execute fix, cache secret guard | ✅ Done | — | Unblocks Phase 3 start; see update log. |
 | **3.1** | Risk engine hardening | ✅ Done | — | Destructive patterns extended; RequiresConfirmation removed. |
-| **3.2** | Policy allow-list + argv-aware matching | ⬜ Not started | — | Replace naive substring block matching. |
+| **3.2** | Policy allow-list + argv-aware matching | ✅ Done | — | Argv block match, allow-list, mtime reload. |
 | **3.3** | Access levels (Safe / Moderate / Full) | ⬜ Not started | — | Architecture §3.8; distinct from safety mode. |
 
 Legend: ⬜ Not started · 🟡 In progress · ✅ Done · 🛑 Blocked
@@ -113,10 +113,10 @@ all. Both run in the pipeline; neither bypasses the other.
 > implement the `allowed` list from policy.yaml.
 
 - [x] Design argv-aware block matching (avoid `format` false positives, close spacing bypasses)
-- [ ] Implement `allowed`-list semantics (architecture §3.8)
-- [ ] Policy reload or invalidation strategy (currently `sync.Once` cache)
-- [ ] Adversarial test suite mirroring risk tests
-- [ ] Update default policy template documentation
+- [x] Implement `allowed`-list semantics (architecture §3.8)
+- [x] Policy reload or invalidation strategy (currently `sync.Once` cache)
+- [x] Adversarial test suite mirroring risk tests
+- [x] Update default policy template documentation
 
 ---
 
@@ -162,7 +162,8 @@ Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short su
 ```
 2026-05-30 · P.1 · Phase 3 prerequisites: YAML inline comments, config drift, auto_execute fix, cache secret guard · (pending)
 2026-05-30 · 3.1 · risk: harden destructive-pattern classifier and drop vestigial RequiresConfirmation · 8036768
-2026-05-30 · 3.2 · policy: replace substring block matching with argv-aware token matching · (pending)
+2026-05-30 · 3.2 · policy: replace substring block matching with argv-aware token matching · 2de873a
+2026-05-30 · 3.3 · policy: implement allow-list semantics and mtime-based reload · (pending)
 ```
 
 ---

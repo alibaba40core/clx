@@ -115,6 +115,68 @@ func TestCheckBlockArgvAware(t *testing.T) {
 	})
 }
 
+func TestCheckAllowList(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("CLX_HOME", dir)
+	ResetCache()
+
+	polDir := filepath.Join(dir, "policies")
+	if err := os.MkdirAll(polDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	content := "allowed:\n  - git\n  - docker\n"
+	if err := os.WriteFile(filepath.Join(polDir, "policy.yaml"), []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("allowed_verb_passes", func(t *testing.T) {
+		t.Parallel()
+		gen := generator.GeneratedCommand{Argv: []string{"git", "status"}, Command: "git status"}
+		got, err := Check(context.Background(), gen, risk.RiskAssessment{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !got.Allowed {
+			t.Fatalf("expected allowed: %s", got.Reason)
+		}
+	})
+
+	t.Run("disallowed_verb_blocked", func(t *testing.T) {
+		t.Parallel()
+		gen := generator.GeneratedCommand{Argv: []string{"npm", "install"}, Command: "npm install"}
+		got, err := Check(context.Background(), gen, risk.RiskAssessment{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Allowed {
+			t.Fatal("expected blocked by allow list")
+		}
+	})
+}
+
+func TestCheckAllowListEmptyMeansNoGate(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("CLX_HOME", dir)
+	ResetCache()
+
+	polDir := filepath.Join(dir, "policies")
+	if err := os.MkdirAll(polDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(polDir, "policy.yaml"), []byte("blocked:\n  - shutdown\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	gen := generator.GeneratedCommand{Argv: []string{"npm", "install"}, Command: "npm install"}
+	got, err := Check(context.Background(), gen, risk.RiskAssessment{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.Allowed {
+		t.Fatalf("empty allow list must not gate: %s", got.Reason)
+	}
+}
+
 func TestArgvMatchesBlocked(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

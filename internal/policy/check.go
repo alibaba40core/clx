@@ -29,5 +29,9 @@ func Check(ctx context.Context, gen generator.GeneratedCommand, _ risk.RiskAsses
 		}
 	}
 
+	if len(pol.Allowed) > 0 && !verbOnAllowList(gen.Argv, pol.Allowed) {
+		return Result{Allowed: false, Reason: "command verb not on allow list"}, nil
+	}
+
 	return AllowedResult(), nil
 }
