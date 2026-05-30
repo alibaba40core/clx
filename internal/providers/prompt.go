@@ -75,6 +75,13 @@ func buildUserMessage(req IntentRequest, intents, tools []string) string {
 		}
 	}
 
+	if len(req.SkillHints) > 0 {
+		b.WriteString("\n\nDomain hints:")
+		for _, pack := range SkillPacksSorted(req.SkillHints) {
+			fmt.Fprintf(&b, "\n- %s: %s", pack, req.SkillHints[pack])
+		}
+	}
+
 	b.WriteString("\n\nInput: ")
 	b.WriteString(executor.Redact(req.RawInput))
 

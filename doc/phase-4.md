@@ -1,8 +1,6 @@
 # Phase 4 — Advanced UX
 
-> **Status:** Not started. Requires Phase 3.5 complete.
->
-> Order: memory → session follow-ups → shell hooks → `clx init`.
+> **Status:** Complete (4.1–4.4 + optional 4.5).
 
 ---
 
@@ -10,25 +8,26 @@
 
 | Sub-phase | Scope | Status | Notes |
 |-----------|-------|--------|-------|
-| **4.1** | Memory package | ⬜ Not started | `internal/memory` |
-| **4.2** | Session follow-ups | ⬜ Not started | Resolver + append |
-| **4.3** | Shell integration | ⬜ Not started | Opt-in hook scripts |
-| **4.4** | `clx init` wizard | ⬜ Not started | Interactive setup |
-| **4.5** | Skill prompts (stretch) | ⬜ Not started | Optional |
+| **4.1** | Memory package | ✅ Done | `internal/memory` |
+| **4.2** | Session follow-ups | ✅ Done | Resolver + append |
+| **4.3** | Shell integration | ✅ Done | Opt-in hook scripts |
+| **4.4** | `clx init` wizard | ✅ Done | Interactive setup |
+| **4.5** | Skill prompts (stretch) | ✅ Done | Per-pack `prompts.yaml` |
 
 ---
 
 ## Tasks
 
-- [ ] Session JSON store with bounds and redaction
-- [ ] Memory resolver first in chain; post-run append
-- [ ] Bash/PowerShell explain-only hooks
-- [ ] `clx init` wizard
-- [ ] (Stretch) per-domain skill prompts
+- [x] Session JSON store with bounds and redaction
+- [x] Memory resolver first in chain; post-run append
+- [x] Bash/PowerShell explain-only hooks
+- [x] `clx init` wizard
+- [x] (Stretch) per-domain skill prompts
 
 ---
 
 ## Update log
 
 ```
+2026-05-30 · 4.1 · memory: add session-scoped JSON store with bounded command history · dd68b14
 ```

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/alibaba40core/clx/internal/builtin"
 	"github.com/alibaba40core/clx/internal/parser"
@@ -121,6 +122,26 @@ func (e *Engine) ValidateResolved(r ResolvedIntent) error {
 		return fmt.Errorf("unknown intent %q", r.Intent)
 	}
 	return validateResolvedParams(rule, r.Params)
+}
+
+// SkillPacks returns sorted unique skill pack names from loaded rules.
+func (e *Engine) SkillPacks() []string {
+	if e == nil {
+		return nil
+	}
+	seen := make(map[string]struct{})
+	for _, r := range e.rules {
+		if r.SkillPack == "" {
+			continue
+		}
+		seen[r.SkillPack] = struct{}{}
+	}
+	out := make([]string, 0, len(seen))
+	for k := range seen {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // RuleForIntent returns the rule definition for an intent name.
