@@ -35,13 +35,17 @@ func runAlias(args []string, stdout, stderr io.Writer) int {
 }
 
 func printAliasHelp(w io.Writer) {
+	fmt.Fprintln(w, "CLX alias — user-global command shortcuts")
+	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "  clx alias set <name> \"<value>\" [--force] [--config path]")
 	fmt.Fprintln(w, "  clx alias list [--config path]")
 	fmt.Fprintln(w, "  clx alias rm <name> [--config path]")
+	fmt.Fprintln(w, "  clx alias help")
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Aliases are stored in ~/.clx/aliases.yaml and expand at parse time (first")
-	fmt.Fprintln(w, "token only, single level). Expanded input still passes risk, policy, and safety.")
+	fmt.Fprintln(w, "Aliases are stored in ~/.clx/aliases.yaml. The first token of input is expanded")
+	fmt.Fprintln(w, "at parse time (single level only). Expanded commands still pass risk, policy,")
+	fmt.Fprintln(w, "and safety gates like any other clx invocation.")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Examples:")
 	fmt.Fprintln(w, "  clx alias set gst \"git status\"")
