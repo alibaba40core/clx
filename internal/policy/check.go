@@ -7,8 +7,8 @@ import (
 	"github.com/alibaba40core/clx/internal/risk"
 )
 
-// Check applies block-list policy using argv-aware token matching.
-func Check(ctx context.Context, gen generator.GeneratedCommand, _ risk.RiskAssessment) (Result, error) {
+// Check applies block-list, allow-list, and access-level policy.
+func Check(ctx context.Context, gen generator.GeneratedCommand, ra risk.RiskAssessment) (Result, error) {
 	if err := ctx.Err(); err != nil {
 		return Result{}, err
 	}
@@ -31,6 +31,10 @@ func Check(ctx context.Context, gen generator.GeneratedCommand, _ risk.RiskAsses
 
 	if len(pol.Allowed) > 0 && !verbOnAllowList(gen.Argv, pol.Allowed) {
 		return Result{Allowed: false, Reason: "command verb not on allow list"}, nil
+	}
+
+	if ok, reason := accessLevelAllows(ra, pol.AccessLevel); !ok {
+		return Result{Allowed: false, Reason: reason}, nil
 	}
 
 	return AllowedResult(), nil

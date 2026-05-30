@@ -17,8 +17,9 @@ const policyMissingModNS int64 = -1
 
 // File holds parsed policy rules.
 type File struct {
-	Blocked []string
-	Allowed []string
+	Blocked     []string
+	Allowed     []string
+	AccessLevel AccessLevel
 }
 
 var (
@@ -92,9 +93,11 @@ func loadFile(ctx context.Context, path string) (File, error) {
 	}
 	blocked, _ := root.GetStringList("blocked")
 	allowed, _ := root.GetStringList("allowed")
+	accessRaw, _ := root.GetString("access_level")
 	return File{
-		Blocked: normalizePatterns(blocked),
-		Allowed: normalizePatterns(allowed),
+		Blocked:     normalizePatterns(blocked),
+		Allowed:     normalizePatterns(allowed),
+		AccessLevel: parseAccessLevel(accessRaw),
 	}, nil
 }
 
