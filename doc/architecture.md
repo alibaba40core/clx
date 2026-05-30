@@ -294,13 +294,13 @@ blocked:
   - "rm -rf /"
   - "shutdown"
   - "format"
-allowed:
-  - "git"
-  - "docker"
-  - "npm"
+# allowed:   # optional; when set, only listed argv[0] verbs may run
+#   - "git"
+#   - "docker"
+#   - "npm"
 ```
 
-Block patterns match as ordered token subsequences on `gen.Argv`. When `allowed` is non-empty, only `argv[0]` verbs on the list may run.
+Block patterns match as ordered token subsequences on `gen.Argv`. When `allowed` is non-empty, only `argv[0]` verbs on the list may run (opt-in; default template ships without it).
 
 ---
 

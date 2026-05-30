@@ -2,8 +2,14 @@
 # Copy to ~/.clx/policies/policy.yaml
 #
 # blocked: argv token patterns (ordered subsequence match on gen.Argv).
-# allowed: when non-empty, only argv[0] verbs listed here may run (after block check).
+# allowed: optional; when non-empty, only argv[0] verbs listed here may run.
 # access_level: safe (no exec) | moderate (low-risk only) | full (default).
+#
+# Example allow-list (opt-in — uncomment to enable):
+# allowed:
+#   - git
+#   - docker
+#   - npm
 
 access_level: full
 
@@ -11,8 +17,3 @@ blocked:
   - "rm -rf /"
   - "shutdown"
   - "format"
-
-allowed:
-  - "git"
-  - "docker"
-  - "npm"

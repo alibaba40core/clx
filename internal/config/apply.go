@@ -69,7 +69,7 @@ func applyNode(cfg *Config, root *yamlutil.Node) {
 	if v, ok := root.GetString("safety", "mode"); ok {
 		cfg.Safety.Mode = v
 	} else if v, ok := root.GetString("safety", "level"); ok {
-		// TODO(phase3): emit deprecation warning once Mode drives behavior.
+		warnDeprecatedSafetyLevel()
 		cfg.Safety.Mode = normalizeLegacyMode(v)
 	}
 	if v, ok := root.GetString("safety", "require_confirmation"); ok {
