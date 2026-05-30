@@ -1,5 +1,8 @@
 # CLX default policy template
 # Copy to ~/.clx/policies/policy.yaml
+#
+# blocked: argv token patterns (ordered subsequence match on gen.Argv).
+# allowed: when non-empty, only argv[0] verbs listed here may run (after block check).
 
 blocked:
   - "rm -rf /"
