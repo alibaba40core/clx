@@ -1,6 +1,6 @@
 # Phase 2 — AI Integration
 
-> **Status:** Phase 2 complete (2.1–2.8). Phase 3 (Safety) or Phase 4 (Advanced UX) next.
+> **Status:** Phase 2 complete (2.1–2.8). Phase 3 (Safety) complete; Phase 3.5 / 4 next.
 >
 > This doc is both the implementation plan **and** the live tracker. Flip
 > checkboxes (`[ ]` → `[x]`) and append to the **Update log** at the bottom as

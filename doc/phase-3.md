@@ -29,16 +29,11 @@ only stubbed. **Much of the UX-facing safety already shipped in Phase 2.8**
 (dry-run preview, confirmations, `clx safety`, mode×risk matrix) — do **not**
 re-implement those.
 
-**What remains:**
+**Delivered:** hardened risk classifier, argv-aware policy block/allow lists,
+mtime policy reload, and `access_level` (safe/moderate/full). See update log.
 
-- Harden `internal/risk` classification (especially now that AI command
-  generation can emit arbitrary argv)
-- Implement policy `allowed`-list semantics and argv-aware block matching
-- Add policy **access levels** (`Safe` / `Moderate` / `Full`) as a separate
-  axis from safety **mode** (`low` / `medium` / `high` / `custom`)
-
-**What does NOT land:** aliases (Phase 3.5), shell hooks, session memory
-expansion, embeddings.
+**What does NOT land here:** aliases (Phase 3.5), shell hooks, session memory
+(Phase 4), embeddings.
 
 ---
 
