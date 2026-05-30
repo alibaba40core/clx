@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/alibaba40core/clx/internal/aliases"
 	"github.com/alibaba40core/clx/internal/cache"
 	"github.com/alibaba40core/clx/internal/intent"
 	"github.com/alibaba40core/clx/internal/providers"
@@ -36,6 +37,9 @@ type Options struct {
 
 	// ExplainCache, when non-nil, caches AI explanations at ~/.clx/cache/explanations.json.
 	ExplainCache *cache.ExplainStore
+
+	// AliasStore, when set, is used for parser-stage alias expansion (tests).
+	AliasStore *aliases.Store
 }
 
 // WithDefaults fills nil writers and stdin.

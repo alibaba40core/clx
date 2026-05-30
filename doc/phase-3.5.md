@@ -10,8 +10,8 @@
 
 | Sub-phase | Scope | Status | Notes |
 |-----------|-------|--------|-------|
-| **3.5.1** | Alias store + config paths | ⬜ Not started | `internal/aliases` |
-| **3.5.2** | Parser expansion | ⬜ Not started | Single-level, before classify |
+| **3.5.1** | Alias store + config paths | ✅ Done | `internal/aliases` |
+| **3.5.2** | Parser expansion | ✅ Done | Single-level, before classify |
 | **3.5.3** | CLI + collision warnings + e2e | ⬜ Not started | `clx alias` |
 
 ---
