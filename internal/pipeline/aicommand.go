@@ -45,8 +45,12 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 	callCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
+	raw := req.RawInput
+	if req.EffectiveInput != "" {
+		raw = req.EffectiveInput
+	}
 	resp, genErr := gen.GenerateCommand(callCtx, providers.CommandRequest{
-		RawInput: req.RawInput,
+		RawInput: raw,
 		Profile:  profile,
 	})
 	if genErr != nil {
@@ -90,7 +94,7 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 		Source:     intent.SourceAI,
 	}
 
-	code, err = executePlan(ctx, cfg, opts, profile, req.RawInput, resolved, gcmd)
+	code, err = executePlan(ctx, cfg, opts, profile, req, resolved, gcmd)
 	return code, true, err
 }
 

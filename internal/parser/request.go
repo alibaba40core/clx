@@ -28,8 +28,9 @@ func (t InputType) String() string {
 
 // Request is the normalized parser output (see doc/architecture.md §3.2).
 type Request struct {
-	RawInput  string
-	InputType InputType
-	Tokens    []string
-	Args      map[string]string
+	RawInput        string
+	EffectiveInput  string // after alias expansion (equals RawInput when unchanged)
+	InputType       InputType
+	Tokens          []string
+	Args            map[string]string
 }

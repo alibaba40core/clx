@@ -35,8 +35,11 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 		aliasLookup = opts.AliasStore
 	} else if store, aerr := aliases.Open(ctx, cfg.Aliases.MaxAliases); aerr == nil {
 		aliasLookup = store
-	} else if opts.Logger != nil {
-		opts.Logger.Warn("aliases unavailable, continuing without expansion", "err", aerr)
+	} else {
+		if opts.Logger != nil {
+			opts.Logger.Warn("aliases unavailable, continuing without expansion", "err", aerr)
+		}
+		fmt.Fprintf(opts.Stderr, "aliases unavailable (%v); user aliases will not expand\n", aerr)
 	}
 
 	req, err := parser.Parse(ctx, rawInput, profile, aliasLookup)
@@ -70,6 +73,7 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 		// provider to generate a full command (argv) for this platform. The argv
 		// is validated, risk-assessed, policy-gated, and confirmed before exec.
 		if isResolverMiss(err) {
+			hintAliasMiss(opts, aliasLookup, req)
 			if code, handled, aiErr := tryAICommand(ctx, cfg, opts, profile, req); handled {
 				return code, aiErr
 			}
@@ -102,7 +106,7 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 		return 1, err
 	}
 
-	return executePlan(ctx, cfg, opts, profile, rawInput, resolved, gen)
+	return executePlan(ctx, cfg, opts, profile, req, resolved, gen)
 }
 
 // isResolverMiss reports whether err means every resolver missed (vs a hard
@@ -151,7 +155,8 @@ func reportResolveError(cfg config.Config, opts Options, req parser.Request, err
 // executePlan runs the shared safety + execution stage for a generated command,
 // whether it came from a rule/intent or from AI command generation:
 // risk → policy → dry-run → (risk-based) confirm → argv-only exec.
-func executePlan(ctx context.Context, cfg config.Config, opts Options, profile environment.SystemProfile, rawInput string, resolved intent.ResolvedIntent, gen generator.GeneratedCommand) (int, error) {
+func executePlan(ctx context.Context, cfg config.Config, opts Options, profile environment.SystemProfile, req parser.Request, resolved intent.ResolvedIntent, gen generator.GeneratedCommand) (int, error) {
+	rawInput := req.RawInput
 	ra, err := risk.Assess(ctx, gen)
 	if err != nil {
 		fmt.Fprintf(opts.Stderr, "risk: %v\n", err)
@@ -176,12 +181,13 @@ func executePlan(ctx context.Context, cfg config.Config, opts Options, profile e
 		if shouldEnrichForSafety(action, opts, resolved, gen) {
 			displayGen.Explanation = enrichExplanation(ctx, opts, resolved, gen)
 		}
-		if err := printDisplay(opts.Stdout, resolved, displayGen, ra); err != nil {
+		if err := printDisplay(opts.Stdout, req, resolved, displayGen, ra); err != nil {
 			return 1, err
 		}
 	}
 
 	if opts.Explain {
+		fmt.Fprintln(opts.Stdout, "(explain-only — command not executed)")
 		recordMemory(ctx, opts, rawInput, resolved, gen.Shell)
 		return 0, nil
 	}
@@ -218,6 +224,17 @@ func executePlan(ctx context.Context, cfg config.Config, opts Options, profile e
 	}
 	recordMemory(ctx, opts, rawInput, resolved, gen.Shell)
 	return 0, nil
+}
+
+func hintAliasMiss(opts Options, lookup parser.AliasLookup, req parser.Request) {
+	if lookup == nil || len(req.Tokens) != 1 {
+		return
+	}
+	if _, ok := lookup.Lookup(req.Tokens[0]); ok {
+		return
+	}
+	fmt.Fprintf(opts.Stderr, "hint: no alias %q defined; run `clx alias set %s \"<command>\"` then retry (see `clx alias list`)\n",
+		req.Tokens[0], req.Tokens[0])
 }
 
 func recordMemory(ctx context.Context, opts Options, rawInput string, resolved intent.ResolvedIntent, shell string) {
