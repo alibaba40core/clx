@@ -22,6 +22,9 @@ providers:
     endpoint: ""
     api_key: ""
     deployment: ""
+  gemini:
+    api_key: ""
+    model: gemini-2.0-flash
 
 execution:
   auto_execute: false
@@ -31,12 +34,13 @@ execution:
 safety:
   mode: medium
   require_confirmation: true
-  dry_run: true
+  dry_run: false
 
 features:
   explain: true
   cache_commands: true
   learning_mode: false
+  ai_command_generation: true
 
 cache:
   max_entries: 1024

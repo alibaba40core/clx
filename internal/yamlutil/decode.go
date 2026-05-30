@@ -27,7 +27,7 @@ func DecodeLimited(r io.Reader, maxBytes int64) (*Node, error) {
 	lineNum := 0
 	for sc.Scan() {
 		lineNum++
-		line := sc.Text()
+		line := stripInlineComment(sc.Text())
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			continue
@@ -127,4 +127,36 @@ func unquoteScalar(s string) string {
 		}
 	}
 	return s
+}
+
+// stripInlineComment removes a trailing YAML inline comment (# preceded by
+// whitespace or at column 0). # inside quoted scalars and unquoted a#b tokens
+// are preserved.
+func stripInlineComment(line string) string {
+	inSingle := false
+	inDouble := false
+	for i := 0; i < len(line); i++ {
+		switch line[i] {
+		case '\'':
+			if !inDouble {
+				inSingle = !inSingle
+			}
+		case '"':
+			if !inSingle {
+				inDouble = !inDouble
+			}
+		case '#':
+			if inSingle || inDouble {
+				continue
+			}
+			if i == 0 {
+				return ""
+			}
+			prev := line[i-1]
+			if prev == ' ' || prev == '\t' {
+				return strings.TrimRight(line[:i], " \t")
+			}
+		}
+	}
+	return line
 }

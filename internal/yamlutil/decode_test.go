@@ -49,3 +49,75 @@ func TestDecodeNestedListMap(t *testing.T) {
 		t.Fatalf("examples=%v", ex)
 	}
 }
+
+func TestDecodeInlineCommentWithPipe(t *testing.T) {
+	t.Parallel()
+	yaml := `safety:
+  mode: medium          # low | medium | high | custom
+`
+	root, err := Decode(strings.NewReader(yaml))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, ok := root.GetString("safety", "mode")
+	if !ok || got != "medium" {
+		t.Fatalf("safety.mode=%q ok=%v", got, ok)
+	}
+}
+
+func TestDecodeQuotedHashPreserved(t *testing.T) {
+	t.Parallel()
+	yaml := `value: "quoted#value"
+`
+	root, err := Decode(strings.NewReader(yaml))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, ok := root.GetString("value")
+	if !ok || got != "quoted#value" {
+		t.Fatalf("value=%q ok=%v", got, ok)
+	}
+}
+
+func TestDecodeUnquotedHashPreserved(t *testing.T) {
+	t.Parallel()
+	yaml := `value: a#b
+`
+	root, err := Decode(strings.NewReader(yaml))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, ok := root.GetString("value")
+	if !ok || got != "a#b" {
+		t.Fatalf("value=%q ok=%v", got, ok)
+	}
+}
+
+func TestDecodeFullLineCommentSkipped(t *testing.T) {
+	t.Parallel()
+	yaml := `# full line comment
+provider: ollama
+`
+	root, err := Decode(strings.NewReader(yaml))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, ok := root.GetString("provider")
+	if !ok || got != "ollama" {
+		t.Fatalf("provider=%q ok=%v", got, ok)
+	}
+}
+
+func TestDecodeInlineCommentBooleanValue(t *testing.T) {
+	t.Parallel()
+	yaml := `require_confirmation: true   # used when mode=custom
+`
+	root, err := Decode(strings.NewReader(yaml))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, ok := root.GetString("require_confirmation")
+	if !ok || got != "true" {
+		t.Fatalf("require_confirmation=%q ok=%v", got, ok)
+	}
+}

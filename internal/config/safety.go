@@ -60,10 +60,16 @@ func (a SafetyAction) PreviewOnly(cfg Config, flags SafetyFlagOverrides) bool {
 
 // ShouldConfirm reports whether the y/n prompt should run.
 func (a SafetyAction) ShouldConfirm(cfg Config, flags SafetyFlagOverrides) bool {
-	if !a.Confirm || cfg.Execution.AutoExecute {
+	if !a.Confirm {
 		return false
 	}
-	if flags.Yes && !a.BlockYes {
+	if a.BlockYes {
+		return true
+	}
+	if cfg.Execution.AutoExecute {
+		return false
+	}
+	if flags.Yes {
 		return false
 	}
 	return true

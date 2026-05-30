@@ -199,3 +199,34 @@ func TestSchemaVersionMismatchStartsEmpty(t *testing.T) {
 		t.Fatal("expected empty store on schema mismatch")
 	}
 }
+
+func TestPutSkipsSecretShapedParams(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "intents.json")
+	s := testStore(t, path, config.Default().Cache)
+
+	key := KeyFor(sampleReq(), sampleProfile())
+	secretParams := map[string]string{"token": "sk-abcdefghijklmnopqrst"}
+	if err := s.Put(context.Background(), key, "find_file", secretParams, 0.9); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := s.Lookup(context.Background(), key); ok {
+		t.Fatal("secret-shaped params must not be cached")
+	}
+}
+
+func TestPutNormalParamsStillCaches(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "intents.json")
+	s := testStore(t, path, config.Default().Cache)
+
+	key := KeyFor(sampleReq(), sampleProfile())
+	params := map[string]string{"filename": "*.log", "path": "/var/log"}
+	if err := s.Put(context.Background(), key, "find_file", params, 0.9); err != nil {
+		t.Fatal(err)
+	}
+	e, ok := s.Lookup(context.Background(), key)
+	if !ok || e.Intent != "find_file" || e.Params["filename"] != "*.log" {
+		t.Fatalf("entry = %+v ok=%v", e, ok)
+	}
+}

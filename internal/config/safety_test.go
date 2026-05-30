@@ -77,6 +77,24 @@ func TestShouldConfirmBlockYes(t *testing.T) {
 	}
 }
 
+func TestShouldConfirmBlockYesOverAutoExecute(t *testing.T) {
+	cfg := Default()
+	cfg.Execution.AutoExecute = true
+	action := SafetyAction{Confirm: true, BlockYes: true}
+	if !action.ShouldConfirm(cfg, SafetyFlagOverrides{Yes: true}) {
+		t.Fatal("BlockYes should require confirm even with auto_execute and -y")
+	}
+}
+
+func TestShouldConfirmAutoExecuteSkipsWhenNotBlocked(t *testing.T) {
+	cfg := Default()
+	cfg.Execution.AutoExecute = true
+	action := SafetyAction{Confirm: true, BlockYes: false}
+	if action.ShouldConfirm(cfg, SafetyFlagOverrides{}) {
+		t.Fatal("auto_execute should skip confirm when BlockYes is unset")
+	}
+}
+
 func TestApplySafetyMode(t *testing.T) {
 	cfg := Default()
 	if err := ApplySafetyMode(&cfg, "high"); err != nil || cfg.Safety.Mode != "high" {
