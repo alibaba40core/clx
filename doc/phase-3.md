@@ -75,7 +75,7 @@ all. Both run in the pipeline; neither bypasses the other.
 | Capability | Where |
 |------------|-------|
 | `risk.Assess` heuristic (low/medium/high verbs, git/docker subverbs) | `internal/risk/assess.go` |
-| `policy.Check` block-list (substring match) | `internal/policy/check.go` |
+| `policy.Check` block-list (argv token match) | `internal/policy/check.go` |
 | Policy file load + cache | `internal/policy/load.go` |
 | Default policy template | `internal/config/templates/policy.yaml` |
 | Pipeline order: risk → policy → safety → exec | `internal/pipeline/run.go` |
@@ -112,7 +112,7 @@ all. Both run in the pipeline; neither bypasses the other.
 > **Goal:** Replace naive `strings.Contains` block matching with argv-aware checks;
 > implement the `allowed` list from policy.yaml.
 
-- [ ] Design argv-aware block matching (avoid `format` false positives, close spacing bypasses)
+- [x] Design argv-aware block matching (avoid `format` false positives, close spacing bypasses)
 - [ ] Implement `allowed`-list semantics (architecture §3.8)
 - [ ] Policy reload or invalidation strategy (currently `sync.Once` cache)
 - [ ] Adversarial test suite mirroring risk tests
@@ -161,7 +161,8 @@ Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short su
 
 ```
 2026-05-30 · P.1 · Phase 3 prerequisites: YAML inline comments, config drift, auto_execute fix, cache secret guard · (pending)
-2026-05-30 · 3.1 · risk: harden destructive-pattern classifier and drop vestigial RequiresConfirmation · (pending)
+2026-05-30 · 3.1 · risk: harden destructive-pattern classifier and drop vestigial RequiresConfirmation · 8036768
+2026-05-30 · 3.2 · policy: replace substring block matching with argv-aware token matching · (pending)
 ```
 
 ---
