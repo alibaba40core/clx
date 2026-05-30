@@ -10,7 +10,16 @@ type Config struct {
 	Features  FeaturesConfig  `yaml:"features"`
 	Cache     CacheConfig     `yaml:"cache"`
 	Aliases   AliasesConfig   `yaml:"aliases"`
+	Memory    MemoryConfig    `yaml:"memory"`
 	Logging   LoggingConfig   `yaml:"logging"`
+}
+
+// MemoryConfig bounds session-scoped memory files.
+type MemoryConfig struct {
+	Enabled             bool `yaml:"enabled"`
+	MaxEntriesPerSession int `yaml:"max_entries_per_session"`
+	MaxSessions         int  `yaml:"max_sessions"`
+	TTLDays             int  `yaml:"ttl_days"`
 }
 
 // AliasesConfig bounds user-global alias shortcuts.

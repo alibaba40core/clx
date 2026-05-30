@@ -66,6 +66,12 @@ func Default() Config {
 		Aliases: AliasesConfig{
 			MaxAliases: 256,
 		},
+		Memory: MemoryConfig{
+			Enabled:              true,
+			MaxEntriesPerSession: 64,
+			MaxSessions:          32,
+			TTLDays:              7,
+		},
 		Logging: LoggingConfig{
 			Enabled: true,
 			Level:   "info",
