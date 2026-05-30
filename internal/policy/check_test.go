@@ -32,3 +32,105 @@ func TestCheckBlocked(t *testing.T) {
 		t.Fatal("expected blocked")
 	}
 }
+
+func TestCheckBlockArgvAware(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("CLX_HOME", dir)
+	ResetCache()
+
+	polDir := filepath.Join(dir, "policies")
+	if err := os.MkdirAll(polDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	policyYAML := `blocked:
+  - "format"
+  - "rm -rf"
+  - "shutdown"
+`
+	if err := os.WriteFile(filepath.Join(polDir, "policy.yaml"), []byte(policyYAML), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("format_no_false_positive_in_path", func(t *testing.T) {
+		t.Parallel()
+		gen := generator.GeneratedCommand{
+			Argv:    []string{"find", "./form", "-name", "x"},
+			Command: "find ./form -name x",
+		}
+		got, err := Check(context.Background(), gen, risk.RiskAssessment{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !got.Allowed {
+			t.Fatalf("unexpected block: %s", got.Reason)
+		}
+	})
+
+	t.Run("format_blocks_exact_token", func(t *testing.T) {
+		t.Parallel()
+		gen := generator.GeneratedCommand{Argv: []string{"format", "C:"}, Command: "format C:"}
+		got, err := Check(context.Background(), gen, risk.RiskAssessment{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Allowed {
+			t.Fatal("expected blocked for format verb")
+		}
+	})
+
+	t.Run("rm_rf_subsequence", func(t *testing.T) {
+		t.Parallel()
+		gen := generator.GeneratedCommand{Argv: []string{"rm", "-rf", "."}, Command: "rm -rf ."}
+		got, err := Check(context.Background(), gen, risk.RiskAssessment{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Allowed {
+			t.Fatal("expected blocked")
+		}
+	})
+
+	t.Run("rm_rf_concatenated_not_blocked", func(t *testing.T) {
+		t.Parallel()
+		gen := generator.GeneratedCommand{Argv: []string{"rm-rf", "."}, Command: "rm-rf ."}
+		got, err := Check(context.Background(), gen, risk.RiskAssessment{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !got.Allowed {
+			t.Fatalf("rm-rf single token must not match rm -rf pattern: %s", got.Reason)
+		}
+	})
+
+	t.Run("shutdown_blocks", func(t *testing.T) {
+		t.Parallel()
+		gen := generator.GeneratedCommand{Argv: []string{"shutdown", "/s"}, Command: "shutdown /s"}
+		got, err := Check(context.Background(), gen, risk.RiskAssessment{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Allowed {
+			t.Fatal("expected blocked")
+		}
+	})
+}
+
+func TestArgvMatchesBlocked(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		argv    []string
+		pattern string
+		want    bool
+	}{
+		{[]string{"rm", "-rf", "/"}, "rm -rf", true},
+		{[]string{"find", "./form"}, "format", false},
+		{[]string{"format", "C:"}, "format", true},
+		{[]string{"rm-rf"}, "rm -rf", false},
+	}
+	for _, tc := range cases {
+		got := argvMatchesBlocked(tc.argv, tokenizePattern(tc.pattern))
+		if got != tc.want {
+			t.Fatalf("argv %v pattern %q: got %v want %v", tc.argv, tc.pattern, got, tc.want)
+		}
+	}
+}
