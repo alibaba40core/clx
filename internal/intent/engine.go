@@ -20,6 +20,16 @@ type Engine struct {
 	rules []Rule
 }
 
+// Rules returns a snapshot of loaded rules (read-only use).
+func (e *Engine) Rules() []Rule {
+	if e == nil {
+		return nil
+	}
+	out := make([]Rule, len(e.rules))
+	copy(out, e.rules)
+	return out
+}
+
 // NewEngine returns an engine with the given rules (later entries override duplicate intents).
 func NewEngine(rules []Rule) *Engine {
 	return &Engine{rules: mergeRules(rules)}

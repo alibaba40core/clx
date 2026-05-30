@@ -25,3 +25,8 @@ func isShellVerb(token string) bool {
 	_, ok := shellVerbs[strings.ToLower(token)]
 	return ok
 }
+
+// IsKnownShellVerb reports whether token is a known shell command head (alias collision check).
+func IsKnownShellVerb(token string) bool {
+	return isShellVerb(token)
+}
