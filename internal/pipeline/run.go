@@ -163,12 +163,15 @@ func executePlan(ctx context.Context, cfg config.Config, opts Options, profile e
 		return 1, err
 	}
 
-	pol, err := policy.Check(ctx, gen, ra)
+	pol, err := policy.Check(ctx, gen, ra, policy.CheckOptions{
+		SafetyMode:  cfg.Safety.Mode,
+		ExplainOnly: opts.Explain,
+	})
 	if err != nil {
 		fmt.Fprintf(opts.Stderr, "policy: %v\n", err)
 		return 1, err
 	}
-	if !pol.Allowed {
+	if !opts.Explain && !pol.ExecAllowed {
 		fmt.Fprintf(opts.Stderr, "blocked by policy: %s\n", pol.Reason)
 		return 1, policy.ErrBlocked
 	}
@@ -187,6 +190,9 @@ func executePlan(ctx context.Context, cfg config.Config, opts Options, profile e
 	}
 
 	if opts.Explain {
+		if !pol.ExecAllowed && pol.Reason != "" {
+			fmt.Fprintf(opts.Stdout, "Policy (exec): %s\n", pol.Reason)
+		}
 		fmt.Fprintln(opts.Stdout, "(explain-only — command not executed)")
 		recordMemory(ctx, opts, rawInput, resolved, gen.Shell)
 		return 0, nil

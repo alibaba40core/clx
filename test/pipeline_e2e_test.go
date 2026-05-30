@@ -146,6 +146,26 @@ func writePolicy(t *testing.T, blocked []string) {
 	policy.ResetCache()
 }
 
+func writeAllowPolicy(t *testing.T, allowed []string) {
+	t.Helper()
+	p, err := config.PolicyPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	var b strings.Builder
+	b.WriteString("access_level: full\nblocked:\n  - \"rm -rf /\"\nallowed:\n")
+	for _, verb := range allowed {
+		fmt.Fprintf(&b, "  - %s\n", verb)
+	}
+	if err := os.WriteFile(p, []byte(b.String()), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	policy.ResetCache()
+}
+
 // commandLine returns the "Command: ..." line from the explain display, or "".
 func commandLine(stdout string) string {
 	for _, ln := range strings.Split(stdout, "\n") {
@@ -497,6 +517,58 @@ func TestE2EPolicyBlocks(t *testing.T) {
 	}
 	if !strings.Contains(r.stderr, "blocked by policy") {
 		t.Fatalf("expected 'blocked by policy' in stderr=%q", r.stderr)
+	}
+}
+
+// TestE2EAllowListMediumIgnored verifies allow list in policy.yaml does not block
+// pwd when safety.mode is medium.
+func TestE2EAllowListMediumIgnored(t *testing.T) {
+	setupCLXHomeForHost(t, nil)
+	writeAllowPolicy(t, []string{"git", "docker", "npm"})
+
+	cfg := config.Default()
+	cfg.Safety.Mode = "medium"
+	r := runPipeline(t, cfg, "pwd", pipeline.Options{Explain: true})
+	if r.code != 0 || r.err != nil {
+		t.Fatalf("code=%d err=%v stderr=%q", r.code, r.err, r.stderr)
+	}
+	if strings.Contains(r.stderr, "blocked by policy") {
+		t.Fatalf("medium must ignore allow list, stderr=%q", r.stderr)
+	}
+}
+
+// TestE2EAllowListHighBlocksExec verifies high safety enforces allow list at exec.
+func TestE2EAllowListHighBlocksExec(t *testing.T) {
+	setupCLXHomeForHost(t, nil)
+	writeAllowPolicy(t, []string{"git", "docker", "npm"})
+
+	cfg := config.Default()
+	cfg.Safety.Mode = "high"
+	r := runPipeline(t, cfg, "pwd", pipeline.Options{Yes: true})
+	if r.code == 0 && r.err == nil {
+		t.Fatal("expected policy block for pwd in high mode")
+	}
+	if !strings.Contains(r.stderr, "blocked by policy") {
+		t.Fatalf("stderr=%q", r.stderr)
+	}
+}
+
+// TestE2EAllowListHighExplainWarns verifies --explain shows translation with policy warning.
+func TestE2EAllowListHighExplainWarns(t *testing.T) {
+	setupCLXHomeForHost(t, nil)
+	writeAllowPolicy(t, []string{"git"})
+
+	cfg := config.Default()
+	cfg.Safety.Mode = "high"
+	r := runPipeline(t, cfg, "pwd", pipeline.Options{Explain: true})
+	if r.code != 0 || r.err != nil {
+		t.Fatalf("code=%d err=%v stderr=%q", r.code, r.err, r.stderr)
+	}
+	if !strings.Contains(r.stdout, "Policy (exec):") {
+		t.Fatalf("stdout=%q", r.stdout)
+	}
+	if strings.Contains(r.stderr, "blocked by policy") {
+		t.Fatalf("explain must not fatal-block, stderr=%q", r.stderr)
 	}
 }
 
