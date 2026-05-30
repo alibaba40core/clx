@@ -146,16 +146,12 @@ func executePlan(ctx context.Context, cfg config.Config, opts Options, profile e
 		return 1, policy.ErrBlocked
 	}
 
-	// effectiveDryRun is true if either the --dry-run flag or safety.dry_run
-	// in config is set. Flag-on or config-on triggers dry-run; both off
-	// proceeds to confirm/exec. -y does NOT bypass a config-driven dry-run.
-	// TODO(phase3): also derive from cfg.Safety.Mode (medium/high imply
-	// dry-run by default). See SafetyConfig godoc for the matrix.
-	effectiveDryRun := opts.DryRun || cfg.Safety.DryRun
+	flags := safetyFlagsFromOptions(opts)
+	action := config.DecideSafetyAction(cfg, ra.Level.String(), flags)
 
-	if cfg.Features.Explain || opts.Explain || effectiveDryRun || !opts.Yes {
+	if shouldShowDisplay(action, opts) {
 		displayGen := gen
-		if !gen.AIGenerated && shouldEnrichExplanation(opts, resolved) {
+		if shouldEnrichForSafety(action, opts, resolved, gen) {
 			displayGen.Explanation = enrichExplanation(ctx, opts, resolved, gen)
 		}
 		if err := printDisplay(opts.Stdout, resolved, displayGen, ra); err != nil {
@@ -167,19 +163,16 @@ func executePlan(ctx context.Context, cfg config.Config, opts Options, profile e
 		return 0, nil
 	}
 
-	if effectiveDryRun {
-		inv, err := executor.FormatInvocation(gen, profile)
-		if err != nil {
-			inv = executor.QuoteArgv(gen.Shell, gen.Argv)
+	if action.Preview || opts.DryRun {
+		if err := printDryRunLine(opts.Stdout, gen, profile); err != nil {
+			return 1, err
 		}
-		fmt.Fprintf(opts.Stdout, "dry-run: would execute: %s\n", inv)
-		return 0, nil
+		if action.PreviewOnly(cfg, flags) {
+			return 0, nil
+		}
 	}
 
-	needConfirm := !opts.Yes && !cfg.Execution.AutoExecute &&
-		(ra.RequiresConfirmation || cfg.Safety.RequireConfirmation)
-
-	if needConfirm {
+	if action.ShouldConfirm(cfg, flags) {
 		ok, err := confirmPrompt(opts.Stdin, opts.Stdout)
 		if err != nil {
 			return 1, err
