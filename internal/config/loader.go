@@ -10,7 +10,7 @@ import (
 
 var (
 	validProviders = map[string]struct{}{
-		"ollama": {}, "openai": {}, "azure": {},
+		"ollama": {}, "openai": {}, "azure": {}, "gemini": {},
 	}
 	validSafetyModes = map[string]struct{}{
 		"low": {}, "medium": {}, "high": {},
@@ -60,7 +60,7 @@ func Load(ctx context.Context, path string) (Config, error) {
 // Validate checks configuration invariants.
 func Validate(c Config) error {
 	if _, ok := validProviders[c.Provider]; !ok {
-		return fmt.Errorf("invalid provider %q: must be ollama, openai, or azure", c.Provider)
+		return fmt.Errorf("invalid provider %q: must be ollama, openai, azure, or gemini", c.Provider)
 	}
 	if _, ok := validSafetyModes[c.Safety.Mode]; !ok {
 		return fmt.Errorf("invalid safety.mode %q: must be low, medium, or high", c.Safety.Mode)

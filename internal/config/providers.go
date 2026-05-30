@@ -45,7 +45,7 @@ func validateProviderName(name, field string) error {
 		return nil
 	}
 	if _, ok := validProviders[name]; !ok {
-		return fmt.Errorf("invalid %s %q: must be ollama, openai, or azure", field, name)
+		return fmt.Errorf("invalid %s %q: must be ollama, openai, azure, or gemini", field, name)
 	}
 	return nil
 }
@@ -66,6 +66,10 @@ func validateProviderSettings(c Config, name string) error {
 		}
 	case "azure":
 		// Azure remains a factory stub in Phase 2.3; no extra field checks here.
+	case "gemini":
+		if strings.TrimSpace(c.Providers.Gemini.APIKey) == "" {
+			return fmt.Errorf("providers.gemini.api_key required when %q is used", name)
+		}
 	}
 	return nil
 }

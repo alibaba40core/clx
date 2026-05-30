@@ -7,18 +7,20 @@ import (
 )
 
 var settablePaths = map[string]struct{}{
-	"provider":                      {},
-	"model":                         {},
-	"providers.primary":             {},
-	"providers.fallback":            {},
-	"providers.timeout":             {},
-	"providers.ollama.host":         {},
-	"providers.ollama.model":        {},
-	"providers.openai.api_key":      {},
-	"providers.openai.model":        {},
-	"providers.azure.endpoint":      {},
-	"providers.azure.api_key":       {},
-	"providers.azure.deployment":    {},
+	"provider":                   {},
+	"model":                      {},
+	"providers.primary":          {},
+	"providers.fallback":         {},
+	"providers.timeout":          {},
+	"providers.ollama.host":      {},
+	"providers.ollama.model":     {},
+	"providers.openai.api_key":   {},
+	"providers.openai.model":     {},
+	"providers.azure.endpoint":   {},
+	"providers.azure.api_key":    {},
+	"providers.azure.deployment": {},
+	"providers.gemini.api_key":   {},
+	"providers.gemini.model":     {},
 }
 
 // SetByPath mutates cfg at an allowlisted dot path.
@@ -57,6 +59,10 @@ func SetByPath(cfg *Config, path, value string) error {
 		cfg.Providers.Azure.APIKey = value
 	case "providers.azure.deployment":
 		cfg.Providers.Azure.Deployment = value
+	case "providers.gemini.api_key":
+		cfg.Providers.Gemini.APIKey = value
+	case "providers.gemini.model":
+		cfg.Providers.Gemini.Model = value
 	}
 	return nil
 }
@@ -93,6 +99,10 @@ func GetByPath(cfg Config, path string) (string, error) {
 		raw = cfg.Providers.Azure.APIKey
 	case "providers.azure.deployment":
 		raw = cfg.Providers.Azure.Deployment
+	case "providers.gemini.api_key":
+		raw = cfg.Providers.Gemini.APIKey
+	case "providers.gemini.model":
+		raw = cfg.Providers.Gemini.Model
 	}
 	if IsSecretPath(path) {
 		return MaskSecret(raw), nil
@@ -119,6 +129,8 @@ func ProviderShowLines(cfg Config) []string {
 		"providers.azure.endpoint",
 		"providers.azure.api_key",
 		"providers.azure.deployment",
+		"providers.gemini.api_key",
+		"providers.gemini.model",
 	}
 	lines := make([]string, 0, len(paths))
 	for _, p := range paths {

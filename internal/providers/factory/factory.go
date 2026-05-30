@@ -10,6 +10,7 @@ import (
 	"github.com/alibaba40core/clx/internal/config"
 	"github.com/alibaba40core/clx/internal/providers"
 	"github.com/alibaba40core/clx/internal/providers/chain"
+	"github.com/alibaba40core/clx/internal/providers/gemini"
 	"github.com/alibaba40core/clx/internal/providers/ollama"
 	"github.com/alibaba40core/clx/internal/providers/openai"
 )
@@ -40,6 +41,8 @@ func newNamedProvider(cfg config.Config, name string, logger *slog.Logger) (prov
 		return newOllamaFromConfig(cfg, logger)
 	case "openai":
 		return newOpenAIFromConfig(cfg, logger)
+	case "gemini":
+		return newGeminiFromConfig(cfg, logger)
 	case "azure":
 		return nil, fmt.Errorf("azure provider not implemented yet (Phase 2.3)")
 	default:
@@ -81,4 +84,20 @@ func newOpenAIFromConfig(cfg config.Config, logger *slog.Logger) (providers.Prov
 
 func providerTimeout(cfg config.Config) time.Duration {
 	return config.ProviderTimeout(cfg)
+}
+
+func newGeminiFromConfig(cfg config.Config, logger *slog.Logger) (providers.Provider, error) {
+	apiKey := strings.TrimSpace(cfg.Providers.Gemini.APIKey)
+	if apiKey == "" {
+		return nil, fmt.Errorf("gemini.api_key required when provider is gemini")
+	}
+	model := strings.TrimSpace(cfg.Providers.Gemini.Model)
+	if model == "" {
+		model = strings.TrimSpace(cfg.Model)
+	}
+	if model == "" {
+		model = config.DefaultGeminiModel
+	}
+	timeout := providerTimeout(cfg)
+	return gemini.NewProvider(apiKey, model, timeout, logger)
 }
