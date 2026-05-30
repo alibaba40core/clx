@@ -40,7 +40,14 @@ func printAliasHelp(w io.Writer) {
 	fmt.Fprintln(w, "  clx alias list [--config path]")
 	fmt.Fprintln(w, "  clx alias rm <name> [--config path]")
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Aliases expand at parse time (first token only) and still pass risk/policy gates.")
+	fmt.Fprintln(w, "Aliases are stored in ~/.clx/aliases.yaml and expand at parse time (first")
+	fmt.Fprintln(w, "token only, single level). Expanded input still passes risk, policy, and safety.")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Examples:")
+	fmt.Fprintln(w, "  clx alias set gst \"git status\"")
+	fmt.Fprintln(w, "  clx alias list")
+	fmt.Fprintln(w, "  clx --explain gst")
+	fmt.Fprintln(w, "  clx -y gst")
 }
 
 func runAliasSet(args []string, stdout, stderr io.Writer) int {
