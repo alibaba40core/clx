@@ -1,6 +1,6 @@
 # Phase 2 — AI Integration
 
-> **Status:** Phase 2 complete (2.1–2.7). Phase 3 (Safety) or Phase 4 (Advanced UX) next.
+> **Status:** Phase 2 complete (2.1–2.8). Phase 3 (Safety) or Phase 4 (Advanced UX) next.
 >
 > This doc is both the implementation plan **and** the live tracker. Flip
 > checkboxes (`[ ]` → `[x]`) and append to the **Update log** at the bottom as
@@ -20,6 +20,7 @@
 | **2.5** | Hardening: redaction audit, docs, CI budget recheck | ✅ Done | 1d48cd4 | providers.timeout, host URL validation, security e2e, Phase 2 close-out. |
 | **2.6** | Provider config CLI + encrypted secrets | ✅ Done | — | `clx config` subcommand, enc:v1 API keys, machine-bound encryption, provider-scoped set/get/show. |
 | **2.7** | Google Gemini provider | ✅ Done | — | Gemini generateContent API, structured output via responseSchema, schema adaptation (strip additionalProperties), CommandGenerator support, enc:v1 secret, default model gemini-2.0-flash. |
+| **2.8** | Safety mode CLI + mode×risk matrix | ✅ Done | — | `clx safety` subcommand; `DecideSafetyAction` preset matrix; preview-then-confirm in high mode; custom global toggles. |
 
 Legend: ⬜ Not started · 🟡 In progress · ✅ Done · 🛑 Blocked
 
@@ -365,6 +366,19 @@ green. Mark the box when the commit lands on `development`.
 
 ---
 
+## Phase 2.8 — Safety mode CLI & mode×risk matrix
+
+> **Goal:** separate user safety mode from per-command risk; control behavior via `clx safety`.
+
+- [x] `internal/config/safety.go`: `DecideSafetyAction`, preset matrix (low/medium/high), custom global toggles
+- [x] Pipeline: apply matrix in `executePlan`; preview-then-confirm for high mode; remove `ra.RequiresConfirmation` OR
+- [x] `clx safety show` / `clx safety set mode=…` / custom toggles (`require_confirmation`, `dry_run`, `explain`)
+- [x] Default `medium` with `dry_run: false` (low-risk commands run; medium/high explain + confirm)
+- [x] Tests: matrix unit tests, pipeline gates, CLI persistence
+- [x] Docs: architecture §3.9 matrix, `config.example.yaml` comments
+
+---
+
 ## Cross-cutting non-negotiables
 
 These apply to every commit in Phase 2. They mirror the workspace rules
@@ -417,7 +431,11 @@ Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short su
 2026-05-29 · P.4   · Intent name in AI explain prompt · a86bee6
 2026-05-29 · P.5   · Deferred budget probe comments; version timing smoke test · 136faed
 2026-05-29 · P.6   · phase-2.md behavior table + R2/R4 close-out · a1c708f
-2026-05-29 · 2.6   · Provider config CLI, enc:v1 API keys, clx config subcommand · (pending)
+2026-05-29 · 2.6   · Provider config CLI, enc:v1 API keys, clx config subcommand · 76e9767
+2026-05-30 · 2.8   · Safety mode×risk matrix in config · 97f8c88
+2026-05-30 · 2.8   · Safety matrix in pipeline (preview-then-confirm) · 518253b
+2026-05-30 · 2.8   · clx safety subcommand · e554ebd
+2026-05-30 · 2.8   · Safety matrix and CLI tests · 9a33ac8
 ```
 
 ---
