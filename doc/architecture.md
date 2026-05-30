@@ -282,8 +282,8 @@ Confirmation is enforced by `config.DecideSafetyAction` (safety mode × risk), n
 
 | Level | Behavior |
 |-------|----------|
-| **Safe** | Deny all execution in `policy.Check` (explain-only) |
-| **Moderate** | Allow only commands classified `risk.Low`; medium/high blocked |
+| **Safe** | Deny execution (`ExecAllowed=false`); `--explain` still shows translation + policy warning |
+| **Moderate** | Allow only commands classified `risk.Low`; medium/high blocked at exec |
 | **Full** (default) | Allow any command that passes block/allow lists; destructive patterns still blocked |
 
 **Policy file** (`~/.clx/policies/policy.yaml`):
@@ -294,13 +294,17 @@ blocked:
   - "rm -rf /"
   - "shutdown"
   - "format"
-# allowed:   # optional; when set, only listed argv[0] verbs may run
-#   - "git"
-#   - "docker"
-#   - "npm"
+# allowed: enforced only when safety.mode=high (ignored for low/medium/custom)
+#   - git
+#   - docker
+#   - npm
 ```
 
-Block patterns match as ordered token subsequences on `gen.Argv`. When `allowed` is non-empty, only `argv[0]` verbs on the list may run (opt-in; default template ships without it).
+Block patterns match as ordered token subsequences on `gen.Argv` and are **always** enforced at exec time.
+
+**Allow list** (`allowed:`): only enforced when `config.yaml` `safety.mode` is **high**. Low, medium, and custom modes ignore `allowed` even if present in YAML. Manage verbs with `clx policy allow|list|rm`; `clx safety set mode=high` seeds `git`, `docker`, `npm` when the list is empty.
+
+**Explain vs exec:** `policy.Check` receives `ExplainOnly`. Block list, allow-list (high), and access-level denials set `ExecAllowed=false`. On `--explain`, the pipeline prints `Policy (exec): <reason>` and exits 0 without running the command.
 
 ---
 

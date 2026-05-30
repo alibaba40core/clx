@@ -1,11 +1,11 @@
 # CLX default policy template
 # Copy to ~/.clx/policies/policy.yaml
 #
-# blocked: argv token patterns (ordered subsequence match on gen.Argv).
-# allowed: optional; when non-empty, only argv[0] verbs listed here may run.
+# blocked: argv token patterns (ordered subsequence match on gen.Argv). Always enforced.
+# allowed: only enforced when safety.mode=high (ignored for low, medium, custom).
 # access_level: safe (no exec) | moderate (low-risk only) | full (default).
 #
-# Example allow-list (opt-in — uncomment to enable):
+# Example allow-list for high safety (seeded by clx safety set mode=high):
 # allowed:
 #   - git
 #   - docker
