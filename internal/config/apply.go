@@ -105,6 +105,11 @@ func applyNode(cfg *Config, root *yamlutil.Node) {
 			cfg.Cache.MaxDiskBytes = n
 		}
 	}
+	if v, ok := root.GetString("aliases", "max_aliases"); ok {
+		if n, err := strconv.Atoi(v); err == nil {
+			cfg.Aliases.MaxAliases = n
+		}
+	}
 	if v, ok := root.GetString("logging", "enabled"); ok {
 		cfg.Logging.Enabled = parseBool(v)
 	}

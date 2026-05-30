@@ -64,6 +64,15 @@ func PoliciesDir() (string, error) {
 	return filepath.Join(home, "policies"), nil
 }
 
+// AliasesPath returns ~/.clx/aliases.yaml.
+func AliasesPath() (string, error) {
+	home, err := Home()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, "aliases.yaml"), nil
+}
+
 // PolicyPath returns ~/.clx/policies/policy.yaml.
 func PolicyPath() (string, error) {
 	dir, err := PoliciesDir()

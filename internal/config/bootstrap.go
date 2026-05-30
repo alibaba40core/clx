@@ -21,10 +21,11 @@ var bootstrapDirs = []func() (string, error){
 
 // BootstrapResult reports what first-run bootstrap did.
 type BootstrapResult struct {
-	CreatedDirs  []string
-	WroteConfig  bool
-	WrotePolicy  bool
-	WroteProfile bool
+	CreatedDirs   []string
+	WroteConfig   bool
+	WrotePolicy   bool
+	WroteAliases  bool
+	WroteProfile  bool
 }
 
 // Bootstrap ensures ~/.clx/ exists with default files (idempotent).
@@ -77,6 +78,16 @@ func Bootstrap(ctx context.Context) (BootstrapResult, error) {
 		return BootstrapResult{}, fmt.Errorf("bootstrap policy: %w", err)
 	}
 	result.WrotePolicy = wrote
+
+	aliasPath, err := AliasesPath()
+	if err != nil {
+		return BootstrapResult{}, err
+	}
+	wrote, err = writeIfMissing(ctx, aliasPath, EmbeddedAliasesYAML())
+	if err != nil {
+		return BootstrapResult{}, fmt.Errorf("bootstrap aliases: %w", err)
+	}
+	result.WroteAliases = wrote
 
 	// system_profile.json is created by clx doctor or LoadOrDetect on first pipeline run.
 

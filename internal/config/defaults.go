@@ -63,6 +63,9 @@ func Default() Config {
 			TTLDays:      30,
 			MaxDiskBytes: 5 * 1024 * 1024,
 		},
+		Aliases: AliasesConfig{
+			MaxAliases: 256,
+		},
 		Logging: LoggingConfig{
 			Enabled: true,
 			Level:   "info",
