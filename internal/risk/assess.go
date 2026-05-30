@@ -42,9 +42,10 @@ var dockerReadOnlySubverbs = map[string]struct{}{
 // destructiveArgv classifies argv[0] as High regardless of joined command text.
 var destructiveArgv = map[string]struct{}{
 	"rm": {}, "rmdir": {}, "del": {}, "rd": {}, "remove-item": {},
+	"mkfs": {}, "dd": {}, "diskpart": {}, "fdisk": {}, "clear-disk": {},
 }
 
-// Assess classifies a generated command (Phase 1.6 heuristic stub).
+// Assess classifies a generated command from its argv tokens.
 func Assess(ctx context.Context, gen generator.GeneratedCommand) (RiskAssessment, error) {
 	if err := ctx.Err(); err != nil {
 		return RiskAssessment{}, err
@@ -62,6 +63,9 @@ func Assess(ctx context.Context, gen generator.GeneratedCommand) (RiskAssessment
 	if recursiveDeletePattern(gen.Argv) {
 		return high("recursive or forced delete pattern"), nil
 	}
+	if removeItemForcedPattern(gen.Argv) {
+		return high("powershell forced delete pattern"), nil
+	}
 
 	if len(gen.Argv) > 0 {
 		verb := strings.ToLower(gen.Argv[0])
@@ -70,9 +74,8 @@ func Assess(ctx context.Context, gen generator.GeneratedCommand) (RiskAssessment
 				return medium(reason), nil
 			}
 			return RiskAssessment{
-				Level:                Low,
-				Reason:               "read-only or safe seed command",
-				RequiresConfirmation: false,
+				Level:  Low,
+				Reason: "read-only or safe seed command",
 			}, nil
 		}
 	}
@@ -82,9 +85,8 @@ func Assess(ctx context.Context, gen generator.GeneratedCommand) (RiskAssessment
 
 func high(reason string) RiskAssessment {
 	return RiskAssessment{
-		Level:                High,
-		Reason:               reason,
-		RequiresConfirmation: true,
+		Level:  High,
+		Reason: reason,
 	}
 }
 
@@ -94,7 +96,7 @@ func destructiveArgvPattern(argv []string) bool {
 		return false
 	}
 	switch strings.ToLower(argv[0]) {
-	case "shutdown", "format":
+	case "shutdown", "format", "halt", "reboot", "poweroff":
 		return true
 	}
 	if hasAdjacent(argv, "del", "/f") {
@@ -119,6 +121,20 @@ func recursiveDeletePattern(argv []string) bool {
 	}
 	if hasAdjacent(argv, "rmdir", "/s") || hasAdjacent(argv, "rmdir", "/S") {
 		return true
+	}
+	return false
+}
+
+// removeItemForcedPattern detects Remove-Item with destructive PowerShell flags.
+func removeItemForcedPattern(argv []string) bool {
+	if len(argv) == 0 || !strings.EqualFold(argv[0], "Remove-Item") {
+		return false
+	}
+	for _, a := range argv[1:] {
+		lower := strings.ToLower(a)
+		if lower == "-recurse" || lower == "-force" || lower == "-rf" {
+			return true
+		}
 	}
 	return false
 }
@@ -165,8 +181,7 @@ func nonReadOnlySubverb(verb string, argv []string) (string, bool) {
 
 func medium(reason string) RiskAssessment {
 	return RiskAssessment{
-		Level:                Medium,
-		Reason:               reason,
-		RequiresConfirmation: true,
+		Level:  Medium,
+		Reason: reason,
 	}
 }

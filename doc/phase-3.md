@@ -14,7 +14,7 @@
 | Sub-phase | Scope | Status | Last commit | Notes |
 |-----------|-------|--------|-------------|-------|
 | **P.1** | Prerequisites: YAML decoder, config drift, auto_execute fix, cache secret guard | ✅ Done | — | Unblocks Phase 3 start; see update log. |
-| **3.1** | Risk engine hardening | ⬜ Not started | — | Move beyond Phase 1.6 heuristic stub. |
+| **3.1** | Risk engine hardening | ✅ Done | — | Destructive patterns extended; RequiresConfirmation removed. |
 | **3.2** | Policy allow-list + argv-aware matching | ⬜ Not started | — | Replace naive substring block matching. |
 | **3.3** | Access levels (Safe / Moderate / Full) | ⬜ Not started | — | Architecture §3.8; distinct from safety mode. |
 
@@ -99,11 +99,11 @@ all. Both run in the pipeline; neither bypasses the other.
 > **Goal:** Replace the Phase 1.6 heuristic stub with a maintainable classifier
 > that keeps pace with AI-generated argv.
 
-- [ ] Audit and extend destructive-pattern lists for AI command generation path
-- [ ] Confirm risk classifies rule-rendered `gen.Argv`, not shell-host wrapper tokens
-- [ ] Decide fate of `RiskAssessment.RequiresConfirmation` (likely remove; safety matrix owns confirm)
-- [ ] Expand test matrix for cross-shell destructive patterns
-- [ ] Remove "Phase 1.6 heuristic stub" comment when done
+- [x] Audit and extend destructive-pattern lists for AI command generation path
+- [x] Confirm risk classifies rule-rendered `gen.Argv`, not shell-host wrapper tokens
+- [x] Decide fate of `RiskAssessment.RequiresConfirmation` (likely remove; safety matrix owns confirm)
+- [x] Expand test matrix for cross-shell destructive patterns
+- [x] Remove "Phase 1.6 heuristic stub" comment when done
 
 ---
 
@@ -161,6 +161,7 @@ Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short su
 
 ```
 2026-05-30 · P.1 · Phase 3 prerequisites: YAML inline comments, config drift, auto_execute fix, cache secret guard · (pending)
+2026-05-30 · 3.1 · risk: harden destructive-pattern classifier and drop vestigial RequiresConfirmation · (pending)
 ```
 
 ---
