@@ -1,6 +1,6 @@
 # Phase 3 — Safety Hardening
 
-> **Status:** Not started. Prerequisites complete; Phase 3 proper next.
+> **Status:** Complete. All sub-phases 3.1–3.3 (plus policy split commits) landed.
 >
 > This doc is both the implementation plan **and** the live tracker. Flip
 > checkboxes (`[ ]` → `[x]`) and append to the **Update log** at the bottom as
@@ -150,8 +150,8 @@ all. Both run in the pipeline; neither bypasses the other.
 |---|------|-------|--------|
 | R1 | Policy matching strategy: argv token match vs normalized command string | — | Resolved: argv subsequence |
 | R2 | Access level config shape: policy.yaml field vs config.yaml | — | Resolved: `policy.yaml` `access_level` |
-| R3 | Legacy `safety.level` key in config (`apply.go` TODO) — deprecate and warn? | TBD | Open |
-| R4 | Risk pattern maintenance cadence with AI command generation enabled | TBD | Open |
+| R3 | Legacy `safety.level` key in config (`apply.go` TODO) — deprecate and warn? | — | Resolved: one-time stderr warning |
+| R4 | Risk pattern maintenance cadence with AI command generation enabled | — | Resolved: closed maps in `internal/risk` |
 
 ---
 
@@ -164,7 +164,8 @@ Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short su
 2026-05-30 · 3.1 · risk: harden destructive-pattern classifier and drop vestigial RequiresConfirmation · 8036768
 2026-05-30 · 3.2 · policy: replace substring block matching with argv-aware token matching · 2de873a
 2026-05-30 · 3.3 · policy: implement allow-list semantics and mtime-based reload · 09ae8f9
-2026-05-30 · 3.4 · policy: add safe/moderate/full access levels gating execution · (pending)
+2026-05-30 · 3.4 · policy: add safe/moderate/full access levels gating execution · 7c9ff96
+2026-05-30 · 3.5 · config: deprecate legacy safety.level key and finalize phase 3 docs · b1180ef
 ```
 
 ---

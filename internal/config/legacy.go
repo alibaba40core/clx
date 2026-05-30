@@ -1,7 +1,21 @@
 package config
 
+import (
+	"fmt"
+	"os"
+	"sync"
+)
+
+var warnLegacySafetyLevel sync.Once
+
+// warnDeprecatedSafetyLevel prints a one-time stderr notice when safety.level is used.
+func warnDeprecatedSafetyLevel() {
+	warnLegacySafetyLevel.Do(func() {
+		_, _ = fmt.Fprintln(os.Stderr, "clx: safety.level is deprecated; use safety.mode instead")
+	})
+}
+
 // normalizeLegacyMode maps deprecated safety.level values to safety.mode.
-// Legacy YAML keys are accepted silently until Phase 3 wires Mode to behavior.
 func normalizeLegacyMode(v string) string {
 	switch v {
 	case "safe":

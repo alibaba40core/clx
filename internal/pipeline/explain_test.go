@@ -11,8 +11,18 @@ import (
 	"github.com/alibaba40core/clx/internal/generator"
 	"github.com/alibaba40core/clx/internal/intent"
 	"github.com/alibaba40core/clx/internal/parser"
+	"github.com/alibaba40core/clx/internal/policy"
 	"github.com/alibaba40core/clx/internal/providers"
 )
+
+func explainTestHome(t *testing.T) {
+	t.Helper()
+	t.Setenv("CLX_HOME", t.TempDir())
+	if _, err := config.Bootstrap(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	policy.ResetCache()
+}
 
 type explainStubProvider struct {
 	text string
@@ -32,7 +42,7 @@ func (s *explainStubProvider) Explain(context.Context, generator.GeneratedComman
 }
 
 func TestRunExplainAIEnrichment(t *testing.T) {
-	t.Parallel()
+	explainTestHome(t)
 	stub := &explainStubProvider{text: "AI explains listing files."}
 	var stdout bytes.Buffer
 	code, err := Run(context.Background(), config.Default(), "unknown phrase", Options{
@@ -56,7 +66,7 @@ func TestRunExplainAIEnrichment(t *testing.T) {
 }
 
 func TestRunExplainRulePathNoAIExplain(t *testing.T) {
-	t.Parallel()
+	explainTestHome(t)
 	stub := &explainStubProvider{text: "should not appear"}
 	var stdout bytes.Buffer
 	code, err := Run(context.Background(), config.Default(), "git status", Options{
@@ -74,7 +84,7 @@ func TestRunExplainRulePathNoAIExplain(t *testing.T) {
 }
 
 func TestRunExplainAIFallbackStatic(t *testing.T) {
-	t.Parallel()
+	explainTestHome(t)
 	stub := &explainStubProvider{err: providers.ErrUnavailable}
 	var stdout bytes.Buffer
 	code, err := Run(context.Background(), config.Default(), "unknown", Options{
@@ -98,7 +108,7 @@ func TestRunExplainAIFallbackStatic(t *testing.T) {
 }
 
 func TestExplainFallbackRedactsErrorInDebugLog(t *testing.T) {
-	t.Parallel()
+	explainTestHome(t)
 	var logBuf strings.Builder
 	logger := slog.New(slog.NewTextHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	secret := "sk-secret1234567890abcdef"
