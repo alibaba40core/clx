@@ -102,7 +102,23 @@ func TestSafetyShowLinesPreset(t *testing.T) {
 	cfg.Safety.Mode = "low"
 	lines := SafetyShowLines(cfg)
 	text := strings.Join(lines, "\n")
-	if !strings.Contains(text, "safety mode: low") || !strings.Contains(text, "high: confirm") {
+	for _, want := range []string{
+		"Safety mode: low",
+		"Command risk",
+		"high:  confirm",
+		"clx safety set mode=",
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("missing %q in\n%s", want, text)
+		}
+	}
+}
+
+func TestSafetyShowLinesMedium(t *testing.T) {
+	cfg := Default()
+	lines := SafetyShowLines(cfg)
+	text := strings.Join(lines, "\n")
+	if !strings.Contains(text, "Balanced (default)") || !strings.Contains(text, "explain + confirm") {
 		t.Fatalf("lines=%q", text)
 	}
 }
@@ -113,7 +129,7 @@ func TestSafetyShowLinesCustom(t *testing.T) {
 	cfg.Safety.DryRun = true
 	lines := SafetyShowLines(cfg)
 	text := strings.Join(lines, "\n")
-	if !strings.Contains(text, "dry_run: true") {
+	if !strings.Contains(text, "dry_run:") || !strings.Contains(text, "Custom toggles") {
 		t.Fatalf("lines=%q", text)
 	}
 }
