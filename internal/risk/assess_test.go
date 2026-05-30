@@ -83,9 +83,6 @@ func TestAssessLowVerbsMatrix(t *testing.T) {
 			if got.Level != Low {
 				t.Fatalf("%s: level %v reason=%q", tc.name, got.Level, got.Reason)
 			}
-			if got.RequiresConfirmation {
-				t.Fatalf("%s: should not require confirmation", tc.name)
-			}
 		})
 	}
 }
@@ -106,9 +103,6 @@ func TestAssessGitNonReadOnlySubverbMedium(t *testing.T) {
 		}
 		if got.Level != Medium {
 			t.Fatalf("%v: level %v", argv, got.Level)
-		}
-		if !got.RequiresConfirmation {
-			t.Fatalf("%v: should require confirmation", argv)
 		}
 	}
 }
@@ -180,9 +174,6 @@ func TestAssessMutatingFilesystemMedium(t *testing.T) {
 			if got.Level != Medium {
 				t.Fatalf("%v: level %v reason=%q", argv, got.Level, got.Reason)
 			}
-			if !got.RequiresConfirmation {
-				t.Fatalf("%v: should require confirmation", argv)
-			}
 		})
 	}
 }
@@ -216,6 +207,61 @@ func TestAssessRecursiveDeletePatternsHigh(t *testing.T) {
 		{"rm", "-rf", "."},
 		{"del", "/s", "/q", "dir"},
 		{"rmdir", "/S", "/Q", "dir"},
+	}
+	for _, argv := range cases {
+		argv := argv
+		t.Run(joinArgv(argv), func(t *testing.T) {
+			t.Parallel()
+			gen := generator.GeneratedCommand{Argv: argv, Command: joinArgv(argv)}
+			got, err := Assess(context.Background(), gen)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.Level != High {
+				t.Fatalf("%v: level %v reason=%q", argv, got.Level, got.Reason)
+			}
+		})
+	}
+}
+
+func TestAssessClassifiesArgvNotShellWrapper(t *testing.T) {
+	t.Parallel()
+	// Rule-rendered argv: cmdlet token only.
+	genLow := generator.GeneratedCommand{Argv: []string{"Get-Location"}, Command: "Get-Location"}
+	got, err := Assess(context.Background(), genLow)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Level != Low {
+		t.Fatalf("Get-Location argv: level %v", got.Level)
+	}
+
+	// Shell-host wrapper tokens must not inherit cmdlet low classification.
+	genWrap := generator.GeneratedCommand{
+		Argv:    []string{"powershell", "-NoProfile", "-Command", "Get-Location"},
+		Command: "powershell -NoProfile -Command Get-Location",
+	}
+	got, err = Assess(context.Background(), genWrap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Level == Low {
+		t.Fatal("wrapper argv must not classify as low")
+	}
+}
+
+func TestAssessCrossShellDestructiveHigh(t *testing.T) {
+	t.Parallel()
+	cases := [][]string{
+		{"mkfs", "ext4", "/dev/sda1"},
+		{"dd", "if=/dev/zero", "of=/dev/sda"},
+		{"diskpart"},
+		{"fdisk", "/dev/sda"},
+		{"Clear-Disk", "-Number", "0"},
+		{"halt"},
+		{"reboot"},
+		{"poweroff"},
+		{"Remove-Item", "-Recurse", "-Force", "C:\\temp"},
 	}
 	for _, argv := range cases {
 		argv := argv

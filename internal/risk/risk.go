@@ -24,8 +24,8 @@ func (l RiskLevel) String() string {
 }
 
 // RiskAssessment is the output of risk classification.
+// Confirmation is enforced by config.DecideSafetyAction, not this struct.
 type RiskAssessment struct {
-	Level                RiskLevel
-	Reason               string
-	RequiresConfirmation bool
+	Level  RiskLevel
+	Reason string
 }
