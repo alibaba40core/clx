@@ -98,7 +98,12 @@ func runAliasSet(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "alias set: %v\n", err)
 		return 1
 	}
-	fmt.Fprintf(stdout, "alias %q set\n", name)
+	aliasPath, _ := config.AliasesPath()
+	if aliasPath != "" {
+		fmt.Fprintf(stdout, "alias %q set (saved to %s)\n", name, aliasPath)
+	} else {
+		fmt.Fprintf(stdout, "alias %q set\n", name)
+	}
 	return 0
 }
 

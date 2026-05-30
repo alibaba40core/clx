@@ -42,9 +42,10 @@ func Parse(ctx context.Context, raw string, profile environment.SystemProfile, l
 	}
 
 	req := Request{
-		RawInput: raw,
-		Tokens:   tokResult.tokens,
-		Args:     tokResult.args,
+		RawInput:       raw,
+		EffectiveInput: body,
+		Tokens:         tokResult.tokens,
+		Args:           tokResult.args,
 	}
 	if req.Args == nil {
 		req.Args = make(map[string]string)

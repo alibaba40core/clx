@@ -9,13 +9,17 @@ import (
 	"github.com/alibaba40core/clx/internal/executor"
 	"github.com/alibaba40core/clx/internal/generator"
 	"github.com/alibaba40core/clx/internal/intent"
+	"github.com/alibaba40core/clx/internal/parser"
 	"github.com/alibaba40core/clx/internal/risk"
 )
 
-func printDisplay(w io.Writer, resolved intent.ResolvedIntent, gen generator.GeneratedCommand, ra risk.RiskAssessment) error {
+func printDisplay(w io.Writer, req parser.Request, resolved intent.ResolvedIntent, gen generator.GeneratedCommand, ra risk.RiskAssessment) error {
 	quoted := executor.QuoteArgv(gen.Shell, gen.Argv)
 
 	var b strings.Builder
+	if req.EffectiveInput != "" && req.EffectiveInput != strings.TrimSpace(req.RawInput) {
+		fmt.Fprintf(&b, "Expanded:    %s\n", req.EffectiveInput)
+	}
 	fmt.Fprintf(&b, "Intent:      %s\n", resolved.Intent)
 	if len(resolved.Params) > 0 {
 		keys := make([]string, 0, len(resolved.Params))
