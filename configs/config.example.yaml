@@ -50,6 +50,9 @@ cache:
   ttl_days: 30
   max_disk_bytes: 5242880
 
+aliases:
+  max_aliases: 256
+
 logging:
   enabled: true
   level: info

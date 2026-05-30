@@ -9,7 +9,13 @@ type Config struct {
 	Safety    SafetyConfig    `yaml:"safety"`
 	Features  FeaturesConfig  `yaml:"features"`
 	Cache     CacheConfig     `yaml:"cache"`
+	Aliases   AliasesConfig   `yaml:"aliases"`
 	Logging   LoggingConfig   `yaml:"logging"`
+}
+
+// AliasesConfig bounds user-global alias shortcuts.
+type AliasesConfig struct {
+	MaxAliases int `yaml:"max_aliases"`
 }
 
 // ProvidersConfig holds per-provider settings and optional fallback chain (D6).
