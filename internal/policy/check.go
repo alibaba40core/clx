@@ -38,7 +38,7 @@ func Check(ctx context.Context, gen generator.GeneratedCommand, ra risk.RiskAsse
 		}
 	}
 
-	if enforceAllowList(opts.SafetyMode) && len(pol.Allowed) > 0 && !verbOnAllowList(gen.Argv, pol.Allowed) {
+	if AllowListActive(opts.SafetyMode, pol.Allowed) && !verbOnAllowList(gen.Argv, pol.Allowed) {
 		return denyResult("command verb not on allow list", explain), nil
 	}
 

@@ -254,7 +254,7 @@ func printHelp(w io.Writer) {
 	fmt.Fprintln(w, "                      (run first-time or after installing tools / switching shells)")
 	fmt.Fprintln(w, "  config              View or update AI provider settings (see clx config help)")
 	fmt.Fprintln(w, "  safety              Set safety mode and custom toggles (see clx safety help)")
-	fmt.Fprintln(w, "  policy              Manage allow-list verbs for high safety (see clx policy help)")
+	fmt.Fprintln(w, "  policy              View block/allow policy rules (see clx policy help)")
 	fmt.Fprintln(w, "  alias               Manage user-global command aliases (see clx alias help)")
 	fmt.Fprintln(w, "  init                Interactive first-run setup wizard")
 	fmt.Fprintln(w)

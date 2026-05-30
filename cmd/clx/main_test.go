@@ -103,6 +103,27 @@ func TestRunPolicyListNotPipeline(t *testing.T) {
 	if strings.Contains(stdout.String(), "ai-generated command") {
 		t.Fatalf("policy list must not run AI pipeline, stdout=%q", stdout.String())
 	}
+	if !strings.Contains(stdout.String(), "Allowed verbs") {
+		t.Fatalf("list should label output, stdout=%q", stdout.String())
+	}
+}
+
+func TestRunPolicyShowNotPipeline(t *testing.T) {
+	t.Setenv("CLX_HOME", t.TempDir())
+	if _, err := config.Bootstrap(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"policy", "show"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("exit %d stderr=%s", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "Blocked patterns") {
+		t.Fatalf("show should list blocks, stdout=%q", stdout.String())
+	}
+	if strings.Contains(stdout.String(), "ai-generated command") {
+		t.Fatalf("policy show must not run AI pipeline, stdout=%q", stdout.String())
+	}
 }
 
 func TestRunAliasListNotPipeline(t *testing.T) {
