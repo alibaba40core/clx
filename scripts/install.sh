@@ -39,6 +39,14 @@ main() {
   cp "${BIN_DIR}/clxmax" "${DEST}/clxmax"
   chmod +x "${DEST}/clx" "${DEST}/clxmax"
 
+  # Remove stale repo-root binaries that shadow PATH when cwd is the clone.
+  for stale in clx clxmax; do
+    if [[ -f "${ROOT}/${stale}" ]]; then
+      rm -f "${ROOT}/${stale}"
+      echo "removed stale ${ROOT}/${stale} (was shadowing installed clx in this directory)"
+    fi
+  done
+
   echo "installed clx and clxmax to ${DEST}"
   if [[ "${DEST}" == "${HOME}/.local/bin" ]]; then
     echo "ensure ${DEST} is on your PATH"

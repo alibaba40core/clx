@@ -85,6 +85,24 @@ func TestRunHelp(t *testing.T) {
 	if !strings.Contains(stdout.String(), "Usage:") {
 		t.Fatalf("stdout=%q", stdout.String())
 	}
+	if !strings.Contains(stdout.String(), "clx alias") {
+		t.Fatalf("help should document alias subcommand, stdout=%q", stdout.String())
+	}
+}
+
+func TestRunAliasListNotPipeline(t *testing.T) {
+	t.Setenv("CLX_HOME", t.TempDir())
+	if _, err := config.Bootstrap(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"alias", "list"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("exit %d stderr=%s", code, stderr.String())
+	}
+	if strings.Contains(stdout.String(), "ai-generated command") {
+		t.Fatalf("alias list must not run AI pipeline, stdout=%q", stdout.String())
+	}
 }
 
 func setupCLIHome(t *testing.T) {

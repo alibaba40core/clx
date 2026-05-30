@@ -36,7 +36,14 @@ else
 endif
 
 clean: ## Remove build artifacts
+ifeq ($(OS),Windows_NT)
+	@if exist "$(BIN_DIR)" rmdir /s /q "$(BIN_DIR)" 2>nul
+	@if exist clx.exe del /f /q clx.exe 2>nul
+	@if exist clxmax.exe del /f /q clxmax.exe 2>nul
+else
 	@rm -rf $(BIN_DIR)
+	@rm -f clx clxmax clx.exe clxmax.exe
+endif
 	@echo "clean: done"
 
 bootstrap-local: build ## Bootstrap ~/.clx using CLX_HOME=./.local-clx

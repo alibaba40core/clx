@@ -97,6 +97,22 @@ Build-Binaries
 Install-ToDest
 Add-ToUserPath
 
+# Stale binaries in the repo root shadow "clx" when the shell cwd is the clone (Windows
+# searches .\clx.exe before PATH). Remove them so make install fixes alias/config subcommands.
+foreach ($stale in @("clx.exe", "clxmax.exe", "clx", "clxmax")) {
+    $p = Join-Path $Root $stale
+    if (Test-Path $p) {
+        Remove-Item -Force $p
+        Write-Host "removed stale $p (was shadowing installed clx in this directory)"
+    }
+}
+
 Write-Host "installed clx and clxmax to $Dest"
-& (Join-Path $Dest "clx.exe") --version
-& (Join-Path $Dest "clx.exe") doctor
+$installed = Join-Path $Dest "clx.exe"
+& $installed --version
+& $installed doctor
+$onPath = (Get-Command clx -ErrorAction SilentlyContinue).Source
+if ($onPath -and ($onPath -ne $installed)) {
+    Write-Warning "another clx is first on PATH: $onPath"
+    Write-Warning "from this repo directory use: $installed <args>  (or remove the shadowing binary)"
+}

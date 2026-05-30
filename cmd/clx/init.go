@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/alibaba40core/clx/internal/config"
 )
@@ -45,7 +44,7 @@ func runInit(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 
-	provider := promptChoice(stdout, in, "AI provider", []string{
+	provider := promptChoice(stdout, stderr, in, "AI provider", []string{
 		"ollama (local)",
 		"openai",
 		"gemini",
@@ -70,18 +69,19 @@ func runInit(args []string, stdout, stderr io.Writer) int {
 		if provider == 2 {
 			secretPath = "providers.gemini.api_key"
 		}
-		fmt.Fprintf(stdout, "Set %s now? [y/N]: ", secretPath)
-		if yes, _ := readYesNo(in); yes {
-			val, rerr := readSecretValue(os.Stdin, stderr, secretPath)
-			if rerr != nil {
-				fmt.Fprintf(stderr, "secret: %v\n", rerr)
-			} else if val != "" {
-				_ = config.SetByPath(&cfg, secretPath, val)
+		// Never use a visible [y/N] line for secrets — pasted keys would echo to the terminal.
+		fmt.Fprintf(stdout, "\n%s (hidden prompt on stderr; press Enter with no input to skip)\n", secretPath)
+		val, rerr := readSecretValue(os.Stdin, stderr, secretPath)
+		if rerr != nil {
+			fmt.Fprintf(stderr, "secret: %v\n", rerr)
+		} else if val != "" {
+			if err := config.SetByPath(&cfg, secretPath, val); err != nil {
+				fmt.Fprintf(stderr, "secret: %v\n", err)
 			}
 		}
 	}
 
-	safety := promptChoice(stdout, in, "Safety mode", []string{
+	safety := promptChoice(stdout, stderr, in, "Safety mode", []string{
 		"medium (default)",
 		"low",
 		"high",
@@ -95,8 +95,7 @@ func runInit(args []string, stdout, stderr io.Writer) int {
 		_ = config.ApplySafetyMode(&cfg, "medium")
 	}
 
-	fmt.Fprint(stdout, "Install shell hook snippet (explain-only)? [y/N]: ")
-	if yes, _ := readYesNo(in); yes {
+	if promptYesNo(stdout, stderr, in, "Install shell hook snippet (explain-only)? [y/N]: ", true) {
 		cfg.Execution.ShellIntegration = true
 		fmt.Fprintln(stdout, string(config.EmbeddedShellIntegration()))
 	}
@@ -121,35 +120,8 @@ func printInitHelp(w io.Writer) {
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Interactive first-run wizard: bootstrap ~/.clx, provider, safety mode,")
 	fmt.Fprintln(w, "optional shell hook instructions, then suggests clx doctor.")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "API keys are read with hidden terminal input (same as clx config set).")
+	fmt.Fprintln(w, "Do not paste secrets on yes/no prompts.")
 }
 
-func promptChoice(stdout io.Writer, in *bufio.Reader, title string, options []string, defaultIdx int) int {
-	fmt.Fprintf(stdout, "\n%s:\n", title)
-	for i, opt := range options {
-		mark := " "
-		if i == defaultIdx {
-			mark = "*"
-		}
-		fmt.Fprintf(stdout, "  %s %d) %s\n", mark, i+1, opt)
-	}
-	fmt.Fprintf(stdout, "Choice [%d]: ", defaultIdx+1)
-	line, _ := in.ReadString('\n')
-	line = strings.TrimSpace(line)
-	if line == "" {
-		return defaultIdx
-	}
-	var n int
-	if _, err := fmt.Sscanf(line, "%d", &n); err != nil || n < 1 || n > len(options) {
-		return defaultIdx
-	}
-	return n - 1
-}
-
-func readYesNo(in *bufio.Reader) (bool, error) {
-	line, err := in.ReadString('\n')
-	if err != nil && line == "" {
-		return false, err
-	}
-	line = strings.ToLower(strings.TrimSpace(line))
-	return line == "y" || line == "yes", nil
-}
