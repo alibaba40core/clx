@@ -155,7 +155,7 @@ all. Both run in the pipeline; neither bypasses the other.
 Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short summary> · <commit sha>`.
 
 ```
-2026-05-30 · P.1 · Phase 3 prerequisites: YAML inline comments, config drift, auto_execute fix, cache secret guard · (pending)
+2026-05-30 · P.1 · Phase 3 prerequisites: YAML inline comments, config drift, auto_execute fix, cache secret guard · 48b5dde
 2026-05-30 · 3.1 · risk: harden destructive-pattern classifier and drop vestigial RequiresConfirmation · 8036768
 2026-05-30 · 3.2 · policy: replace substring block matching with argv-aware token matching · 2de873a
 2026-05-30 · 3.3 · policy: implement allow-list semantics and mtime-based reload · 09ae8f9

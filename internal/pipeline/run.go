@@ -9,6 +9,7 @@ import (
 
 	"github.com/alibaba40core/clx/internal/aliases"
 	"github.com/alibaba40core/clx/internal/config"
+	"github.com/alibaba40core/clx/internal/memory"
 	"github.com/alibaba40core/clx/internal/environment"
 	"github.com/alibaba40core/clx/internal/executor"
 	"github.com/alibaba40core/clx/internal/generator"
@@ -44,6 +45,14 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 		return 1, err
 	}
 
+	if cfg.Memory.Enabled && opts.MemoryStore == nil {
+		if store, merr := memory.Open(ctx, memory.DefaultSessionID(), cfg.Memory); merr == nil {
+			opts.MemoryStore = store
+		} else if opts.Logger != nil {
+			opts.Logger.Warn("memory unavailable, continuing without session context", "err", merr)
+		}
+	}
+
 	eng := opts.Engine
 	if eng == nil {
 		var err error
@@ -54,8 +63,8 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 		}
 	}
 
-	resolvers := buildResolvers(eng, opts)
-	resolved, err := resolveChain(ctx, req, resolvers, opts.Logger, aiResolverIndex(opts))
+	resolvers := buildResolvers(eng, opts, cfg)
+	resolved, err := resolveChain(ctx, req, resolvers, opts.Logger, aiResolverIndex(opts, cfg))
 	if err != nil {
 		// Hybrid fallback: rules/cache/AI-intent all missed. If enabled, ask the
 		// provider to generate a full command (argv) for this platform. The argv
@@ -65,7 +74,7 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 				return code, aiErr
 			}
 		}
-		return reportResolveError(opts, req, err)
+		return reportResolveError(cfg, opts, req, err)
 	}
 
 	if resolved.Source != intent.SourceRule {
@@ -93,7 +102,7 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 		return 1, err
 	}
 
-	return executePlan(ctx, cfg, opts, profile, resolved, gen)
+	return executePlan(ctx, cfg, opts, profile, rawInput, resolved, gen)
 }
 
 // isResolverMiss reports whether err means every resolver missed (vs a hard
@@ -107,7 +116,7 @@ func isResolverMiss(err error) bool {
 
 // reportResolveError prints the appropriate message for a resolution failure and
 // returns the pipeline exit code.
-func reportResolveError(opts Options, req parser.Request, err error) (int, error) {
+func reportResolveError(cfg config.Config, opts Options, req parser.Request, err error) (int, error) {
 	if miss, ok := intent.AsMiss(err); ok && miss.AIAttempted {
 		if req.InputType == parser.InputNaturalLanguage {
 			fmt.Fprintf(opts.Stderr, "AI could not map this to a known command intent; try a simpler phrase or split into separate commands (e.g. clx pwd, then clx \"list directory .\")\n")
@@ -121,6 +130,9 @@ func reportResolveError(opts Options, req parser.Request, err error) (int, error
 			fmt.Fprintf(opts.Stderr, "no matching rule for natural language input; try an explicit command (e.g. grep PATTERN FILE)\n")
 		} else {
 			fmt.Fprintf(opts.Stderr, "no matching rule for input\n")
+		}
+		if cfg.Execution.ShellIntegration {
+			fmt.Fprintf(opts.Stderr, "shell integration is enabled; run `clx init` to install the explain-only hook snippet\n")
 		}
 		return 1, err
 	}
@@ -139,7 +151,7 @@ func reportResolveError(opts Options, req parser.Request, err error) (int, error
 // executePlan runs the shared safety + execution stage for a generated command,
 // whether it came from a rule/intent or from AI command generation:
 // risk → policy → dry-run → (risk-based) confirm → argv-only exec.
-func executePlan(ctx context.Context, cfg config.Config, opts Options, profile environment.SystemProfile, resolved intent.ResolvedIntent, gen generator.GeneratedCommand) (int, error) {
+func executePlan(ctx context.Context, cfg config.Config, opts Options, profile environment.SystemProfile, rawInput string, resolved intent.ResolvedIntent, gen generator.GeneratedCommand) (int, error) {
 	ra, err := risk.Assess(ctx, gen)
 	if err != nil {
 		fmt.Fprintf(opts.Stderr, "risk: %v\n", err)
@@ -170,6 +182,7 @@ func executePlan(ctx context.Context, cfg config.Config, opts Options, profile e
 	}
 
 	if opts.Explain {
+		recordMemory(ctx, opts, rawInput, resolved, gen.Shell)
 		return 0, nil
 	}
 
@@ -203,5 +216,18 @@ func executePlan(ctx context.Context, cfg config.Config, opts Options, profile e
 		fmt.Fprintf(opts.Stderr, "execute: %v\n", err)
 		return 1, err
 	}
+	recordMemory(ctx, opts, rawInput, resolved, gen.Shell)
 	return 0, nil
+}
+
+func recordMemory(ctx context.Context, opts Options, rawInput string, resolved intent.ResolvedIntent, shell string) {
+	if opts.MemoryStore == nil {
+		return
+	}
+	_ = opts.MemoryStore.AppendCommand(ctx, memory.CommandEntry{
+		RawInput: rawInput,
+		Intent:   resolved.Intent,
+		Params:   resolved.Params,
+		Shell:    shell,
+	})
 }

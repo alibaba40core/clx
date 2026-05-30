@@ -90,7 +90,7 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 		Source:     intent.SourceAI,
 	}
 
-	code, err = executePlan(ctx, cfg, opts, profile, resolved, gcmd)
+	code, err = executePlan(ctx, cfg, opts, profile, req.RawInput, resolved, gcmd)
 	return code, true, err
 }
 
