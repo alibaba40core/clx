@@ -1,0 +1,1 @@
+prompt: "Filesystem domain: prefer list_dir, find_file, search_text_in_file, and path parameters. Use detected shell and file tools from the profile."

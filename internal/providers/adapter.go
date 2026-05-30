@@ -74,6 +74,7 @@ func (r *providerResolver) Resolve(ctx context.Context, req parser.Request) (int
 		Profile:      profile,
 		KnownIntents: r.engine.KnownIntents(),
 		RuleParams:   ruleParamsFromEngine(r.engine),
+		SkillHints:   SkillPromptsForEngine(r.engine),
 	}
 
 	timeout := r.cfg.Timeout

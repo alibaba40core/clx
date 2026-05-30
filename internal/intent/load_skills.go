@@ -31,6 +31,7 @@ func LoadSkillsFromFS(fsys fs.FS, root string) ([]Rule, error) {
 
 	var all []Rule
 	for _, p := range paths {
+		pack := filepath.Base(filepath.Dir(p))
 		data, err := fs.ReadFile(fsys, p)
 		if err != nil {
 			return nil, err
@@ -38,6 +39,9 @@ func LoadSkillsFromFS(fsys fs.FS, root string) ([]Rule, error) {
 		rules, err := ParseSkillIntents(data)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", p, err)
+		}
+		for i := range rules {
+			rules[i].SkillPack = pack
 		}
 		all = append(all, rules...)
 	}

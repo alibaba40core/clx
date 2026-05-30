@@ -22,6 +22,7 @@ type IntentRequest struct {
 	Profile      environment.SystemProfile
 	KnownIntents []string            // closed vocabulary, sorted, capped at 256
 	RuleParams   map[string][]string // intent name -> declared param names
+	SkillHints   map[string]string   // skill pack name -> optional domain prompt
 }
 
 // IntentResponse is a provider-level resolved intent before Source is stamped.
