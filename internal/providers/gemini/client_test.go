@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/alibaba40core/clx/internal/providers"
 )
 
 func TestNewClientNoNetwork(t *testing.T) {
@@ -98,8 +100,8 @@ func TestClientChatHTTP500(t *testing.T) {
 	defer srv.Close()
 	c, _ := NewClient("AIza-test", "m", srv.URL, time.Second, nil)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
-	if !errors.Is(err, errUnavailable) {
-		t.Fatalf("err = %v, want errUnavailable", err)
+	if !errors.Is(err, providers.ErrUnavailable) {
+		t.Fatalf("err = %v, want ErrUnavailable", err)
 	}
 }
 
@@ -112,8 +114,22 @@ func TestClientChatHTTP400(t *testing.T) {
 	defer srv.Close()
 	c, _ := NewClient("AIza-test", "m", srv.URL, time.Second, nil)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
-	if !errors.Is(err, errInvalidResp) {
-		t.Fatalf("err = %v, want errInvalidResp", err)
+	if !errors.Is(err, providers.ErrInvalidResp) {
+		t.Fatalf("err = %v, want ErrInvalidResp", err)
+	}
+}
+
+func TestClientChatHTTP429(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte(`{"error":{"code":429,"message":"quota exceeded"}}`))
+	}))
+	defer srv.Close()
+	c, _ := NewClient("AIza-test", "m", srv.URL, time.Second, nil)
+	_, err := c.Chat(context.Background(), "s", "u", nil)
+	if !errors.Is(err, providers.ErrRateLimited) {
+		t.Fatalf("err = %v, want ErrRateLimited", err)
 	}
 }
 
@@ -139,8 +155,8 @@ func TestClientChatTimeout(t *testing.T) {
 	defer srv.Close()
 	c, _ := NewClient("AIza-test", "m", srv.URL, 50*time.Millisecond, nil)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
-	if !errors.Is(err, errTimeout) {
-		t.Fatalf("err = %v, want errTimeout", err)
+	if !errors.Is(err, providers.ErrTimeout) {
+		t.Fatalf("err = %v, want ErrTimeout", err)
 	}
 }
 

@@ -140,6 +140,14 @@ func reportResolveError(cfg config.Config, opts Options, req parser.Request, err
 		}
 		return 1, err
 	}
+	if strings.Contains(err.Error(), "provider rate limit exceeded") {
+		fmt.Fprintln(opts.Stderr, "AI provider rate limit exceeded (check quota/billing or try again later)")
+		return 1, err
+	}
+	if strings.Contains(err.Error(), "provider authentication failed") {
+		fmt.Fprintln(opts.Stderr, "AI provider authentication failed (check API key in clx config show)")
+		return 1, err
+	}
 	if msg := err.Error(); strings.Contains(msg, "provider unavailable") {
 		fmt.Fprintf(opts.Stderr, "%s\n", msg)
 		return 1, err

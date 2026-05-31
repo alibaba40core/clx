@@ -142,6 +142,27 @@ func TestRunAICommandFeatureDisabled(t *testing.T) {
 	}
 }
 
+func TestRunAICommandProviderRateLimited(t *testing.T) {
+	newAICmdEnv(t)
+
+	var stderr bytes.Buffer
+	code, err := Run(context.Background(), config.Default(), "totally unknown phrase here", Options{
+		AIResolver: &fakeAIResolver{err: intent.ErrNotFound},
+		Provider:   &fakeCmdProvider{err: providers.ErrRateLimited},
+		Stdout:     &bytes.Buffer{},
+		Stderr:     &stderr,
+	})
+	if code != 1 || err == nil {
+		t.Fatalf("expected failure, code=%d err=%v", code, err)
+	}
+	if !bytes.Contains(stderr.Bytes(), []byte("rate limit")) {
+		t.Fatalf("stderr=%q", stderr.String())
+	}
+	if bytes.Contains(stderr.Bytes(), []byte("try rephrasing")) {
+		t.Fatalf("stderr should not say rephrasing: %q", stderr.String())
+	}
+}
+
 func TestRunAICommandProviderUnavailable(t *testing.T) {
 	newAICmdEnv(t)
 

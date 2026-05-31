@@ -231,12 +231,8 @@ func (c *Client) doPost(ctx context.Context, body []byte) ([]byte, error) {
 		return nil, errInvalidResp
 	}
 
-	if resp.StatusCode >= 500 {
-		return nil, errUnavailable
-	}
-	if resp.StatusCode >= 400 {
-		providers.DebugLogHTTPError(c.logger, "gemini", resp.StatusCode, data)
-		return nil, errInvalidResp
+	if err := providers.HTTPStatusError(resp.StatusCode, "gemini", data, c.logger); err != nil {
+		return nil, err
 	}
 	return data, nil
 }
@@ -292,11 +288,11 @@ func mapParseError(err error) error {
 
 func mapRoundTripError(err error) error {
 	if errors.Is(err, context.DeadlineExceeded) {
-		return errTimeout
+		return providers.ErrTimeout
 	}
 	var netErr net.Error
 	if errors.As(err, &netErr) && netErr.Timeout() {
-		return errTimeout
+		return providers.ErrTimeout
 	}
-	return errUnavailable
+	return providers.ErrUnavailable
 }

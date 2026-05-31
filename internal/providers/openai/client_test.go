@@ -77,7 +77,7 @@ func TestClientChatHTTP500(t *testing.T) {
 	defer srv.Close()
 	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", time.Second, nil)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
-	if !errors.Is(err, errUnavailable) {
+	if !errors.Is(err, providers.ErrUnavailable) {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -90,8 +90,8 @@ func TestClientChatHTTP401(t *testing.T) {
 	defer srv.Close()
 	c, _ := NewClient("sk-test", "m", srv.URL+"/v1", time.Second, nil)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
-	if !errors.Is(err, errInvalidResp) {
-		t.Fatalf("err = %v", err)
+	if !errors.Is(err, providers.ErrAuth) {
+		t.Fatalf("err = %v, want ErrAuth", err)
 	}
 }
 
@@ -137,7 +137,7 @@ func TestClientChatServerDown(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = c.Chat(context.Background(), "s", "u", nil)
-	if !errors.Is(err, errUnavailable) {
+	if !errors.Is(err, providers.ErrUnavailable) {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -153,7 +153,7 @@ func TestClientChatTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 	_, err := c.Chat(ctx, "s", "u", nil)
-	if !errors.Is(err, errTimeout) && !errors.Is(err, context.DeadlineExceeded) {
+	if !errors.Is(err, providers.ErrTimeout) && !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("err = %v", err)
 	}
 }

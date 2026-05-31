@@ -131,6 +131,10 @@ func mapAdapterError(err error) error {
 	switch {
 	case errors.Is(err, ErrNoMatch), errors.Is(err, ErrInvalidResp):
 		return intent.ErrNotFound
+	case errors.Is(err, ErrRateLimited):
+		return fmt.Errorf("provider rate limit exceeded: %w", err)
+	case errors.Is(err, ErrAuth):
+		return fmt.Errorf("provider authentication failed: %w", err)
 	case errors.Is(err, ErrUnavailable):
 		return fmt.Errorf("provider unavailable: %w", err)
 	case errors.Is(err, ErrTimeout):

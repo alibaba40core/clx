@@ -115,12 +115,8 @@ func (c *Client) Chat(ctx context.Context, system, user string, format map[strin
 		return nil, errInvalidResp
 	}
 
-	if resp.StatusCode >= 500 {
-		return nil, errUnavailable
-	}
-	if resp.StatusCode >= 400 {
-		providers.DebugLogHTTPError(c.logger, "ollama", resp.StatusCode, data)
-		return nil, errInvalidResp
+	if err := providers.HTTPStatusError(resp.StatusCode, "ollama", data, c.logger); err != nil {
+		return nil, err
 	}
 
 	var chat chatResponse
@@ -168,12 +164,8 @@ func (c *Client) ExplainChat(ctx context.Context, system, user string) (string, 
 		return "", errInvalidResp
 	}
 
-	if resp.StatusCode >= 500 {
-		return "", errUnavailable
-	}
-	if resp.StatusCode >= 400 {
-		providers.DebugLogHTTPError(c.logger, "ollama", resp.StatusCode, data)
-		return "", errInvalidResp
+	if err := providers.HTTPStatusError(resp.StatusCode, "ollama", data, c.logger); err != nil {
+		return "", err
 	}
 
 	var chat chatResponse
@@ -214,11 +206,11 @@ func parseIntentContent(content string) (*ChatResult, error) {
 
 func mapRoundTripError(err error) error {
 	if errors.Is(err, context.DeadlineExceeded) {
-		return errTimeout
+		return providers.ErrTimeout
 	}
 	var netErr net.Error
 	if errors.As(err, &netErr) && netErr.Timeout() {
-		return errTimeout
+		return providers.ErrTimeout
 	}
-	return errUnavailable
+	return providers.ErrUnavailable
 }
