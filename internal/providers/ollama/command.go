@@ -64,12 +64,8 @@ func (c *Client) CommandChat(ctx context.Context, system, user string, format ma
 		return nil, errInvalidResp
 	}
 
-	if resp.StatusCode >= 500 {
-		return nil, errUnavailable
-	}
-	if resp.StatusCode >= 400 {
-		providers.DebugLogHTTPError(c.logger, "ollama", resp.StatusCode, data)
-		return nil, errInvalidResp
+	if err := providers.HTTPStatusError(resp.StatusCode, "ollama", data, c.logger); err != nil {
+		return nil, err
 	}
 
 	var chat chatResponse

@@ -77,8 +77,12 @@ func mapClientError(err error) error {
 		return providers.ErrUnavailable
 	case errors.Is(err, errTimeout):
 		return providers.ErrTimeout
-	case errors.Is(err, errInvalidResp):
+	case errors.Is(err, errInvalidResp), errors.Is(err, providers.ErrInvalidResp):
 		return providers.ErrInvalidResp
+	case errors.Is(err, providers.ErrRateLimited):
+		return providers.ErrRateLimited
+	case errors.Is(err, providers.ErrAuth):
+		return providers.ErrAuth
 	case errors.Is(err, errNoMatch):
 		return providers.ErrNoMatch
 	default:

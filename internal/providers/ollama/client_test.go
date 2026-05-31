@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alibaba40core/clx/internal/providers"
 )
 
 func TestNewClientNoNetwork(t *testing.T) {
@@ -70,7 +71,7 @@ func TestClientChatHTTP500(t *testing.T) {
 	defer srv.Close()
 	c, _ := NewClient(srv.URL, "m", time.Second, nil)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
-	if !errors.Is(err, errUnavailable) {
+	if !errors.Is(err, providers.ErrUnavailable) {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -83,7 +84,7 @@ func TestClientChatHTTP400(t *testing.T) {
 	defer srv.Close()
 	c, _ := NewClient(srv.URL, "m", time.Second, nil)
 	_, err := c.Chat(context.Background(), "s", "u", nil)
-	if !errors.Is(err, errInvalidResp) {
+	if !errors.Is(err, providers.ErrInvalidResp) {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -135,7 +136,7 @@ func TestClientChatServerDown(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = c.Chat(context.Background(), "s", "u", nil)
-	if !errors.Is(err, errUnavailable) {
+	if !errors.Is(err, providers.ErrUnavailable) {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -151,7 +152,7 @@ func TestClientChatTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 	_, err := c.Chat(ctx, "s", "u", nil)
-	if !errors.Is(err, errTimeout) && !errors.Is(err, context.DeadlineExceeded) {
+	if !errors.Is(err, providers.ErrTimeout) && !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("err = %v", err)
 	}
 }

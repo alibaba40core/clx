@@ -16,6 +16,8 @@ func TestSentinelErrorIdentity(t *testing.T) {
 		ErrTimeout,
 		ErrInvalidResp,
 		ErrNoMatch,
+		ErrRateLimited,
+		ErrAuth,
 	}
 	for i, want := range sentinels {
 		for j, other := range sentinels {
