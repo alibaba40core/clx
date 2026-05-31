@@ -238,3 +238,25 @@ func TestRunAICommandProviderUnavailable(t *testing.T) {
 		t.Fatalf("stderr=%q", stderr.String())
 	}
 }
+
+func TestRunAICommandOllamaUnavailableWSLHint(t *testing.T) {
+	newAICmdEnv(t)
+
+	cfg := config.Default()
+	cfg.Provider = "ollama"
+	cfg.Providers.Ollama.Host = "http://localhost:11434"
+
+	var stderr bytes.Buffer
+	code, err := Run(context.Background(), cfg, "totally unknown phrase here", Options{
+		AIResolver: &fakeAIResolver{err: intent.ErrNotFound},
+		Provider:   &fakeCmdProvider{err: providers.ErrUnavailable},
+		Stdout:     &bytes.Buffer{},
+		Stderr:     &stderr,
+	})
+	if code != 1 || err == nil {
+		t.Fatalf("expected failure, code=%d err=%v", code, err)
+	}
+	if !bytes.Contains(stderr.Bytes(), []byte("Ollama runs in WSL")) {
+		t.Fatalf("stderr=%q", stderr.String())
+	}
+}

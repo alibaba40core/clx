@@ -16,6 +16,7 @@ import (
 	"github.com/alibaba40core/clx/internal/intent"
 	"github.com/alibaba40core/clx/internal/parser"
 	"github.com/alibaba40core/clx/internal/policy"
+	"github.com/alibaba40core/clx/internal/providers"
 	"github.com/alibaba40core/clx/internal/risk"
 )
 
@@ -148,8 +149,9 @@ func reportResolveError(cfg config.Config, opts Options, req parser.Request, err
 		fmt.Fprintln(opts.Stderr, "AI provider authentication failed (check API key in clx config show)")
 		return 1, err
 	}
-	if msg := err.Error(); strings.Contains(msg, "provider unavailable") {
-		fmt.Fprintf(opts.Stderr, "%s\n", msg)
+	if errors.Is(err, providers.ErrUnavailable) || strings.Contains(err.Error(), "provider unavailable") {
+		fmt.Fprintf(opts.Stderr, "AI provider unavailable: %v\n", err)
+		printOllamaWSLHint(opts.Stderr, cfg)
 		return 1, err
 	}
 	if strings.Contains(err.Error(), "provider timeout") {

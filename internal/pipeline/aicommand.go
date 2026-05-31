@@ -65,7 +65,7 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 			Profile:  profile,
 		})
 		if genErr != nil {
-			return reportAICommandError(opts, genErr), true, genErr
+			return reportAICommandError(cfg, opts, genErr), true, genErr
 		}
 		if resp != nil && opts.CommandCache != nil {
 			key := cache.CommandKeyFor(raw, profile)
@@ -118,7 +118,7 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 
 // reportAICommandError prints a user-facing message for a provider-side failure
 // during command generation and returns the pipeline exit code.
-func reportAICommandError(opts Options, err error) int {
+func reportAICommandError(cfg config.Config, opts Options, err error) int {
 	switch {
 	case errors.Is(err, providers.ErrRateLimited):
 		fmt.Fprintln(opts.Stderr, "AI provider rate limit exceeded (check quota/billing or try again later)")
@@ -128,6 +128,7 @@ func reportAICommandError(opts Options, err error) int {
 		fmt.Fprintf(opts.Stderr, "AI could not generate a command for this request; try rephrasing\n")
 	case errors.Is(err, providers.ErrUnavailable):
 		fmt.Fprintf(opts.Stderr, "AI provider unavailable: %v\n", err)
+		printOllamaWSLHint(opts.Stderr, cfg)
 	case errors.Is(err, providers.ErrTimeout):
 		fmt.Fprintf(opts.Stderr, "AI provider timed out generating a command\n")
 	default:
