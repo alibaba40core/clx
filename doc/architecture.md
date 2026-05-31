@@ -94,7 +94,7 @@ Each component lives in `internal/<name>/` as a private Go package. Interfaces a
 
 | Command | Purpose |
 |---------|---------|
-| `clx config show` | Display provider-related settings (secrets masked) |
+| `clx config show` | Sectioned summary: providers (secrets masked), features, cache, memory, execution, logging, aliases |
 | `clx config get <path>` | Read one setting (secrets masked) |
 | `clx config set <path> [value]` | Persist a setting; secret paths prompt with hidden input |
 | `clx config provider use <name>` | Set active provider |
@@ -105,13 +105,21 @@ Each component lives in `internal/<name>/` as a private Go package. Interfaces a
 | `clx safety set require_confirmation=<bool>` | Custom toggle (switches mode to custom) |
 | `clx safety set dry_run=<bool>` | Custom toggle (switches mode to custom) |
 | `clx safety set explain=<bool>` | Custom toggle (switches mode to custom) |
+| `clx policy show` | Block list, access level, and allow list summary |
+| `clx policy set access_level=<safe\|moderate\|full>` | Set policy access level |
+| `clx policy block list\|add\|rm` | Manage always-on block patterns |
+| `clx policy allow\|list\|rm` | Manage allow-list verbs (enforced only when `safety.mode=high`) |
+| `clx alias set\|list\|rm` | User-global command aliases |
+| `clx cache status\|clear` | Inspect or reset intent + explanation caches |
+| `clx init` | Interactive first-run setup |
+| `clx doctor` | Detect environment and write `system_profile.json` |
 
-See [doc/provider-config.md](provider-config.md) for paths, encryption, and security notes.
+See [doc/provider-config.md](provider-config.md) for config paths, encryption, and security notes.
 
 **Binaries:**
 
 - **`clx`** — Fast, rules-first, single-shot translation/execution.
-- **`clxmax`** — Same engine with reasoning, multi-step planning, and clarification loops.
+- **`clxmax`** — *Future:* same engine with reasoning, multi-step planning, and clarification loops (not shipped in V1).
 
 ---
 
@@ -302,7 +310,7 @@ blocked:
 
 Block patterns match as ordered token subsequences on `gen.Argv` and are **always** enforced at exec time.
 
-**Allow list** (`allowed:`): only enforced when `config.yaml` `safety.mode` is **high**. Low, medium, and custom modes ignore `allowed` even if present in YAML. Manage verbs with `clx policy allow|list|rm`; `clx safety set mode=high` seeds `git`, `docker`, `npm` when the list is empty.
+**Allow list** (`allowed:`): only enforced when `config.yaml` `safety.mode` is **high**. Low, medium, and custom modes ignore `allowed` even if present in YAML. Manage verbs with `clx policy allow|list|rm`; `clx safety set mode=high` seeds `git`, `docker`, `npm` when the list is empty. Use `clx policy show` for a full summary; `clx policy block add|rm` and `clx policy set access_level=…` for block list and access level without hand-editing YAML.
 
 **Explain vs exec:** `policy.Check` receives `ExplainOnly`. Block list, allow-list (high), and access-level denials set `ExecAllowed=false`. On `--explain`, the pipeline prints `Policy (exec): <reason>` and exits 0 without running the command.
 
@@ -526,11 +534,13 @@ return the resolved intent anyway (pipeline continues).
 **Validation:** cache hits return `Source: Cache` and pass through `Engine.ValidateResolved`
 before the generator runs (same gate as AI output).
 
+**CLI:** `clx cache status` reports paths, entry counts, and file sizes; `clx cache clear` truncates both `intents.json` and `explanations.json` (no confirmation; local data only). Clear still works when `features.cache_commands` is false.
+
 ---
 
 ### 3.14 Config — `internal/config`
 
-**Responsibility:** Load, validate, and provide defaults for `~/.clx/config.yaml`. Phase 2.6 adds `Save`, encrypted API key fields (`enc:v1:`), and the `clx config` subcommand for provider-scoped updates.
+**Responsibility:** Load, validate, and provide defaults for `~/.clx/config.yaml`. `Save`, encrypted API key fields (`enc:v1:`), and `clx config` for providers plus allowlisted dot-paths (`features.*`, `cache.*`, `memory.*`, `execution.*`, `logging.*`, `aliases.max_aliases`). Use `clx safety` for `safety.*` — not `config set`.
 
 **Secret storage:** `providers.openai.api_key` and `providers.azure.api_key` are AES-GCM encrypted at rest with a machine-bound key (fallback: `~/.clx/.secret-key`). Decrypted only in-process during `Load`; `show`/`get` mask secrets.
 
@@ -699,7 +709,8 @@ clx.ai/
 | **Phase 2 — AI Integration** *(complete — see [`doc/phase-2.md`](phase-2.md))* | Ollama + OpenAI + Gemini providers, AI fallback, explanations, cache | `providers/*`, `intent` (AI path), `cache` |
 | **Phase 3 — Safety** | Risk engine, policy engine, dry-run, confirmations, access levels | `risk`, `policy`, `executor` (safety hooks) |
 | **Phase 3.5 — Aliases** | Persistent user-global aliases in `~/.clx/aliases.yaml`. `clx alias set/list/rm` subcommand, parser-stage expansion (alias value flows through full risk/policy/exec chain), set-time collision warning against shell verbs and built-in rule example heads. No dependency on `internal/memory` or shell hooks — ships as a self-contained slice between safety and advanced UX. See [§3.16](#316-aliases--internalaliases). | `internal/aliases`, `internal/parser` (expansion hook), `cmd/clx` (`alias` subcommand) |
-| **Phase 4 — Advanced UX** | Shell interception, auto-fix, session context, interactive `clx init` wizard | `memory`, `skills`, shell hooks |
+| **Phase 4 — Advanced UX** | Shell interception (partial), session context, interactive `clx init` wizard, V1 CLI polish (`config`/`policy`/`cache`) | `memory`, `skills`, `cmd/clx` |
+| **V1 polish** | Provider rate-limit messages, NL rule examples, expanded `clx config`/`policy`/`cache`, docs sync | `providers`, `builtin/rules`, `config`, `policy`, `cache`, `cmd/clx` |
 
 ### 6.1 Phase 1 sub-phases
 
