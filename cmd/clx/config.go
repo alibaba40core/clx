@@ -51,11 +51,18 @@ func printConfigHelp(w io.Writer) {
 	fmt.Fprintln(w, "  clx config provider use <ollama|openai|azure|gemini> [--config path]")
 	fmt.Fprintln(w, "  clx config encrypt-secrets [--config path]")
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Provider paths: provider, model, providers.primary, providers.fallback,")
-	fmt.Fprintln(w, "  providers.timeout, providers.ollama.host, providers.ollama.model,")
-	fmt.Fprintln(w, "  providers.openai.api_key, providers.openai.model,")
-	fmt.Fprintln(w, "  providers.azure.endpoint, providers.azure.api_key, providers.azure.deployment,")
-	fmt.Fprintln(w, "  providers.gemini.api_key, providers.gemini.model")
+	fmt.Fprintln(w, "Settable paths (use clx config get <path>):")
+	fmt.Fprintln(w, "  providers: provider, model, providers.*")
+	fmt.Fprintln(w, "  features: features.explain, features.cache_commands,")
+	fmt.Fprintln(w, "    features.ai_command_generation, features.learning_mode")
+	fmt.Fprintln(w, "  cache: cache.max_entries, cache.ttl_days, cache.max_disk_bytes")
+	fmt.Fprintln(w, "  memory: memory.enabled, memory.max_entries_per_session,")
+	fmt.Fprintln(w, "    memory.max_sessions, memory.ttl_days")
+	fmt.Fprintln(w, "  execution: execution.auto_execute, execution.timeout,")
+	fmt.Fprintln(w, "    execution.shell_integration")
+	fmt.Fprintln(w, "  logging: logging.enabled, logging.level")
+	fmt.Fprintln(w, "  aliases: aliases.max_aliases")
+	fmt.Fprintln(w, "  safety: use clx safety (not config set)")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Secret paths (api_key): omit the value or use --stdin for a hidden prompt.")
 	fmt.Fprintln(w, "Do not pass API keys as command-line arguments.")
@@ -70,7 +77,7 @@ func runConfigShow(args []string, stdout, stderr io.Writer) int {
 	if code != 0 {
 		return code
 	}
-	for _, line := range config.ProviderShowLines(cfg) {
+	for _, line := range config.ConfigShowLines(cfg) {
 		fmt.Fprintln(stdout, line)
 	}
 	return 0

@@ -15,10 +15,36 @@ func TestSetByPathProviderFields(t *testing.T) {
 	}
 }
 
+func TestSetByPathExecutionTimeout(t *testing.T) {
+	t.Parallel()
+	cfg := Default()
+	if err := SetByPath(&cfg, "execution.timeout", "60"); err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Execution.Timeout != 60 {
+		t.Fatalf("timeout = %d", cfg.Execution.Timeout)
+	}
+}
+
+func TestSetByPathFeaturesCacheCommands(t *testing.T) {
+	t.Parallel()
+	cfg := Default()
+	if err := SetByPath(&cfg, "features.cache_commands", "false"); err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Features.CacheCommands {
+		t.Fatal("expected false")
+	}
+	got, err := GetByPath(cfg, "features.cache_commands")
+	if err != nil || got != "false" {
+		t.Fatalf("get = %q err=%v", got, err)
+	}
+}
+
 func TestSetByPathRejectsUnknown(t *testing.T) {
 	t.Parallel()
 	cfg := Default()
-	if err := SetByPath(&cfg, "execution.timeout", "60"); err == nil {
+	if err := SetByPath(&cfg, "safety.mode", "high"); err == nil {
 		t.Fatal("expected error for non-allowlisted path")
 	}
 }
