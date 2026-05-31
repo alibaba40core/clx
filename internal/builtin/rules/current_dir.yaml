@@ -2,6 +2,8 @@ intent: current_dir
 examples:
   - pwd
   - current directory
+  - where am i
+  - show current directory
 strategies:
   linux:
     primary: "pwd"
