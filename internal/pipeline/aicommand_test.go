@@ -3,8 +3,10 @@ package pipeline
 import (
 	"bytes"
 	"context"
+	"sync/atomic"
 	"testing"
 
+	"github.com/alibaba40core/clx/internal/cache"
 	"github.com/alibaba40core/clx/internal/config"
 	"github.com/alibaba40core/clx/internal/generator"
 	"github.com/alibaba40core/clx/internal/intent"
@@ -33,6 +35,16 @@ func (f *fakeCmdProvider) GenerateCommand(context.Context, providers.CommandRequ
 		return nil, f.err
 	}
 	return f.resp, nil
+}
+
+type countingCmdProvider struct {
+	fakeCmdProvider
+	calls atomic.Int32
+}
+
+func (c *countingCmdProvider) GenerateCommand(ctx context.Context, req providers.CommandRequest) (*providers.CommandResponse, error) {
+	c.calls.Add(1)
+	return c.fakeCmdProvider.GenerateCommand(ctx, req)
 }
 
 func newAICmdEnv(t *testing.T) {
@@ -160,6 +172,52 @@ func TestRunAICommandProviderRateLimited(t *testing.T) {
 	}
 	if bytes.Contains(stderr.Bytes(), []byte("try rephrasing")) {
 		t.Fatalf("stderr should not say rephrasing: %q", stderr.String())
+	}
+}
+
+func TestRunAICommandCacheSkipsSecondProviderCall(t *testing.T) {
+	newAICmdEnv(t)
+
+	cmdPath, err := config.CacheCommandsPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmdStore, err := cache.LoadCommands(context.Background(), cmdPath, config.Default().Cache, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	prov := &countingCmdProvider{fakeCmdProvider: fakeCmdProvider{resp: &providers.CommandResponse{
+		Argv:        []string{"ls", "-la"},
+		Shell:       "bash",
+		Explanation: "list all files",
+		Confidence:  0.9,
+	}}}
+	opts := Options{
+		DryRun:       true,
+		AIResolver:   &fakeAIResolver{err: intent.ErrNotFound},
+		Provider:     prov,
+		CommandCache: cmdStore,
+		Stdout:       &bytes.Buffer{},
+		Stderr:       &bytes.Buffer{},
+	}
+	raw := "totally unknown phrase here"
+	cfg := config.Default()
+
+	code, err := Run(context.Background(), cfg, raw, opts)
+	if err != nil || code != 0 {
+		t.Fatalf("first run: code=%d err=%v", code, err)
+	}
+	if prov.calls.Load() != 1 {
+		t.Fatalf("first run calls=%d want 1", prov.calls.Load())
+	}
+
+	code, err = Run(context.Background(), cfg, raw, opts)
+	if err != nil || code != 0 {
+		t.Fatalf("second run: code=%d err=%v", code, err)
+	}
+	if prov.calls.Load() != 1 {
+		t.Fatalf("second run should use cache, calls=%d want 1", prov.calls.Load())
 	}
 }
 

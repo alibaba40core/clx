@@ -119,6 +119,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	var cacheStore *cache.Store
 	var explainStore *cache.ExplainStore
+	var commandStore *cache.CommandStore
 	if cfg.Features.CacheCommands && cfg.Cache.MaxEntries > 0 {
 		cachePath, cerr := config.CacheIntentsPath()
 		if cerr != nil {
@@ -142,6 +143,17 @@ func run(args []string, stdout, stderr io.Writer) int {
 				explainStore = estore
 			}
 		}
+		cmdPath, perr := config.CacheCommandsPath()
+		if perr != nil {
+			logger.Warn("command cache unavailable", "err", perr)
+		} else {
+			cstore, lerr := cache.LoadCommands(ctx, cmdPath, cfg.Cache, logger)
+			if lerr != nil {
+				logger.Warn("command cache unavailable", "err", lerr)
+			} else {
+				commandStore = cstore
+			}
+		}
 	}
 
 	rawInput := strings.Join(fs.Args(), " ")
@@ -154,9 +166,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		Stdout:     stdout,
 		Stderr:     stderr,
 		Engine:       eng,
-		Cache:        cacheStore,
-		ExplainCache: explainStore,
-		Provider:     aiProvider,
+		Cache:         cacheStore,
+		ExplainCache:  explainStore,
+		CommandCache:  commandStore,
+		Provider:      aiProvider,
 		AIResolver:   aiResolver,
 	})
 	if err != nil && code == 0 {

@@ -253,7 +253,7 @@ func TestClearAndAllStats(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(stats) != 2 || stats[0].Entries != 1 {
+	if len(stats) != 3 || stats[0].Entries != 1 {
 		t.Fatalf("stats=%+v", stats)
 	}
 

@@ -16,7 +16,7 @@ type VolumeStat struct {
 	Bytes   int64
 }
 
-// AllStats returns entry counts and file sizes for intent and explanation caches.
+// AllStats returns entry counts and file sizes for intent, explanation, and command caches.
 func AllStats(ctx context.Context, cfg config.CacheConfig, logger *slog.Logger) ([]VolumeStat, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -29,12 +29,20 @@ func AllStats(ctx context.Context, cfg config.CacheConfig, logger *slog.Logger) 
 	if err != nil {
 		return nil, err
 	}
+	commandsPath, err := config.CacheCommandsPath()
+	if err != nil {
+		return nil, err
+	}
 
 	intentStore, err := Load(ctx, intentsPath, cfg, logger)
 	if err != nil {
 		return nil, err
 	}
 	explainStore, err := LoadExplain(ctx, explainPath, cfg, logger)
+	if err != nil {
+		return nil, err
+	}
+	commandStore, err := LoadCommands(ctx, commandsPath, cfg, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -47,17 +55,23 @@ func AllStats(ctx context.Context, cfg config.CacheConfig, logger *slog.Logger) 
 	if err != nil {
 		return nil, err
 	}
+	commandEntries, err := commandStore.entryCount(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	intentBytes, _ := fileSize(intentsPath)
 	explainBytes, _ := fileSize(explainPath)
+	commandBytes, _ := fileSize(commandsPath)
 
 	return []VolumeStat{
 		{Name: "intents", Path: intentsPath, Entries: intentEntries, Bytes: intentBytes},
 		{Name: "explanations", Path: explainPath, Entries: explainEntries, Bytes: explainBytes},
+		{Name: "commands", Path: commandsPath, Entries: commandEntries, Bytes: commandBytes},
 	}, nil
 }
 
-// ClearAll truncates intent and explanation caches on disk.
+// ClearAll truncates intent, explanation, and command caches on disk.
 func ClearAll(ctx context.Context, cfg config.CacheConfig, logger *slog.Logger) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -67,6 +81,10 @@ func ClearAll(ctx context.Context, cfg config.CacheConfig, logger *slog.Logger) 
 		return err
 	}
 	explainPath, err := config.CacheExplanationsPath()
+	if err != nil {
+		return err
+	}
+	commandsPath, err := config.CacheCommandsPath()
 	if err != nil {
 		return err
 	}
@@ -82,7 +100,14 @@ func ClearAll(ctx context.Context, cfg config.CacheConfig, logger *slog.Logger) 
 	if err != nil {
 		return err
 	}
-	return explainStore.Clear(ctx)
+	if err := explainStore.Clear(ctx); err != nil {
+		return err
+	}
+	commandStore, err := LoadCommands(ctx, commandsPath, cfg, logger)
+	if err != nil {
+		return err
+	}
+	return commandStore.Clear(ctx)
 }
 
 func (s *Store) entryCount(ctx context.Context) (int, error) {
@@ -131,6 +156,30 @@ func (s *ExplainStore) Clear(ctx context.Context) error {
 		Entries:       make([]ExplainEntry, 0),
 	}
 	return s.saveLocked(ctx)
+}
+
+func (s *CommandStore) entryCount(ctx context.Context) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.ensureLoadedLocked(ctx); err != nil {
+		return 0, err
+	}
+	return len(s.data.Entries), nil
+}
+
+// Clear resets the command cache to an empty schema and persists atomically.
+func (s *CommandStore) Clear(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	s.loaded = true
+	s.data = commandFileSchema{
+		SchemaVersion: commandSchemaVersion,
+		Entries:       make([]CommandEntry, 0),
+	}
+	return s.saveCommandLocked(ctx)
 }
 
 func fileSize(path string) (int64, error) {

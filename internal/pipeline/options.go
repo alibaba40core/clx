@@ -39,6 +39,9 @@ type Options struct {
 	// ExplainCache, when non-nil, caches AI explanations at ~/.clx/cache/explanations.json.
 	ExplainCache *cache.ExplainStore
 
+	// CommandCache, when non-nil, caches AI command-generation at ~/.clx/cache/commands.json.
+	CommandCache *cache.CommandStore
+
 	// AliasStore, when set, is used for parser-stage alias expansion (tests).
 	AliasStore *aliases.Store
 

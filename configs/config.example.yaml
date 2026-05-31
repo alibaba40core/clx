@@ -45,7 +45,7 @@ features:
   # policy-gated, and confirmed before execution.
   ai_command_generation: true
 
-cache:                   # clx cache status | clx cache clear
+cache:                   # clx cache status | clx cache clear (intents + explanations + commands)
   max_entries: 1024
   ttl_days: 30
   max_disk_bytes: 5242880

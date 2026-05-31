@@ -34,8 +34,8 @@ func printCacheHelp(w io.Writer) {
 	fmt.Fprintln(w, "  clx cache status")
 	fmt.Fprintln(w, "  clx cache clear")
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Inspect or reset local intent and explanation caches (~/.clx/cache/).")
-	fmt.Fprintln(w, "Intent cache stores AI-resolved intents only (not AI command generation).")
+	fmt.Fprintln(w, "Inspect or reset local caches (~/.clx/cache/): intents, explanations, commands.")
+	fmt.Fprintln(w, "Intent cache: AI-resolved intents. Commands cache: AI command-generation argv.")
 	fmt.Fprintln(w, "Enable caching with: clx config set features.cache_commands true")
 }
 
@@ -74,6 +74,6 @@ func runCacheClear(stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "cache clear: %v\n", err)
 		return 1
 	}
-	fmt.Fprintln(stdout, "cache cleared (intents + explanations)")
+	fmt.Fprintln(stdout, "cache cleared (intents + explanations + commands)")
 	return 0
 }
