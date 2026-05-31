@@ -76,6 +76,22 @@ Set via `clx config set <path> <value>` (see `clx config help`). Use `clx safety
 
 Inspect on-disk caches: `clx cache status` / `clx cache clear` (see `clx cache help`).
 
+## Ollama on Windows with WSL
+
+On Windows, `providers.ollama.host: http://localhost:11434` talks to the **Windows** loopback interface. If Ollama runs **inside WSL**, that URL often fails with "provider unavailable" even though `ollama list` works in the WSL terminal.
+
+**Options (pick one):**
+
+1. **Run Ollama on Windows** — install the Windows build and keep `localhost:11434`.
+2. **Point CLX at the WSL host** — in WSL, run `hostname -I` (or check your distro's WSL IP) and set:
+   ```bash
+   clx config set providers.ollama.host http://<WSL-IP>:11434
+   ```
+   Ensure Ollama listens on `0.0.0.0` in WSL (not only `127.0.0.1` inside the VM).
+3. **Run CLX inside WSL** — install `clx` in the same environment as Ollama so `localhost` matches.
+
+When the active provider is Ollama on localhost and a connection fails, CLX prints a one-line reminder about the WSL host fix.
+
 ## Encrypted secrets
 
 API keys are stored as `enc:v1:…` blobs in `config.yaml`, never in plaintext on disk.

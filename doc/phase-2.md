@@ -408,7 +408,7 @@ These apply to every commit in Phase 2. They mirror the workspace rules
 | R2 | Cold-start budget impact of importing `net/http` (~few hundred KB binary growth). CI enforces binary size + cold start via `scripts/check-budgets.sh`; RSS/goroutine probes deferred to Phase 3+. | TBD | Closed |
 | R3 | Confidence threshold of 0.5 is a guess. Tune after first round of real Ollama responses. | TBD | Open |
 | R4 | `cfg.Provider == "ollama"` but `Ollama.Host` empty: factory should fail with a clear "ollama.host required" message, not crash. | Covered in 2.1.5 | Closed |
-| R5 | What happens on Windows when `cfg.Providers.Ollama.Host` is `localhost` and Ollama is in WSL? Document but defer; Phase 4 owns shell/host integration. | TBD | Open |
+| R5 | What happens on Windows when `cfg.Providers.Ollama.Host` is `localhost` and Ollama is in WSL? Documented in `doc/provider-config.md`; pipeline hints on `ErrUnavailable` when provider is Ollama on localhost. No auto host probing. | — | Closed |
 
 ---
 
