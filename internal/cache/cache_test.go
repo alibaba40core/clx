@@ -230,3 +230,43 @@ func TestPutNormalParamsStillCaches(t *testing.T) {
 		t.Fatalf("entry = %+v ok=%v", e, ok)
 	}
 }
+
+func TestClearAndAllStats(t *testing.T) {
+	t.Setenv("CLX_HOME", t.TempDir())
+	ctx := context.Background()
+	cfg := config.Default().Cache
+
+	intentsPath, err := config.CacheIntentsPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(intentsPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	s := testStore(t, intentsPath, cfg)
+	key := KeyFor(sampleReq(), sampleProfile())
+	if err := s.Put(ctx, key, "find_file", map[string]string{}, 0.9); err != nil {
+		t.Fatal(err)
+	}
+
+	stats, err := AllStats(ctx, cfg, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stats) != 2 || stats[0].Entries != 1 {
+		t.Fatalf("stats=%+v", stats)
+	}
+
+	if err := ClearAll(ctx, cfg, nil); err != nil {
+		t.Fatal(err)
+	}
+	stats, err = AllStats(ctx, cfg, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, st := range stats {
+		if st.Entries != 0 {
+			t.Fatalf("after clear: %+v", st)
+		}
+	}
+}
