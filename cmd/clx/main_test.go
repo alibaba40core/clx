@@ -108,6 +108,24 @@ func TestRunPolicyListNotPipeline(t *testing.T) {
 	}
 }
 
+func TestRunCacheStatusNotPipeline(t *testing.T) {
+	t.Setenv("CLX_HOME", t.TempDir())
+	if _, err := config.Bootstrap(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"cache", "status"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("exit %d stderr=%s", code, stderr.String())
+	}
+	if strings.Contains(stdout.String(), "ai-generated command") {
+		t.Fatalf("cache status must not run AI pipeline, stdout=%q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "CLX cache:") {
+		t.Fatalf("status should label output, stdout=%q", stdout.String())
+	}
+}
+
 func TestRunPolicyBlockListNotPipeline(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	if _, err := config.Bootstrap(context.Background()); err != nil {
