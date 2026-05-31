@@ -65,6 +65,8 @@ make bootstrap-local
 - **Preferred:** `make build` then run `./bin/clx` (or `make install` to copy into your user PATH).
 - **Stale binary trap:** A `clx.exe` in the **repo root** (from an old `go build` in `.`) can appear **before** `bin/` on PATH when your shell cwd is the repo — you may run weeks-old code while `bin/clx` is current. Use `where clx` (Windows) or `which clx` (Unix) to see what runs; remove stray root copies or run `make clean` (deletes root `clx.exe` / `clxmax.exe` and `bin/`).
 - **Check version:** `clx --version` should match your latest build; rebuild after pulling: `go build -o bin/clx.exe ./cmd/clx` on Windows.
+- **Clean artifacts:** `make clean` removes `bin/` and any `clx.exe` / `clxmax.exe` in the repo root (see `Makefile` `clean` target).
+- Root `*.exe` files are gitignored but still execute if present on disk — delete them when troubleshooting version mismatches.
 
 ```bash
 # Translate and run (prompts [Y/n] unless -y)
