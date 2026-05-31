@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/alibaba40core/clx/internal/config"
 	"github.com/alibaba40core/clx/internal/policy"
@@ -18,6 +19,10 @@ func runPolicy(args []string, stdout, stderr io.Writer) int {
 	switch args[0] {
 	case "allow":
 		return runPolicyAllow(args[1:], stdout, stderr)
+	case "set":
+		return runPolicySet(args[1:], stdout, stderr)
+	case "block":
+		return runPolicyBlock(args[1:], stdout, stderr)
 	case "show":
 		return runPolicyShow(args[1:], stdout, stderr)
 	case "list":
@@ -39,6 +44,10 @@ func printPolicyHelp(w io.Writer) {
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "  clx policy show [--config path]   Full policy summary (recommended)")
+	fmt.Fprintln(w, "  clx policy set access_level=<safe|moderate|full>")
+	fmt.Fprintln(w, "  clx policy block list")
+	fmt.Fprintln(w, "  clx policy block add <pattern>")
+	fmt.Fprintln(w, "  clx policy block rm <pattern>")
 	fmt.Fprintln(w, "  clx policy allow <verb> [--config path]")
 	fmt.Fprintln(w, "  clx policy list [--config path]     Allowed verbs only (see policy show)")
 	fmt.Fprintln(w, "  clx policy rm <verb> [--config path]")
@@ -193,6 +202,99 @@ func runPolicyList(args []string, stdout, stderr io.Writer) int {
 	}
 	fmt.Fprintln(stdout, "Run `clx policy show` for blocked patterns and full summary.")
 	return 0
+}
+
+func runPolicySet(args []string, stdout, stderr io.Writer) int {
+	if len(args) < 1 {
+		fmt.Fprintln(stderr, "policy set: key=value required (e.g. access_level=full)")
+		return 2
+	}
+	arg := args[0]
+	eq := strings.IndexByte(arg, '=')
+	if eq <= 0 || eq >= len(arg)-1 {
+		fmt.Fprintln(stderr, "policy set: expected key=value (e.g. access_level=full)")
+		return 2
+	}
+	key := strings.ToLower(strings.TrimSpace(arg[:eq]))
+	val := strings.TrimSpace(arg[eq+1:])
+	ctx := context.Background()
+	if _, err := config.Bootstrap(ctx); err != nil {
+		fmt.Fprintf(stderr, "bootstrap: %v\n", err)
+		return 1
+	}
+	switch key {
+	case "access_level":
+		if err := policy.SetAccessLevel(ctx, val); err != nil {
+			fmt.Fprintf(stderr, "policy set: %v\n", err)
+			return 1
+		}
+		fmt.Fprintf(stdout, "policy access_level: %s\n", val)
+		return 0
+	default:
+		fmt.Fprintf(stderr, "policy set: unknown key %q\n", key)
+		return 2
+	}
+}
+
+func runPolicyBlock(args []string, stdout, stderr io.Writer) int {
+	if len(args) < 1 {
+		fmt.Fprintln(stderr, "policy block: subcommand required (list, add, rm)")
+		return 2
+	}
+	ctx := context.Background()
+	if _, err := config.Bootstrap(ctx); err != nil {
+		fmt.Fprintf(stderr, "bootstrap: %v\n", err)
+		return 1
+	}
+	switch args[0] {
+	case "list":
+		list, err := policy.ListBlockedPatterns(ctx)
+		if err != nil {
+			fmt.Fprintf(stderr, "policy block list: %v\n", err)
+			return 1
+		}
+		fmt.Fprintln(stdout, "Blocked patterns (always enforced at exec):")
+		if len(list) == 0 {
+			fmt.Fprintln(stdout, "  (none)")
+		} else {
+			for _, p := range list {
+				fmt.Fprintf(stdout, "  - %s\n", p)
+			}
+		}
+		fmt.Fprintln(stdout, "Run `clx policy show` for allow list and access level.")
+		return 0
+	case "add":
+		if len(args) < 2 {
+			fmt.Fprintln(stderr, "policy block add: pattern required")
+			return 2
+		}
+		pattern := strings.Join(args[1:], " ")
+		if err := policy.AddBlockedPattern(ctx, pattern); err != nil {
+			fmt.Fprintf(stderr, "policy block add: %v\n", err)
+			return 1
+		}
+		fmt.Fprintf(stdout, "blocked pattern %q\n", pattern)
+		return 0
+	case "rm", "remove":
+		if len(args) < 2 {
+			fmt.Fprintln(stderr, "policy block rm: pattern required")
+			return 2
+		}
+		pattern := strings.Join(args[1:], " ")
+		if err := policy.RemoveBlockedPattern(ctx, pattern); err != nil {
+			if errors.Is(err, policy.ErrPatternNotFound) {
+				fmt.Fprintf(stderr, "policy block rm: %v\n", err)
+				return 1
+			}
+			fmt.Fprintf(stderr, "policy block rm: %v\n", err)
+			return 1
+		}
+		fmt.Fprintf(stdout, "removed blocked pattern %q\n", pattern)
+		return 0
+	default:
+		fmt.Fprintf(stderr, "policy block: unknown subcommand %q\n", args[0])
+		return 2
+	}
 }
 
 func runPolicyRm(args []string, stdout, stderr io.Writer) int {
