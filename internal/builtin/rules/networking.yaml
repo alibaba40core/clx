@@ -85,6 +85,10 @@ intents:
       - ip addr
       - ip address
       - show ip
+      - show my ip
+      - what is my ip
+      - what is my ip address
+      - my ip address
       - ipconfig
     strategies:
       linux:
