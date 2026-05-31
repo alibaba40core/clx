@@ -116,6 +116,8 @@ Each component lives in `internal/<name>/` as a private Go package. Interfaces a
 
 See [doc/provider-config.md](provider-config.md) for config paths, encryption, and security notes.
 
+**Shell integration (explain-only):** `execution.shell_integration: true` does not auto-run translated commands. It may print a pointer to hook install when rules miss. Optional hooks in `scripts/clx-hook.{ps1,sh}` call `clx --explain` only; the user runs the final command manually. Full shell interception with auto-exec is deferred (conflicts with argv-only safety).
+
 **Binaries:**
 
 - **`clx`** — Fast, rules-first, single-shot translation/execution.
