@@ -534,7 +534,9 @@ return the resolved intent anyway (pipeline continues).
 **Validation:** cache hits return `Source: Cache` and pass through `Engine.ValidateResolved`
 before the generator runs (same gate as AI output).
 
-**CLI:** `clx cache status` reports paths, entry counts, and file sizes; `clx cache clear` truncates both `intents.json` and `explanations.json` (no confirmation; local data only). Clear still works when `features.cache_commands` is false.
+**Command-generation cache:** `~/.clx/cache/commands.json` memoizes AI-generated argv when rules/cache/intent all miss (`features.ai_command_generation`). Key: SHA-256 of `raw input | profile.OS | profile.Shell | sorted(tools)`. Write-through after successful generation; secret-shaped argv tokens are never stored. Cached argv still passes `ValidateGeneratedArgv` + risk/policy before exec.
+
+**CLI:** `clx cache status` reports paths, entry counts, and file sizes for intents, explanations, and commands; `clx cache clear` truncates all three (no confirmation; local data only). Clear still works when `features.cache_commands` is false.
 
 ---
 
@@ -641,7 +643,8 @@ Created on first run / install — **not committed to the repo.**
 ├── system_profile.json
 ├── cache/
 │   ├── intents.json       # intent resolution cache (Phase 2.2)
-│   └── explanations.json  # AI explain cache (Phase 2.4)
+│   ├── explanations.json  # AI explain cache (Phase 2.4)
+│   └── commands.json      # AI command-generation cache
 ├── memory/
 ├── sessions/
 ├── policies/

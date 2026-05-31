@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alibaba40core/clx/internal/cache"
 	"github.com/alibaba40core/clx/internal/config"
 	"github.com/alibaba40core/clx/internal/environment"
 	"github.com/alibaba40core/clx/internal/executor"
@@ -49,12 +50,29 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 	if req.EffectiveInput != "" {
 		raw = req.EffectiveInput
 	}
-	resp, genErr := gen.GenerateCommand(callCtx, providers.CommandRequest{
-		RawInput: raw,
-		Profile:  profile,
-	})
-	if genErr != nil {
-		return reportAICommandError(opts, genErr), true, genErr
+
+	var resp *providers.CommandResponse
+	var genErr error
+	if opts.CommandCache != nil {
+		key := cache.CommandKeyFor(raw, profile)
+		if entry, ok := opts.CommandCache.Lookup(callCtx, key); ok {
+			resp = cache.ToCommandResponse(entry)
+		}
+	}
+	if resp == nil {
+		resp, genErr = gen.GenerateCommand(callCtx, providers.CommandRequest{
+			RawInput: raw,
+			Profile:  profile,
+		})
+		if genErr != nil {
+			return reportAICommandError(opts, genErr), true, genErr
+		}
+		if resp != nil && opts.CommandCache != nil {
+			key := cache.CommandKeyFor(raw, profile)
+			if err := opts.CommandCache.Put(callCtx, key, resp); err != nil && opts.Logger != nil {
+				opts.Logger.Warn("command cache write failed", "err", err)
+			}
+		}
 	}
 	if resp == nil {
 		fmt.Fprintf(opts.Stderr, "AI returned no command; try rephrasing the request\n")
