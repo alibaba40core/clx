@@ -60,6 +60,12 @@ make install
 make bootstrap-local
 ```
 
+### Install and avoiding a stale binary
+
+- **Preferred:** `make build` then run `./bin/clx` (or `make install` to copy into your user PATH).
+- **Stale binary trap:** A `clx.exe` in the **repo root** (from an old `go build` in `.`) can appear **before** `bin/` on PATH when your shell cwd is the repo — you may run weeks-old code while `bin/clx` is current. Use `where clx` (Windows) or `which clx` (Unix) to see what runs; remove stray root copies or run `make clean` (deletes root `clx.exe` / `clxmax.exe` and `bin/`).
+- **Check version:** `clx --version` should match your latest build; rebuild after pulling: `go build -o bin/clx.exe ./cmd/clx` on Windows.
+
 ```bash
 # Translate and run (prompts [Y/n] unless -y)
 clx grep errors logs.txt
@@ -74,6 +80,10 @@ clx -y pwd
 ```
 
 Host scripts are assembled only from rule templates with validated parameters; CLX does not pass your raw shell input to `powershell -Command` or `cmd /c`.
+
+### Shell integration (explain-only)
+
+`execution.shell_integration: true` in config only enables a **hint** when rules miss; it does **not** intercept or auto-run commands in your shell. Optional hooks ([`scripts/clx-hook.ps1`](scripts/clx-hook.ps1), [`scripts/clx-hook.sh`](scripts/clx-hook.sh)) forward input to `clx --explain` so you review the translation before running anything yourself. Auto-execution from hooks is intentionally out of scope (safe-command-execution contract). Install snippets: `clx init` or `clx config` + embedded instructions.
 
 `shell_version` in the profile is filled from environment variables when present (e.g. `POWERSHELL_VERSION`); otherwise it stays empty until a later phase adds subprocess probing.
 
