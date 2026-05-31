@@ -38,14 +38,14 @@ safety:
 
 features:
   explain: true
-  cache_commands: true
+  cache_commands: true   # clx config set features.cache_commands false
   learning_mode: false
   # Hybrid fallback: when no rule/cache matches, let the AI generate a full
   # command (argv). Generated commands are still validated, risk-assessed,
   # policy-gated, and confirmed before execution.
   ai_command_generation: true
 
-cache:
+cache:                   # clx cache status | clx cache clear
   max_entries: 1024
   ttl_days: 30
   max_disk_bytes: 5242880

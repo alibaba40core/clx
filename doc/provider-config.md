@@ -50,6 +50,32 @@ Run `clx config help` for the full command list.
 | `providers.gemini.api_key` | Gemini API key (encrypted at rest) |
 | `providers.gemini.model` | Gemini model name (default: `gemini-2.0-flash`) |
 
+### Features, cache, memory, execution, logging
+
+Set via `clx config set <path> <value>` (see `clx config help`). Use `clx safety` for `safety.*` — not `config set`.
+
+| Path | Type | Notes |
+|------|------|-------|
+| `features.explain` | bool | |
+| `features.cache_commands` | bool | When false, pipeline skips cache read/write |
+| `features.ai_command_generation` | bool | Hybrid AI argv fallback |
+| `features.learning_mode` | bool | |
+| `cache.max_entries` | int | Must be > 0 |
+| `cache.ttl_days` | int | Must be > 0 |
+| `cache.max_disk_bytes` | int | Must be > 0 |
+| `memory.enabled` | bool | |
+| `memory.max_entries_per_session` | int | |
+| `memory.max_sessions` | int | |
+| `memory.ttl_days` | int | |
+| `execution.auto_execute` | bool | |
+| `execution.timeout` | int | Seconds |
+| `execution.shell_integration` | bool | |
+| `logging.enabled` | bool | |
+| `logging.level` | string | `debug`, `info`, `warn`, `error` |
+| `aliases.max_aliases` | int | |
+
+Inspect on-disk caches: `clx cache status` / `clx cache clear` (see `clx cache help`).
+
 ## Encrypted secrets
 
 API keys are stored as `enc:v1:…` blobs in `config.yaml`, never in plaintext on disk.

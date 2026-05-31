@@ -6,7 +6,11 @@ CLX is an AI-powered cross-platform command intelligence layer for developers. I
 
 ## Status
 
-> **Phase 2 complete (2.6)** — Rules-miss natural-language inputs resolve through Ollama (default `qwen3:1.7b`) or OpenAI when configured, with optional `providers.fallback` chain (primary down → fallback on infrastructure errors only). Repeat inputs hit a file-backed intent cache at `~/.clx/cache/intents.json`; AI explanations cache separately at `explanations.json`. Configure providers with `clx config` (API keys encrypted at rest). `--explain` on AI/Cache hits can enrich display via a 2s-capped LLM call with static fallback. Schema-constrained JSON output, `Engine.ValidateResolved`, and the full safety pipeline unchanged. Flags: `--provider` (`ollama` / `openai`; `azure` stub), `--explain`, `--dry-run`, `-y`. See [doc/provider-config.md](doc/provider-config.md). Includes Phase 1.1–2.6.
+> **V1 polish (Phases 1–4 + 3.5)** — Rules-first pipeline with AI fallback (Ollama, OpenAI, Gemini), intent cache, risk/policy gates, safety presets, aliases, and `clx init`. Manage settings with `clx config` / `clx safety` / `clx policy` / `clx cache` / `clx alias` (API keys encrypted at rest). Provider HTTP 429 surfaces as a clear rate-limit message. Common NL phrases (e.g. `what is my ip`) hit built-in rules before AI. Flags: `--provider`, `--explain`, `--dry-run`, `-y`. See [doc/architecture.md](doc/architecture.md) and [doc/provider-config.md](doc/provider-config.md).
+
+**CLI subcommands:** `doctor`, `init`, `config`, `safety`, `policy`, `alias`, `cache` — run `clx <cmd> help` for each.
+
+**`clxmax`:** planned advanced reasoning binary; not shipped in V1 (`clx --version` only today).
 
 ## What CLX does
 
@@ -28,7 +32,7 @@ See [doc/architecture.md](doc/architecture.md) for the full V1 architecture, com
 
 ```
 cmd/clx/          CLI entrypoint
-cmd/clxmax/       Advanced reasoning mode
+cmd/clxmax/       Advanced reasoning mode (future; stub in tree)
 internal/         Engine packages (parser, intent, environment, ...)
 internal/builtin/ Embedded built-in rules and skills (YAML, shipped in binary)
 configs/          Example config templates
@@ -91,7 +95,7 @@ Runtime config lives in `~/.clx/` (created on first run):
 
 See [configs/config.example.yaml](configs/config.example.yaml) for the default config template.
 
-Manage AI provider settings from the CLI (`clx config show`, `clx config set`, `clx config provider use`). API keys are encrypted at rest in `config.yaml`. See [doc/provider-config.md](doc/provider-config.md).
+Manage settings from the CLI: `clx config` (providers, features, cache, memory, execution, logging), `clx safety`, `clx policy`, `clx cache status|clear`, `clx alias`. API keys are encrypted at rest in `config.yaml`. See [doc/provider-config.md](doc/provider-config.md).
 
 ## Customizing rules
 
