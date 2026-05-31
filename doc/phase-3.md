@@ -127,6 +127,20 @@ all. Both run in the pipeline; neither bypasses the other.
 
 ---
 
+## Post-Phase 3 — Policy CLI (V1 polish)
+
+Shipped after the core 3.1–3.3 safety work; tracked here so phase docs match the CLI.
+
+| Item | Behavior |
+|------|----------|
+| **High-mode allow-list** | `allowed:` in `policy.yaml` is enforced only when `safety.mode=high` (unchanged from 3.2; documented in `clx policy show`). |
+| **`clx policy show`** | Full summary: block patterns, `access_level`, allow list, and whether allow-list is active for current safety mode. |
+| **`clx policy block list/add/rm`** | Manage always-on block patterns from the terminal. |
+| **`clx policy set access_level=…`** | Set `safe` / `moderate` / `full` without editing YAML. |
+| **Empty block list on save** | Saving policy no longer injects default blocked patterns when the list is empty (empty `blocked:` means no runtime blocks until the user adds patterns or bootstrap seeds a new file). |
+
+---
+
 ## Cross-cutting non-negotiables
 
 | # | Constraint |
@@ -161,6 +175,12 @@ Append one line per merged commit. Format: `YYYY-MM-DD · <task id> · <short su
 2026-05-30 · 3.3 · policy: implement allow-list semantics and mtime-based reload · 09ae8f9
 2026-05-30 · 3.4 · policy: add safe/moderate/full access levels gating execution · 7c9ff96
 2026-05-30 · 3.5 · config: deprecate legacy safety.level key and finalize phase 3 docs · b1180ef
+2026-05-31 · V1 · providers: HTTP 429 rate-limit messages · 99c24bf
+2026-05-31 · V1 · rules NL examples for common intents · b2aee7b
+2026-05-31 · V1 · config CLI: cache/memory/features/execution paths · 3362e9b
+2026-05-31 · V1 · policy CLI: block list and access_level · bc156bf
+2026-05-31 · V1 · clx cache status/clear · 0498d18
+2026-05-31 · V1 · docs sync README/architecture · f5bb3f9
 ```
 
 ---

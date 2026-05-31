@@ -314,7 +314,7 @@ Block patterns match as ordered token subsequences on `gen.Argv` and are **alway
 
 **Allow list** (`allowed:`): only enforced when `config.yaml` `safety.mode` is **high**. Low, medium, and custom modes ignore `allowed` even if present in YAML. Manage verbs with `clx policy allow|list|rm`; `clx safety set mode=high` seeds `git`, `docker`, `npm` when the list is empty. Use `clx policy show` for a full summary; `clx policy block add|rm` and `clx policy set access_level=…` for block list and access level without hand-editing YAML.
 
-**Explain vs exec:** `policy.Check` receives `ExplainOnly`. Block list, allow-list (high), and access-level denials set `ExecAllowed=false`. On `--explain`, the pipeline prints `Policy (exec): <reason>` and exits 0 without running the command.
+**Explain vs exec:** `policy.Check` receives `ExplainOnly`. Block list, allow-list (high), and access-level denials set `ExecAllowed=false`. On `--explain`, the pipeline prints `Policy (exec): <reason>` and exits 0 without running the command. In **high** safety mode, allow-list violations on `--explain` still show the translation but warn that execution would be blocked (no silent bypass).
 
 ---
 
