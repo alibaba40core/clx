@@ -142,7 +142,7 @@ check_cold_start() {
   pass "cold start (median of ${COLDSTART_RUNS}, ${COLDSTART_WARMUP} warmup): ${median} ms (worst ${worst} ms, limit ${MAX_COLDSTART_MS} ms)"
 }
 
-func print_deferred_budgets() {
+print_deferred_budgets() {
   log "steady-state RSS: skipped (manual Phase 3+ probe — target < 30 MB rules path; not a CI blocker)"
   log "peak RSS (AI path): skipped (manual Phase 3+ probe — target < 100 MB; not a CI blocker)"
   log "goroutines at idle: skipped (goleak in provider packages; target <= 3 at idle; not a CI blocker)"
