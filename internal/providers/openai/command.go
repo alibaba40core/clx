@@ -21,7 +21,7 @@ func (p *Provider) GenerateCommand(ctx context.Context, req providers.CommandReq
 	if err != nil {
 		return nil, err
 	}
-	schema := providers.BuildCommandSchema()
+	schema := providers.BuildOpenAICommandSchema()
 	out, err := p.client.CommandChat(ctx, system, user, schema)
 	if err != nil {
 		return nil, mapClientError(err)
@@ -75,5 +75,18 @@ func (c *Client) CommandChat(ctx context.Context, system, user string, schema ma
 	if len(chat.Choices) == 0 || strings.TrimSpace(chat.Choices[0].Message.Content) == "" {
 		return nil, errNoMatch
 	}
-	return providers.ParseCommandContent(chat.Choices[0].Message.Content)
+	content := chat.Choices[0].Message.Content
+	out, err := providers.ParseCommandContent(content)
+	if err != nil && c.logger != nil {
+		preview := content
+		if len(preview) > 512 {
+			preview = preview[:512] + "..."
+		}
+		c.logger.Debug("openai command JSON parse failed",
+			"err", err,
+			"content_len", len(content),
+			"content_preview", preview,
+		)
+	}
+	return out, err
 }

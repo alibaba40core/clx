@@ -99,7 +99,9 @@ func reportAICommandError(cfg config.Config, opts Options, err error) int {
 		fmt.Fprintln(opts.Stderr, "AI provider rate limit exceeded (check quota/billing or try again later)")
 	case errors.Is(err, providers.ErrAuth):
 		fmt.Fprintln(opts.Stderr, "AI provider authentication failed (check API key in clx config show)")
-	case errors.Is(err, providers.ErrNoMatch), errors.Is(err, providers.ErrInvalidResp):
+	case errors.Is(err, providers.ErrInvalidResp):
+		fmt.Fprintf(opts.Stderr, "AI returned an invalid command response (JSON/schema); try again or rephrase\n")
+	case errors.Is(err, providers.ErrNoMatch):
 		fmt.Fprintf(opts.Stderr, "AI could not generate a command for this request; try rephrasing\n")
 	case errors.Is(err, providers.ErrUnavailable):
 		fmt.Fprintf(opts.Stderr, "AI provider unavailable: %v\n", err)

@@ -151,10 +151,36 @@ type parsedCommand struct {
 	Confidence  float64      `json:"confidence"`
 }
 
+// ExtractJSONObject returns the first {...} span in model text (handles markdown fences).
+func ExtractJSONObject(content string) string {
+	content = strings.TrimSpace(content)
+	if strings.HasPrefix(content, "{") {
+		return content
+	}
+	start := strings.Index(content, "{")
+	end := strings.LastIndex(content, "}")
+	if start >= 0 && end > start {
+		return content[start : end+1]
+	}
+	return content
+}
+
 // ParseCommandContent decodes a model message into a CommandResponse.
 func ParseCommandContent(content string) (*CommandResponse, error) {
+	raw := strings.TrimSpace(content)
+	candidates := []string{raw, ExtractJSONObject(raw)}
 	var parsed parsedCommand
-	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
+	var lastErr error
+	for _, candidate := range candidates {
+		if candidate == "" {
+			continue
+		}
+		lastErr = json.Unmarshal([]byte(candidate), &parsed)
+		if lastErr == nil {
+			break
+		}
+	}
+	if lastErr != nil {
 		return nil, ErrInvalidResp
 	}
 	if chain := parseChain(parsed.Chain); chain != nil && len(chain.Stages) >= 2 {
@@ -217,6 +243,36 @@ func parseChain(pc *parsedChain) *generator.CommandChain {
 		}
 	}
 	return &generator.CommandChain{Stages: stages, Connectors: conns}
+}
+
+// BuildOpenAICommandSchema returns a strict-mode-compatible schema (optional chain as null).
+func BuildOpenAICommandSchema() map[string]any {
+	chainObject := map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"properties": map[string]any{
+			"stages":     map[string]any{"type": "array", "items": chainStageSchema},
+			"connectors": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+		},
+		"required": []any{"stages", "connectors"},
+	}
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []any{"argv", "chain", "shell", "explanation", "confidence"},
+		"properties": map[string]any{
+			"argv": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+			"chain": map[string]any{
+				"anyOf": []any{
+					chainObject,
+					map[string]any{"type": "null"},
+				},
+			},
+			"shell":       map[string]any{"type": "string"},
+			"explanation": map[string]any{"type": "string"},
+			"confidence":  map[string]any{"type": "number"},
+		},
+	}
 }
 
 // BuildOpenAICommandResponseFormat wraps the command schema for OpenAI chat.

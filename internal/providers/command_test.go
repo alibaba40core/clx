@@ -126,6 +126,24 @@ func TestParseCommandContentBadJSON(t *testing.T) {
 	}
 }
 
+func TestParseCommandContentMarkdownFence(t *testing.T) {
+	raw := "```json\n{\"argv\":[\"del\",\"x\"],\"shell\":\"cmd\",\"explanation\":\"x\",\"confidence\":0.9}\n```"
+	resp, err := ParseCommandContent(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Argv) != 2 || resp.Argv[0] != "del" {
+		t.Fatalf("argv=%v", resp.Argv)
+	}
+}
+
+func TestExtractJSONObject(t *testing.T) {
+	got := ExtractJSONObject("text\n{\"a\":1}\n")
+	if got != `{"a":1}` {
+		t.Fatalf("got %q", got)
+	}
+}
+
 func TestParseCommandContentChain(t *testing.T) {
 	raw := `{"argv":[],"chain":{"stages":[{"tokens":[{"value":"ls","expr":false}]},{"tokens":[{"value":"grep","expr":false},{"value":"x","expr":false}]}],"connectors":["pipe"]},"shell":"bash","explanation":"x","confidence":0.9}`
 	resp, err := ParseCommandContent(raw)
