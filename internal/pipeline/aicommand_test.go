@@ -82,6 +82,39 @@ func TestRunAICommandFallbackDryRun(t *testing.T) {
 	}
 }
 
+func TestRunAICommandChainDryRun(t *testing.T) {
+	newAICmdEnv(t)
+
+	var stdout, stderr bytes.Buffer
+	code, err := Run(context.Background(), config.Default(), "find files modified today", Options{
+		DryRun:     true,
+		AIResolver: &fakeAIResolver{err: intent.ErrNotFound},
+		Provider: &fakeCmdProvider{resp: &providers.CommandResponse{
+			Chain: &generator.CommandChain{
+				Stages: []generator.ChainStage{
+					{Tokens: []generator.ChainToken{{Value: "Get-ChildItem"}, {Value: "-Recurse"}}},
+					{Tokens: []generator.ChainToken{
+						{Value: "Where-Object"},
+						{Value: "{ $_.LastWriteTime -ge (Get-Date).Date }", Expr: true},
+					}},
+				},
+				Connectors: []generator.ChainConnector{generator.ChainPipe},
+			},
+			Shell:       "powershell",
+			Explanation: "files modified today",
+			Confidence:  0.9,
+		}},
+		Stdout: &stdout,
+		Stderr: &stderr,
+	})
+	if err != nil || code != 0 {
+		t.Fatalf("code=%d err=%v stderr=%s", code, err, stderr.String())
+	}
+	if !bytes.Contains(stdout.Bytes(), []byte("dry-run:")) {
+		t.Fatalf("stdout=%s", stdout.String())
+	}
+}
+
 func TestRunAICommandRejectsMaliciousArgv(t *testing.T) {
 	newAICmdEnv(t)
 

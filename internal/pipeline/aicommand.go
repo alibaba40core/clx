@@ -9,23 +9,15 @@ import (
 	"github.com/alibaba40core/clx/internal/cache"
 	"github.com/alibaba40core/clx/internal/config"
 	"github.com/alibaba40core/clx/internal/environment"
-	"github.com/alibaba40core/clx/internal/executor"
-	"github.com/alibaba40core/clx/internal/generator"
 	"github.com/alibaba40core/clx/internal/intent"
 	"github.com/alibaba40core/clx/internal/parser"
 	"github.com/alibaba40core/clx/internal/providers"
 )
 
-// aiCommandLabel is shown in the Intent field for AI-generated commands.
 const aiCommandLabel = "ai-generated command"
-
-// aiCommandMinConfidence drops AI commands the model is not reasonably sure about.
 const aiCommandMinConfidence = 0.5
-
-// maxAICommandTimeout caps AI command generation latency.
 const maxAICommandTimeout = 180 * time.Second
 
-// tryAICommand attempts the hybrid AI command-generation fallback.
 func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile environment.SystemProfile, req parser.Request) (code int, handled bool, err error) {
 	if !cfg.Features.AICommandGeneration {
 		return 0, false, nil
@@ -63,7 +55,7 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 		if genErr != nil {
 			return reportAICommandError(cfg, opts, genErr), true, genErr
 		}
-		if resp != nil && opts.CommandCache != nil {
+		if resp != nil && opts.CommandCache != nil && !resp.HasChain() && !providers.ArgvHasChainConnector(resp.Argv) {
 			key := cache.CommandKeyFor(raw, profile)
 			if err := opts.CommandCache.Put(callCtx, key, resp); err != nil && opts.Logger != nil {
 				opts.Logger.Warn("command cache write failed", "err", err)
@@ -84,11 +76,12 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 	if shellHint == "" {
 		shellHint = profile.Shell
 	}
-	if vErr := executor.ValidateGeneratedArgv(resp.Argv, shellHint); vErr != nil {
-		fmt.Fprintf(opts.Stderr, "AI command rejected as unsafe: %v\n", vErr)
-		return 1, true, vErr
+
+	gcmd, err := buildGeneratedFromAI(resp, shellHint, profile)
+	if err != nil {
+		fmt.Fprintf(opts.Stderr, "AI command rejected as unsafe: %v\n", err)
+		return 1, true, err
 	}
-	gcmd := generator.NewAICommand(resp.Argv, resp.Shell, resp.Explanation, profile)
 
 	resolved := intent.ResolvedIntent{
 		Intent:     aiCommandLabel,
@@ -100,8 +93,6 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 	return code, true, err
 }
 
-// reportAICommandError prints a user-facing message for a provider-side failure
-// during command generation and returns the pipeline exit code.
 func reportAICommandError(cfg config.Config, opts Options, err error) int {
 	switch {
 	case errors.Is(err, providers.ErrRateLimited):

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/alibaba40core/clx/internal/environment"
+	"github.com/alibaba40core/clx/internal/generator"
 )
 
 func sampleProfile() environment.SystemProfile {
@@ -28,8 +29,8 @@ func TestBuildCommandPromptIncludesPlatform(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BuildCommandPrompt: %v", err)
 	}
-	if system != commandSystemPrompt {
-		t.Fatalf("system prompt mismatch: %q", system)
+	if !strings.Contains(system, "chain") {
+		t.Fatalf("system prompt should mention chain: %q", system)
 	}
 	for _, want := range []string{
 		"OS: windows 10.0.22631",
@@ -122,5 +123,26 @@ func TestParseCommandContentNoArgv(t *testing.T) {
 func TestParseCommandContentBadJSON(t *testing.T) {
 	if _, err := ParseCommandContent(`not json`); !errors.Is(err, ErrInvalidResp) {
 		t.Fatalf("expected ErrInvalidResp, got %v", err)
+	}
+}
+
+func TestParseCommandContentChain(t *testing.T) {
+	raw := `{"argv":[],"chain":{"stages":[{"tokens":[{"value":"ls","expr":false}]},{"tokens":[{"value":"grep","expr":false},{"value":"x","expr":false}]}],"connectors":["pipe"]},"shell":"bash","explanation":"x","confidence":0.9}`
+	resp, err := ParseCommandContent(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !resp.HasChain() {
+		t.Fatal("expected chain")
+	}
+}
+
+func TestChainFromArgvPipe(t *testing.T) {
+	c := ChainFromArgv([]string{"ps", "aux", "|", "grep", "node"})
+	if c == nil || len(c.Stages) != 2 {
+		t.Fatalf("chain=%+v", c)
+	}
+	if c.Connectors[0] != generator.ChainPipe {
+		t.Fatalf("connector=%v", c.Connectors[0])
 	}
 }

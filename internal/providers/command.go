@@ -8,6 +8,7 @@ import (
 
 	"github.com/alibaba40core/clx/internal/environment"
 	"github.com/alibaba40core/clx/internal/executor"
+	"github.com/alibaba40core/clx/internal/generator"
 )
 
 // maxCommandTools caps how many detected tools are listed in the command prompt
@@ -15,13 +16,10 @@ import (
 const maxCommandTools = 40
 
 // CommandGenerator is the optional capability for providers that can synthesize
-// a full command (as argv tokens) for the active platform when no rule or
-// cached intent matches. It is intentionally separate from Provider so existing
-// implementations and test fakes are not forced to implement it.
+// a full command for the active platform when no rule or cached intent matches.
 //
-// Security contract: the returned argv is UNTRUSTED. Callers MUST run it through
-// executor.ValidateGeneratedArgv, internal/risk, and internal/policy before exec,
-// and MUST execute it argv-only (never as an interpolated shell string).
+// Security contract: the returned command is UNTRUSTED. Callers MUST validate
+// via executor.ValidateGeneratedArgv or executor.ValidateCommandChain before exec.
 type CommandGenerator interface {
 	GenerateCommand(ctx context.Context, req CommandRequest) (*CommandResponse, error)
 }
@@ -33,33 +31,35 @@ type CommandRequest struct {
 }
 
 // CommandResponse is a provider-generated command before validation/gating.
-// Argv is the tokenized command (program + arguments), already split — it must
-// not contain shell operators; those are rejected downstream.
+// Use Chain for multi-stage commands, or Argv for a single command.
 type CommandResponse struct {
 	Argv        []string
-	Shell       string // target shell hint: cmd|powershell|pwsh|bash|sh|zsh
+	Chain       *generator.CommandChain
+	Shell       string
 	Explanation string
 	Confidence  float64
 }
 
-// commandSystemPrompt instructs the model to emit a single, safe, platform-correct
-// command as discrete argv tokens. The hard safety guarantees (no shell operators,
-// argv-only exec, risk/policy gating) are enforced in Go regardless of this text.
+// HasChain reports whether the response is a multi-stage chain.
+func (r *CommandResponse) HasChain() bool {
+	return r != nil && r.Chain != nil && len(r.Chain.Stages) >= 2
+}
+
 const commandSystemPrompt = `/no_think
-You are CLX, a command generator. Map the user's request to exactly ONE shell command for the platform described in the user message.
+You are CLX, a command generator. Map the user's request to shell command(s) for the platform described in the user message.
 
 Rules:
-- Output the command as "argv": an array of tokens already split into the program and each argument. Example: ["git","status"] not ["git status"].
-- Generate exactly ONE command. Do NOT chain commands or use shell operators: no pipes (|), redirects (> <), &&, ||, ;, backticks, $(...), or %VAR% expansion. If the task needs multiple steps, pick the single most useful step.
-- Use a program that exists on the platform (prefer the listed available tools and the native shell).
-- Use the correct syntax for the given OS and shell (e.g. "dir" on Windows cmd, "ls" on POSIX).
-- Set "shell" to the shell the command targets (cmd, powershell, bash, or sh).
-- Set "explanation" to a short one-line description.
-- Set "confidence" between 0 and 1.
-Respond with JSON only: {"argv":["..."],"shell":"<shell>","explanation":"<text>","confidence":<0-1>}.`
+- Prefer "chain" when the task needs pipe or sequential composition (filtering, grep after list, etc.).
+- chain.stages: array of stages; each stage has "tokens": [{"value":"...","expr":false}].
+- Use "expr":true only for scriptblock/predicate tokens (e.g. Where-Object filter body).
+- connectors: array of "pipe" or "and" between stages (length = stages-1). Use "pipe" for filtering; "and" for sequential success-only steps.
+- Do NOT put |, &&, or ; inside token values — CLX inserts connectors.
+- For a single simple command, use flat "argv" and set "chain" to null.
+- Use programs on the platform; set "shell" (cmd, powershell, bash, sh).
+- Set "explanation" and "confidence" (0-1).
+Respond with JSON only: {"argv":[],"chain":null,"shell":"...","explanation":"...","confidence":0.9} or with chain populated and argv [].`
 
-// BuildCommandPrompt assembles the system and user messages for AI command
-// generation. Output is deterministic for identical CommandRequest values.
+// BuildCommandPrompt assembles the system and user messages for AI command generation.
 func BuildCommandPrompt(req CommandRequest) (system, user string, err error) {
 	user = buildCommandUserMessage(req)
 	if len(user) > maxPromptUserBytes {
@@ -70,9 +70,7 @@ func BuildCommandPrompt(req CommandRequest) (system, user string, err error) {
 
 func buildCommandUserMessage(req CommandRequest) string {
 	var b strings.Builder
-
 	writePlatformContext(&b, req.Profile)
-
 	tools := dedupeLower(req.Profile.AvailableTools)
 	if len(tools) > maxCommandTools {
 		tools = tools[:maxCommandTools]
@@ -83,27 +81,46 @@ func buildCommandUserMessage(req CommandRequest) string {
 	} else {
 		b.WriteString(strings.Join(tools, ", "))
 	}
-
 	b.WriteString("\n\nRequest: ")
 	b.WriteString(executor.Redact(req.RawInput))
-
 	return b.String()
 }
 
-// BuildCommandSchema returns a JSON Schema constraining the command response.
-// It is strict-mode compatible (additionalProperties:false, all keys required)
-// so it works for both Ollama format and OpenAI structured outputs. Numeric and
-// array bounds are validated in Go (executor.ValidateGeneratedArgv), not here,
-// because the strict subset does not support them on all providers.
+var chainTokenSchema = map[string]any{
+	"type":                 "object",
+	"additionalProperties": false,
+	"required":             []any{"value", "expr"},
+	"properties": map[string]any{
+		"value": map[string]any{"type": "string"},
+		"expr":  map[string]any{"type": "boolean"},
+	},
+}
+
+var chainStageSchema = map[string]any{
+	"type":                 "object",
+	"additionalProperties": false,
+	"required":             []any{"tokens"},
+	"properties": map[string]any{
+		"tokens": map[string]any{"type": "array", "items": chainTokenSchema},
+	},
+}
+
+// BuildCommandSchema returns JSON Schema for command generation (always allows chains).
 func BuildCommandSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
 		"required":             []any{"argv", "shell", "explanation", "confidence"},
 		"properties": map[string]any{
-			"argv": map[string]any{
-				"type":  "array",
-				"items": map[string]any{"type": "string"},
+			"argv": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+			"chain": map[string]any{
+				"type":                 "object",
+				"additionalProperties": false,
+				"properties": map[string]any{
+					"stages":     map[string]any{"type": "array", "items": chainStageSchema},
+					"connectors": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+				},
+				"required": []any{"stages", "connectors"},
 			},
 			"shell":       map[string]any{"type": "string"},
 			"explanation": map[string]any{"type": "string"},
@@ -112,28 +129,47 @@ func BuildCommandSchema() map[string]any {
 	}
 }
 
-// parsedCommand is the JSON shape expected inside the model's message content.
-type parsedCommand struct {
-	Argv        []string `json:"argv"`
-	Shell       string   `json:"shell"`
-	Explanation string   `json:"explanation"`
-	Confidence  float64  `json:"confidence"`
+type parsedChainToken struct {
+	Value string `json:"value"`
+	Expr  bool   `json:"expr"`
 }
 
-// ParseCommandContent decodes a model message into a CommandResponse. It returns
-// ErrInvalidResp for malformed JSON and ErrNoMatch when no argv is produced.
-// It does NOT validate command safety — that is the caller's responsibility.
+type parsedChainStage struct {
+	Tokens []parsedChainToken `json:"tokens"`
+}
+
+type parsedChain struct {
+	Stages     []parsedChainStage `json:"stages"`
+	Connectors []string           `json:"connectors"`
+}
+
+type parsedCommand struct {
+	Argv        []string     `json:"argv"`
+	Chain       *parsedChain `json:"chain"`
+	Shell       string       `json:"shell"`
+	Explanation string       `json:"explanation"`
+	Confidence  float64      `json:"confidence"`
+}
+
+// ParseCommandContent decodes a model message into a CommandResponse.
 func ParseCommandContent(content string) (*CommandResponse, error) {
 	var parsed parsedCommand
 	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
 		return nil, ErrInvalidResp
 	}
+	if chain := parseChain(parsed.Chain); chain != nil {
+		return &CommandResponse{
+			Chain:       chain,
+			Shell:       strings.TrimSpace(parsed.Shell),
+			Explanation: strings.TrimSpace(parsed.Explanation),
+			Confidence:  parsed.Confidence,
+		}, nil
+	}
 	cleaned := make([]string, 0, len(parsed.Argv))
 	for _, tok := range parsed.Argv {
-		if tok == "" {
-			continue
+		if tok != "" {
+			cleaned = append(cleaned, tok)
 		}
-		cleaned = append(cleaned, tok)
 	}
 	if len(cleaned) == 0 {
 		return nil, ErrNoMatch
@@ -146,6 +182,43 @@ func ParseCommandContent(content string) (*CommandResponse, error) {
 	}, nil
 }
 
+func parseChain(pc *parsedChain) *generator.CommandChain {
+	if pc == nil || len(pc.Stages) < 2 {
+		return nil
+	}
+	stages := make([]generator.ChainStage, 0, len(pc.Stages))
+	for _, st := range pc.Stages {
+		toks := make([]generator.ChainToken, 0, len(st.Tokens))
+		for _, t := range st.Tokens {
+			v := strings.TrimSpace(t.Value)
+			if v == "" {
+				continue
+			}
+			toks = append(toks, generator.ChainToken{Value: v, Expr: t.Expr})
+		}
+		if len(toks) == 0 {
+			return nil
+		}
+		stages = append(stages, generator.ChainStage{Tokens: toks})
+	}
+	if len(stages) < 2 {
+		return nil
+	}
+	conns := make([]generator.ChainConnector, len(stages)-1)
+	for i := 0; i < len(stages)-1; i++ {
+		conns[i] = generator.ChainPipe
+		if i < len(pc.Connectors) {
+			switch strings.ToLower(strings.TrimSpace(pc.Connectors[i])) {
+			case "and", "&&":
+				conns[i] = generator.ChainAnd
+			default:
+				conns[i] = generator.ChainPipe
+			}
+		}
+	}
+	return &generator.CommandChain{Stages: stages, Connectors: conns}
+}
+
 // BuildOpenAICommandResponseFormat wraps the command schema for OpenAI chat.
 func BuildOpenAICommandResponseFormat(schema map[string]any) map[string]any {
 	return map[string]any{
@@ -156,4 +229,76 @@ func BuildOpenAICommandResponseFormat(schema map[string]any) map[string]any {
 			"schema": schema,
 		},
 	}
+}
+
+// ChainFromArgv splits argv on connector tokens into a CommandChain.
+func ChainFromArgv(argv []string) *generator.CommandChain {
+	if len(argv) < 3 {
+		return nil
+	}
+	type seg struct {
+		tokens      []string
+		after       generator.ChainConnector
+		hasAfter    bool
+	}
+	var segments []seg
+	cur := make([]string, 0, len(argv))
+	flush := func(after generator.ChainConnector, has bool) {
+		if len(cur) == 0 {
+			return
+		}
+		segments = append(segments, seg{tokens: append([]string(nil), cur...), after: after, hasAfter: has})
+		cur = cur[:0]
+	}
+	for _, tok := range argv {
+		switch tok {
+		case "|":
+			flush(generator.ChainPipe, true)
+		case "&&":
+			flush(generator.ChainAnd, true)
+		case ";":
+			flush(generator.ChainAnd, true)
+		default:
+			cur = append(cur, tok)
+		}
+	}
+	flush(generator.ChainPipe, false)
+	if len(segments) < 2 {
+		return nil
+	}
+	stages := make([]generator.ChainStage, len(segments))
+	conns := make([]generator.ChainConnector, len(segments)-1)
+	for i, s := range segments {
+		toks := make([]generator.ChainToken, 0, len(s.tokens))
+		for _, v := range s.tokens {
+			toks = append(toks, generator.ChainToken{Value: v, Expr: tokenLooksLikeExpr(v)})
+		}
+		stages[i] = generator.ChainStage{Tokens: toks}
+		if i < len(segments)-1 {
+			if s.hasAfter {
+				conns[i] = s.after
+			} else {
+				conns[i] = generator.ChainPipe
+			}
+		}
+	}
+	return &generator.CommandChain{Stages: stages, Connectors: conns}
+}
+
+func tokenLooksLikeExpr(v string) bool {
+	if strings.HasPrefix(strings.TrimSpace(v), "{") {
+		return true
+	}
+	return strings.ContainsRune(v, '$')
+}
+
+// ArgvHasChainConnector reports whether argv contains a chain connector token.
+func ArgvHasChainConnector(argv []string) bool {
+	for _, tok := range argv {
+		switch tok {
+		case "|", "&&", ";":
+			return true
+		}
+	}
+	return false
 }
