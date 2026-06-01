@@ -4,9 +4,12 @@ BIN_DIR := bin
 CLX_BIN := $(BIN_DIR)/clx
 CLXMAX_BIN := $(BIN_DIR)/clxmax
 
-VERSION ?= dev
+# v1.0.0 = Phases 1–4 + 3.5 (clx). v2.0.0-dev = Phase 5 clxmax (in development).
+VERSION ?= 1.0.0
+CLXMAX_VERSION ?= 2.0.0-dev
 COMMIT ?= unknown
 LDFLAGS := -s -w -X github.com/alibaba40core/clx/internal/cliversion.Version=$(VERSION) -X github.com/alibaba40core/clx/internal/cliversion.Commit=$(COMMIT)
+CLXMAX_LDFLAGS := -s -w -X github.com/alibaba40core/clx/internal/cliversion.Version=$(CLXMAX_VERSION) -X github.com/alibaba40core/clx/internal/cliversion.Commit=$(COMMIT)
 
 GOFLAGS := -trimpath
 
@@ -20,7 +23,7 @@ else
 	@mkdir -p $(BIN_DIR)
 endif
 	go build $(GOFLAGS) -ldflags="$(LDFLAGS)" -o $(CLX_BIN) ./cmd/clx
-	go build $(GOFLAGS) -ldflags="$(LDFLAGS)" -o $(CLXMAX_BIN) ./cmd/clxmax
+	go build $(GOFLAGS) -ldflags="$(CLXMAX_LDFLAGS)" -o $(CLXMAX_BIN) ./cmd/clxmax
 
 test: ## Run unit and integration tests
 	go test -race ./...

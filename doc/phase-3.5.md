@@ -29,4 +29,7 @@
 ## Update log
 
 ```
+2026-05-30 · 3.5.1 · aliases: add persistent store and config paths for ~/.clx/aliases.yaml · 3ca1a77
+2026-05-30 · 3.5.2 · parser: expand first-token aliases before classification · 1057f68
+2026-05-30 · 3.5.3 · cmd: add clx alias subcommand with collision warnings and safety e2e · 0362e4d
 ```

@@ -6,11 +6,11 @@ CLX is an AI-powered cross-platform command intelligence layer for developers. I
 
 ## Status
 
-> **V1 polish (Phases 1–4 + 3.5)** — Rules-first pipeline with AI fallback (Ollama, OpenAI, Gemini), intent cache, risk/policy gates, safety presets, aliases, and `clx init`. Manage settings with `clx config` / `clx safety` / `clx policy` / `clx cache` / `clx alias` (API keys encrypted at rest). Provider HTTP 429 surfaces as a clear rate-limit message. Common NL phrases (e.g. `what is my ip`) hit built-in rules before AI. Flags: `--provider`, `--explain`, `--dry-run`, `-y`. See [doc/architecture.md](doc/architecture.md) and [doc/provider-config.md](doc/provider-config.md).
+> **v1.0.0 (shipped)** — Phases 1–4 + 3.5: rules-first pipeline with AI fallback (Ollama, OpenAI, Gemini), intent cache, risk/policy gates, safety presets, aliases, and `clx init`. Manage settings with `clx config` / `clx safety` / `clx policy` / `clx cache` / `clx alias` (API keys encrypted at rest). Provider HTTP 429 surfaces as a clear rate-limit message. Common NL phrases (e.g. `what is my ip`) hit built-in rules before AI. Flags: `--provider`, `--explain`, `--dry-run`, `-y`. See [doc/architecture.md](doc/architecture.md), [doc/provider-config.md](doc/provider-config.md), and [CHANGELOG.md](CHANGELOG.md).
 
 **CLI subcommands:** `doctor`, `init`, `config`, `safety`, `policy`, `alias`, `cache` — run `clx <cmd> help` for each.
 
-**`clxmax`:** planned advanced reasoning binary; not shipped in V1 (`clx --version` only today).
+**`clxmax`:** Version 2 / Phase 5 (in development) — advanced reasoning binary; stub today (`clxmax --version` only). See [doc/phase-5.md](doc/phase-5.md).
 
 ## What CLX does
 

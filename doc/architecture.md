@@ -121,7 +121,7 @@ See [doc/provider-config.md](provider-config.md) for config paths, encryption, a
 **Binaries:**
 
 - **`clx`** — Fast, rules-first, single-shot translation/execution.
-- **`clxmax`** — *Future:* same engine with reasoning, multi-step planning, and clarification loops (not shipped in V1).
+- **`clxmax`** — Version 2 / Phase 5: same engine with reasoning, multi-step planning, and clarification loops (in development — see [doc/phase-5.md](phase-5.md)).
 
 ---
 
@@ -716,6 +716,7 @@ clx.ai/
 | **Phase 3.5 — Aliases** | Persistent user-global aliases in `~/.clx/aliases.yaml`. `clx alias set/list/rm` subcommand, parser-stage expansion (alias value flows through full risk/policy/exec chain), set-time collision warning against shell verbs and built-in rule example heads. No dependency on `internal/memory` or shell hooks — ships as a self-contained slice between safety and advanced UX. See [§3.16](#316-aliases--internalaliases). | `internal/aliases`, `internal/parser` (expansion hook), `cmd/clx` (`alias` subcommand) |
 | **Phase 4 — Advanced UX** | Shell interception (partial), session context, interactive `clx init` wizard, V1 CLI polish (`config`/`policy`/`cache`) | `memory`, `skills`, `cmd/clx` |
 | **V1 polish** | Provider rate-limit messages, NL rule examples, expanded `clx config`/`policy`/`cache`, docs sync | `providers`, `builtin/rules`, `config`, `policy`, `cache`, `cmd/clx` |
+| **Phase 5 — clxmax Advanced Reasoning (Version 2)** *(planned — see [`doc/phase-5.md`](phase-5.md))* | Clarification loop, multi-step planning, sequenced execution with per-step safety gates, plan explainability | `cmd/clxmax`, `internal/pipeline`, `internal/reasoning` (proposed), `providers/*` |
 
 ### 6.1 Phase 1 sub-phases
 
@@ -741,7 +742,8 @@ Shell hosts are allowed only when the script is built from rule-rendered argv: e
 - LLM provider selection and AI fallback → **Phase 2**
 - Risk classification and access-level enforcement (Safe / Moderate / Full) → **Phase 3**
 - Interactive setup wizard (`clx init`) → **Phase 4** (silent install with safe defaults is sufficient for Phase 1)
-- Cache, session memory, `clxmax` reasoning binary → later phases
+- Cache, session memory → **Phase 4**
+- `clxmax` reasoning binary → **Phase 5 (Version 2)**
 
 The full config schema (`configs/config.example.yaml`) ships in **1.1** even though several fields (`providers.*`, `safety.mode`, etc.) are not yet consumed. This avoids config migrations as later phases come online — they simply start reading fields that have been quietly present since 1.1.
 

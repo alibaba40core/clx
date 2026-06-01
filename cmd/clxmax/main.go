@@ -13,7 +13,7 @@ import (
 	"github.com/alibaba40core/clx/internal/logging"
 )
 
-const phaseMessage = "clxmax reasoning mode arrives in Phase 4. Try: clxmax --version"
+const phaseMessage = "clxmax reasoning mode (Version 2) is in development — see doc/phase-5.md. Try: clxmax --version"
 
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
@@ -31,7 +31,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 
 	if *showHelp {
-		fmt.Fprintln(stdout, "clxmax — advanced reasoning mode (Phase 4)")
+		fmt.Fprintln(stdout, "clxmax — advanced reasoning mode (Version 2 / Phase 5)")
 		fmt.Fprintln(stdout, "  clxmax --version")
 		return 0
 	}
