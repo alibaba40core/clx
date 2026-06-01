@@ -139,8 +139,20 @@ func TestAsResolverProfileChangeMisses(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p1 := environment.SystemProfile{OS: "linux", Shell: "bash", AvailableTools: []string{"git"}}
+	// The read resolver computes its cache key from the profile returned by
+	// environment.LoadOrDetect, which keys on the runner's *actual* detected
+	// OS/shell. Build the persisted profile from that detected base so the
+	// resolver actually reads it, then vary a non-store-key field
+	// (AvailableTools) to model a profile refresh: the store key stays the
+	// same but the cache key changes, so a prior entry must miss.
+	detected, err := environment.LoadOrDetect(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
 	path, _ := config.SystemProfilePath()
+
+	p1 := detected
+	p1.AvailableTools = []string{"git"}
 	storeProf := environment.NewProfileStore()
 	storeProf.UpsertProfile(p1)
 	if err := environment.SaveStore(context.Background(), path, storeProf); err != nil {
@@ -155,14 +167,14 @@ func TestAsResolverProfileChangeMisses(t *testing.T) {
 	}
 
 	p2 := p1
-	p2.Shell = "zsh"
+	p2.AvailableTools = []string{"git", "docker"}
 	storeProf.UpsertProfile(p2)
 	if err := environment.SaveStore(context.Background(), path, storeProf); err != nil {
 		t.Fatal(err)
 	}
 
 	r := AsResolver(s, nil)
-	_, err := r.Resolve(context.Background(), req)
+	_, err = r.Resolve(context.Background(), req)
 	if !errors.Is(err, intent.ErrNotFound) {
 		t.Fatalf("expected miss after profile change, err=%v", err)
 	}

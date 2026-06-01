@@ -43,16 +43,20 @@ func (r *Resolver) Resolve(ctx context.Context, req parser.Request) (intent.Reso
 }
 
 func isFollowUp(req parser.Request, last CommandEntry) bool {
-	if req.InputType != parser.InputNaturalLanguage {
-		return false
-	}
 	tokens := req.Tokens
 	if len(tokens) == 0 {
 		return false
 	}
+	// Explicit follow-up keywords are unambiguous markers to repeat the last
+	// command. The parser classifies a single bare word as InputShell (not
+	// InputNaturalLanguage), so gate these before the natural-language check.
 	switch strings.ToLower(tokens[0]) {
 	case "again", "same", "repeat":
 		return true
+	}
+	// Heuristic param-overlap follow-ups only apply to natural-language phrases.
+	if req.InputType != parser.InputNaturalLanguage {
+		return false
 	}
 	if len(tokens) > 6 {
 		return false

@@ -36,8 +36,12 @@ func TestFormatInvocationMatchesEffectiveHostWindowsBuiltin(t *testing.T) {
 }
 
 func TestEffectiveExecHostPosixShellOnWindows(t *testing.T) {
+	// Use a binary guaranteed not to be on PATH: effectiveExecHost only falls
+	// back to a shell host when the direct binary cannot be resolved. A real
+	// binary like "ls" exists on CI runners (incl. Windows via Git/MSYS) and
+	// would resolve to ExecDirect, masking the intended fallback.
 	gen := generator.GeneratedCommand{
-		Argv:     []string{"ls"},
+		Argv:     []string{"clx-nonexistent-posix-shell-test-xyz"},
 		ExecHost: generator.ExecDirect,
 	}
 	profile := environment.SystemProfile{OS: "windows", Shell: "bash"}
