@@ -17,6 +17,21 @@ func Render(ctx context.Context, resolved intent.ResolvedIntent, selected capabi
 	}
 
 	params := effectiveParams(resolved.Intent, resolved.Params, profile)
+	shell := profile.Shell
+	if selected.Strategy.HasChain() {
+		chain, err := renderChain(ctx, selected.Strategy.Chain, params)
+		if err != nil {
+			return GeneratedCommand{}, err
+		}
+		host := chainExecHost(shell, profile)
+		return GeneratedCommand{
+			Chain:       chain,
+			Shell:       shell,
+			Explanation: explanationFor(resolved.Intent),
+			ExecHost:    host,
+		}, nil
+	}
+
 	var argv []string
 
 	if len(selected.Strategy.Argv) > 0 {

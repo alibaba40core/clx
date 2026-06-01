@@ -167,6 +167,16 @@ func reportResolveError(cfg config.Config, opts Options, req parser.Request, err
 // risk → policy → dry-run → (risk-based) confirm → argv-only exec.
 func executePlan(ctx context.Context, cfg config.Config, opts Options, profile environment.SystemProfile, req parser.Request, resolved intent.ResolvedIntent, gen generator.GeneratedCommand) (int, error) {
 	rawInput := req.RawInput
+	if gen.Chain != nil {
+		shell := gen.Shell
+		if shell == "" {
+			shell = profile.Shell
+		}
+		if err := executor.ValidateCommandChain(gen.Chain, shell); err != nil {
+			fmt.Fprintf(opts.Stderr, "command rejected as unsafe: %v\n", err)
+			return 1, err
+		}
+	}
 	ra, err := risk.Assess(ctx, gen)
 	if err != nil {
 		fmt.Fprintf(opts.Stderr, "risk: %v\n", err)

@@ -64,7 +64,7 @@ func effectiveParams(intentName string, params map[string]string, profile enviro
 	}
 	if _, ok := out["path"]; !ok {
 		switch intentName {
-		case "disk_usage", "list_dir", "find_file":
+		case "disk_usage", "list_dir", "find_file", "find_modified_today":
 			out["path"] = "."
 		}
 	}

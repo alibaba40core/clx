@@ -13,6 +13,7 @@ type Rule struct {
 type Strategy struct {
 	Primary      string
 	Argv         []string
+	Chain        *ChainSpec
 	RequiresTool string
 	Priority     int
 }

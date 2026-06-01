@@ -170,6 +170,36 @@ func TestRenderDiskUsageDefaultPath(t *testing.T) {
 	}
 }
 
+func TestRenderFindModifiedTodayChain(t *testing.T) {
+	t.Parallel()
+	resolved := intent.ResolvedIntent{Intent: "find_modified_today", Params: map[string]string{}}
+	selected := capabilities.SelectedStrategy{
+		Key: "powershell",
+		Strategy: intent.Strategy{
+			Chain: &intent.ChainSpec{
+				Stages: []intent.ChainStageSpec{
+					{Argv: []string{"Get-ChildItem", "-Recurse", "-File"}},
+					{Tokens: []intent.ChainTokenSpec{
+						{Value: "Where-Object"},
+						{Value: "{ $_.LastWriteTime.Date -eq [datetime]::Today }", Expr: true},
+					}},
+				},
+				Connectors: []string{"pipe"},
+			},
+		},
+	}
+	got, err := Render(context.Background(), resolved, selected, environment.SystemProfile{Shell: "powershell"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Chain == nil || len(got.Chain.Stages) != 2 {
+		t.Fatalf("expected chain, got %+v", got.Chain)
+	}
+	if got.ExecHost != ExecPowerShell {
+		t.Fatalf("exec host=%v", got.ExecHost)
+	}
+}
+
 func TestRenderRejectsControlChars(t *testing.T) {
 	t.Parallel()
 	resolved := intent.ResolvedIntent{

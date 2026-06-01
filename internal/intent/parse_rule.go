@@ -56,6 +56,13 @@ func parseStrategies(node *yamlutil.Node) (map[string]Strategy, error) {
 		if argv, ok := child.GetStringList("argv"); ok {
 			s.Argv = argv
 		}
+		if chainNode, ok := child.GetChild("chain"); ok && chainNode != nil {
+			chain, err := parseChainSpec(chainNode)
+			if err != nil {
+				return nil, fmt.Errorf("strategy %q: %w", k, err)
+			}
+			s.Chain = chain
+		}
 		if rt, ok := child.GetString("requires_tool"); ok {
 			s.RequiresTool = rt
 		}
@@ -64,7 +71,7 @@ func parseStrategies(node *yamlutil.Node) (map[string]Strategy, error) {
 				s.Priority = n
 			}
 		}
-		if s.Primary == "" && len(s.Argv) == 0 {
+		if s.Primary == "" && len(s.Argv) == 0 && !s.HasChain() {
 			continue
 		}
 		out[k] = s

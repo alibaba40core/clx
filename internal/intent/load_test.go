@@ -115,6 +115,34 @@ intents:
 	}
 }
 
+func TestParseRulesFileChainStrategy(t *testing.T) {
+	t.Parallel()
+	data := []byte(`intent: find_modified_today
+examples:
+  - files modified today
+strategies:
+  powershell:
+    chain:
+      stages:
+        - tokens:
+            - value: Get-ChildItem
+            - value: -Recurse
+        - tokens:
+            - value: Where-Object
+            - value: "{ $_.x }"
+              expr: true
+      connectors:
+        - pipe
+`)
+	rules, err := parseRulesFile(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rules) != 1 || !rules[0].Strategies["powershell"].HasChain() {
+		t.Fatalf("chain not parsed: %+v", rules[0].Strategies)
+	}
+}
+
 func TestParseRulesFileEmptyIsSkippedByLoader(t *testing.T) {
 	t.Parallel()
 	data := []byte(`# just a comment, no intents declared

@@ -5,6 +5,37 @@
 # intentionally absent from lowVerbs in internal/risk/assess.go so they
 # require confirmation before execution.
 intents:
+  - intent: find_modified_today
+    examples:
+      - find all files modified today
+      - list files modified today
+      - files changed today
+      - show files modified today
+    strategies:
+      linux:
+        argv:
+          - find
+          - {{path}}
+          - -type
+          - f
+          - -mtime
+          - 0
+      powershell:
+        chain:
+          stages:
+            - tokens:
+                - value: Get-ChildItem
+                - value: -Path
+                - value: {{path}}
+                - value: -Recurse
+                - value: -File
+            - tokens:
+                - value: Where-Object
+                - value: "{ $_.LastWriteTime.Date -eq [datetime]::Today }"
+                  expr: true
+          connectors:
+            - pipe
+
   - intent: find_file
     examples:
       - locate {{filename}}

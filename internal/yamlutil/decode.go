@@ -39,7 +39,11 @@ func DecodeLimited(r io.Reader, maxBytes int64) (*Node, error) {
 		if indent%2 != 0 {
 			return nil, fmt.Errorf("yaml line %d: indent must be a multiple of 2", lineNum)
 		}
-		if strings.ContainsAny(trimmed, "&*!|>") || strings.Contains(trimmed, ": {") {
+		if strings.ContainsAny(trimmed, "&*!|>") {
+			return nil, fmt.Errorf("yaml line %d: unsupported syntax", lineNum)
+		}
+		// Reject inline JSON flow maps (not rule placeholders like {{path}}).
+		if strings.Contains(trimmed, ": {\"") || strings.Contains(trimmed, ": '{}'") {
 			return nil, fmt.Errorf("yaml line %d: unsupported syntax", lineNum)
 		}
 
@@ -58,13 +62,18 @@ func DecodeLimited(r io.Reader, maxBytes int64) (*Node, error) {
 				if err != nil {
 					return nil, err
 				}
+				item := &Node{Children: make(map[string]*Node)}
 				if hasValue {
-					item := &Node{Children: make(map[string]*Node)}
 					item.Children[key] = &Node{Scalar: value}
 					parent.List = append(parent.List, item)
 					stack = append(stack, frame{indent: indent, node: item})
 					continue
 				}
+				child := &Node{}
+				item.Children[key] = child
+				parent.List = append(parent.List, item)
+				stack = append(stack, frame{indent: indent, node: child})
+				continue
 			}
 			parent.List = append(parent.List, &Node{Scalar: itemText})
 			continue
