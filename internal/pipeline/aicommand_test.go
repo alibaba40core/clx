@@ -89,7 +89,7 @@ func TestRunAICommandRejectsMaliciousArgv(t *testing.T) {
 	code, err := Run(context.Background(), config.Default(), "totally unknown phrase here", Options{
 		AIResolver: &fakeAIResolver{err: intent.ErrNotFound},
 		Provider: &fakeCmdProvider{resp: &providers.CommandResponse{
-			Argv:       []string{"ls", "|", "sh"},
+			Argv:       []string{"echo", "$(whoami)"},
 			Shell:      "bash",
 			Confidence: 0.95,
 		}},

@@ -25,11 +25,7 @@ const aiCommandMinConfidence = 0.5
 // maxAICommandTimeout caps AI command generation latency.
 const maxAICommandTimeout = 180 * time.Second
 
-// tryAICommand attempts the hybrid AI command-generation fallback. It returns
-// handled=false when the fallback is not applicable (feature off, no provider,
-// or provider lacks the capability), so the caller can fall back to the normal
-// "no match" messaging. When handled=true it has fully processed the request
-// (including printing any error) and returns the pipeline exit code.
+// tryAICommand attempts the hybrid AI command-generation fallback.
 func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile environment.SystemProfile, req parser.Request) (code int, handled bool, err error) {
 	if !cfg.Features.AICommandGeneration {
 		return 0, false, nil
@@ -80,12 +76,6 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 	}
 
 	if resp.Confidence > 0 && resp.Confidence < aiCommandMinConfidence {
-		if opts.Logger != nil {
-			opts.Logger.Debug("ai command below confidence floor",
-				"confidence", resp.Confidence,
-				"floor", aiCommandMinConfidence,
-			)
-		}
 		fmt.Fprintf(opts.Stderr, "AI was not confident enough to generate a command; try a more specific request\n")
 		return 1, true, intent.ErrNotFound
 	}
@@ -95,17 +85,11 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 		shellHint = profile.Shell
 	}
 	if vErr := executor.ValidateGeneratedArgv(resp.Argv, shellHint); vErr != nil {
-		if opts.Logger != nil {
-			opts.Logger.Warn("ai command rejected by validation",
-				"err", vErr,
-				"argv_len", len(resp.Argv),
-			)
-		}
 		fmt.Fprintf(opts.Stderr, "AI command rejected as unsafe: %v\n", vErr)
 		return 1, true, vErr
 	}
-
 	gcmd := generator.NewAICommand(resp.Argv, resp.Shell, resp.Explanation, profile)
+
 	resolved := intent.ResolvedIntent{
 		Intent:     aiCommandLabel,
 		Confidence: resp.Confidence,

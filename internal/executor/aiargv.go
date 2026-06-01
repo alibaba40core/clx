@@ -36,20 +36,27 @@ func ValidateGeneratedArgv(argv []string, shell string) error {
 	if len(argv) > maxAIArgvTokens {
 		return fmt.Errorf("%w: %d (cap %d)", ErrAIArgvTooLong, len(argv), maxAIArgvTokens)
 	}
-	bad := metacharsForShell(shell)
 	for _, tok := range argv {
 		if tok == "" {
 			return fmt.Errorf("%w: empty token", ErrAIArgvToken)
 		}
-		if len(tok) > maxAIArgvTokenBytes {
-			return fmt.Errorf("%w: token too long (%d bytes)", ErrAIArgvToken, len(tok))
+		if err := validatePlainToken(tok, shell); err != nil {
+			return err
 		}
-		if strings.ContainsRune(tok, 0) {
-			return fmt.Errorf("%w: null byte in %q", ErrAIArgvToken, tok)
-		}
-		if strings.ContainsAny(tok, bad) {
-			return fmt.Errorf("%w: shell metacharacters in %q", ErrAIArgvToken, tok)
-		}
+	}
+	return nil
+}
+
+func validatePlainToken(tok, shell string) error {
+	if len(tok) > maxAIArgvTokenBytes {
+		return fmt.Errorf("%w: token too long (%d bytes)", ErrAIArgvToken, len(tok))
+	}
+	if strings.ContainsRune(tok, 0) {
+		return fmt.Errorf("%w: null byte in %q", ErrAIArgvToken, tok)
+	}
+	bad := metacharsForShell(shell)
+	if strings.ContainsAny(tok, bad) {
+		return fmt.Errorf("%w: shell metacharacters in %q", ErrAIArgvToken, tok)
 	}
 	return nil
 }

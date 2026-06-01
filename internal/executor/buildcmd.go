@@ -52,6 +52,9 @@ func buildCommand(ctx context.Context, gen generator.GeneratedCommand, profile e
 }
 
 func buildCommandForHost(ctx context.Context, host generator.ExecHost, gen generator.GeneratedCommand, profile environment.SystemProfile) (*exec.Cmd, error) {
+	if gen.Chain != nil {
+		return buildChainCommand(ctx, host, gen, profile)
+	}
 	if len(gen.Argv) == 0 {
 		return nil, ErrEmptyArgv
 	}
@@ -100,5 +103,55 @@ func buildCommandForHost(ctx context.Context, host generator.ExecHost, gen gener
 
 	default:
 		return nil, fmt.Errorf("executor: unknown exec host %d", host)
+	}
+}
+
+func buildChainCommand(ctx context.Context, host generator.ExecHost, gen generator.GeneratedCommand, profile environment.SystemProfile) (*exec.Cmd, error) {
+	shellName := gen.Shell
+	if shellName == "" {
+		shellName = profile.Shell
+	}
+	script, err := BuildValidatedChainScript(shellName, gen.Chain, profile)
+	if err != nil {
+		return nil, err
+	}
+	if host == generator.ExecDirect {
+		host = chainExecHostForProfile(profile)
+	}
+	switch host {
+	case generator.ExecPowerShell:
+		exe, err := ResolvePowerShell(profile)
+		if err != nil {
+			return nil, err
+		}
+		return exec.CommandContext(ctx, exe, "-NoProfile", "-NonInteractive", "-Command", script), nil
+	case generator.ExecCmd:
+		exe, err := ResolveCmd()
+		if err != nil {
+			return nil, err
+		}
+		return exec.CommandContext(ctx, exe, "/c", script), nil
+	case generator.ExecPosix:
+		exe, err := ResolvePosixShell()
+		if err != nil {
+			return nil, err
+		}
+		return exec.CommandContext(ctx, exe, "-c", script), nil
+	default:
+		return buildChainCommand(ctx, chainExecHostForProfile(profile), gen, profile)
+	}
+}
+
+func chainExecHostForProfile(profile environment.SystemProfile) generator.ExecHost {
+	switch strings.ToLower(strings.TrimSpace(profile.Shell)) {
+	case "cmd":
+		return generator.ExecCmd
+	case "powershell", "pwsh":
+		return generator.ExecPowerShell
+	default:
+		if strings.EqualFold(profile.OS, "windows") {
+			return generator.ExecPowerShell
+		}
+		return generator.ExecPosix
 	}
 }

@@ -12,4 +12,6 @@ type GeneratedCommand struct {
 	// backing). Such commands are untrusted: callers must have validated the
 	// argv and must keep risk/policy/confirm gating before exec.
 	AIGenerated bool
+	// Chain, when non-nil, is a multi-stage command joined by shell connectors.
+	Chain *CommandChain
 }

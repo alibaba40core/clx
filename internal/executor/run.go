@@ -31,7 +31,7 @@ func Run(ctx context.Context, gen generator.GeneratedCommand, opts ...Option) er
 	if !cfg.Policy.ExecAllowed {
 		return fmt.Errorf("%w: %s", policy.ErrBlocked, cfg.Policy.Reason)
 	}
-	if len(gen.Argv) == 0 {
+	if gen.Chain == nil && len(gen.Argv) == 0 {
 		return ErrEmptyArgv
 	}
 	if gen.ExecHost != generator.ExecDirect && !cfg.HasProfile {

@@ -10,6 +10,9 @@ import (
 
 // FormatInvocation returns a display string for the effective subprocess invocation.
 func FormatInvocation(gen generator.GeneratedCommand, profile environment.SystemProfile) (string, error) {
+	if gen.Chain != nil {
+		return formatChainInvocation(gen, profile)
+	}
 	host := effectiveExecHost(gen, profile)
 	switch host {
 	case generator.ExecDirect:
@@ -51,6 +54,44 @@ func FormatInvocation(gen generator.GeneratedCommand, profile environment.System
 		return fmt.Sprintf("%s -c %s", QuotePOSIX(exe), QuotePOSIX(script)), nil
 	default:
 		return QuoteArgv(gen.Shell, gen.Argv), nil
+	}
+}
+
+func formatChainInvocation(gen generator.GeneratedCommand, profile environment.SystemProfile) (string, error) {
+	shellName := gen.Shell
+	if shellName == "" {
+		shellName = profile.Shell
+	}
+	script, err := BuildValidatedChainScript(shellName, gen.Chain, profile)
+	if err != nil {
+		return "", err
+	}
+	host := gen.ExecHost
+	if host == generator.ExecDirect {
+		host = chainExecHostForProfile(profile)
+	}
+	switch host {
+	case generator.ExecPowerShell:
+		exe, err := ResolvePowerShell(profile)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%s -NoProfile -NonInteractive -Command %s",
+			QuotePowerShell(exe), QuotePowerShell(script)), nil
+	case generator.ExecCmd:
+		exe, err := ResolveCmd()
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%s /c %s", QuoteCmd(exe), QuoteCmd(script)), nil
+	case generator.ExecPosix:
+		exe, err := ResolvePosixShell()
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%s -c %s", QuotePOSIX(exe), QuotePOSIX(script)), nil
+	default:
+		return script, nil
 	}
 }
 
