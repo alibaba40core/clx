@@ -101,7 +101,7 @@ func TestE2EAIRejectsMaliciousIntent(t *testing.T) {
 func TestE2EAIProviderDownHardFails(t *testing.T) {
 	setupCLXHomeForHost(t, nil)
 	var stderr bytes.Buffer
-	code, err := pipeline.Run(context.Background(), config.Default(), "find all files modified today", pipeline.Options{
+	code, err := pipeline.Run(context.Background(), config.Default(), "find all widgets modified yesterday", pipeline.Options{
 		AIResolver: providers.AsResolver(
 			stubProvider{err: providers.ErrUnavailable},
 			mustEngine(t), nil, providers.AdapterConfig{}),
@@ -151,7 +151,7 @@ func TestE2EAIProviderFlagDisablesFallback(t *testing.T) {
 func TestE2EAILowConfidenceTreatedAsMiss(t *testing.T) {
 	setupCLXHomeForHost(t, nil)
 	var stderr bytes.Buffer
-	code, err := pipeline.Run(context.Background(), config.Default(), "find all files modified today", pipeline.Options{
+	code, err := pipeline.Run(context.Background(), config.Default(), "find all widgets modified yesterday", pipeline.Options{
 		AIResolver: providers.AsResolver(stubProvider{resp: &providers.IntentResponse{
 			Intent: "list_dir", Params: map[string]string{}, Confidence: 0.2,
 		}}, mustEngine(t), nil, providers.AdapterConfig{MinConfidence: 0.5}),

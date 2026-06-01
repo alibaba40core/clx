@@ -15,7 +15,7 @@ CLX's job is to run shell commands generated from user and AI input. A single ar
 - **Policy gating is mandatory.** Every command must pass through `internal/policy` after risk and before exec. Order: `Generate → Risk → Policy → DryRun → Confirm → Exec`. No skipping.
 - **Path inputs are validated.** Any path that came from user, AI, or rule template substitution goes through `internal/executor.CleanAndValidatePath(p)` which rejects `..`, null bytes, shell metacharacters, and absolute paths outside an explicit allowlist.
 - **Shell-specific quoting lives in exactly one place:** `internal/executor/quote.go`, with `QuotePOSIX`, `QuotePowerShell`, `QuoteCmd`. All three have a shared table-driven test matrix. No ad-hoc quoting elsewhere.
-- **AI provider output is untrusted.** Validate every `ResolvedIntent` against the rule schema (intent name in known set, params match declared types) before any substitution into a command template. For AI-generated commands (the hybrid fallback), validate the returned `argv` with `internal/executor.ValidateGeneratedArgv` (no shell metacharacters, bounded token count/length, no null bytes) before it reaches risk/policy/exec.
+- **AI provider output is untrusted.** Validate every `ResolvedIntent` against the rule schema before template substitution. For AI-generated commands, validate flat `argv` with `executor.ValidateGeneratedArgv` or a structured `generator.CommandChain` with `executor.ValidateCommandChain` (per-stage tokens + bounded `expr`; connectors `pipe`/`and` only, symbols from `internal/shellchain`).
 - **Redact secrets** (matching common token/key patterns) from argv, stdout, stderr, logs, and `internal/memory` before persistence or display.
 
 ## MUST NOT
@@ -23,7 +23,7 @@ CLX's job is to run shell commands generated from user and AI input. A single ar
 - No `exec.Command("sh", "-c", x)`, `exec.Command("bash", "-c", x)`, `exec.Command("powershell", "-Command", x)`, `exec.Command("cmd", "/C", x)` where `x` contains any user, AI, or template-substituted content.
 - No `os/exec` calls outside `internal/executor`. Other packages call the executor interface.
 - No string concatenation to build commands: `"git checkout " + branch` is forbidden. Use argv slices and template parameters.
-- No executing AI output verbatim **as a shell string**. The LLM never writes the final command string that is handed to a shell interpreter. Two AI output shapes are allowed: (a) a *resolved intent* (intent name + typed params) that the generator renders from a vetted template; and (b) a *generated command* expressed as a structured `argv` array. In both cases the executor runs **argv-only** — the AI text is never interpolated into `sh -c` / `cmd /c` as a string, and `argv` always passes `ValidateGeneratedArgv` + risk + policy before exec.
+- No executing AI output verbatim **as a shell string**. Allowed shapes: (a) resolved intent rendered from a vetted template (including YAML `chain:` strategies); (b) flat `argv`; (c) `generator.CommandChain` from AI JSON, argv auto-split, or parsed shell input — assembled via `BuildValidatedChainScript` with CLX-owned connectors. All pass validation + risk + policy before exec; multi-stage chains use shell-host dispatch, not raw AI strings in `-c`.
 - No silently dropping the risk or policy step "because the command looks safe."
 - No new shell-quoting helpers. Extend `internal/executor/quote.go` or it doesn't exist.
 
@@ -125,7 +125,18 @@ exec.Command("cmd", "/c", strings.Join(resp.Argv, " ")).Run() // re-introduces i
 Note: AI command generation trades the provable safety of the closed-intent
 allowlist for heuristic risk classification. It is gated behind
 `features.ai_command_generation` and risk-based confirmation (Medium/High always
-confirm). Keep the destructive-pattern lists in `internal/risk` current.
+confirm). Chains use max-over-stages risk and an expr-token Medium floor. Keep
+the destructive-pattern lists in `internal/risk` current (pipeline-aware).
+
+```go
+// GOOD — structured chain; CLX inserts shell-native connectors
+if resp.HasChain() || generator.ChainFromArgv(resp.Argv) != nil {
+    chain := resp.Chain // or argv-split
+    if err := executor.ValidateCommandChain(chain, shell); err != nil { return err }
+    script, _ := executor.BuildValidatedChainScript(shell, chain, profile)
+    gen := generator.NewCommandFromChain(chain, shell, resp.Explanation, script, profile)
+}
+```
 
 ## Enforcement
 

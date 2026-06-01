@@ -404,29 +404,39 @@ type CommandGenerator interface {
 }
 
 type CommandResponse struct {
-    Argv        []string // tokenized; no shell operators
-    Shell       string   // target shell hint (cmd|powershell|bash|sh)
+    Argv        []string
+    Chain       *generator.CommandChain // optional multi-stage (pipe / and)
+    Shell       string
     Explanation string
     Confidence  float64
 }
 ```
 
-**Hybrid AI command generation (Phase 2.7).** The default resolver chain stays
-closed-vocabulary (provably safe). When it misses and
-`features.ai_command_generation` is on, the pipeline asks the active provider's
-`CommandGenerator` for a command as a structured `argv` — never a shell string.
-That argv is then forced through the standard gates:
+**Unified command chaining (always on).** Multi-stage commands share one model,
+`generator.CommandChain` (stages + `pipe` / `and` connectors). CLX maps connectors
+to shell symbols via `internal/shellchain` and builds the host script with
+`executor.BuildValidatedChainScript`. Producers:
+
+| Source | Entry |
+|--------|--------|
+| Rules | YAML `chain:` on a strategy; `generator.Render` sets `GeneratedCommand.Chain` |
+| AI | `CommandResponse.chain` JSON or flat `argv` split on `\|`, `&&`, `;` |
+| User shell | Parser `InputChainedShell` → early `run.go` path (bypasses intent) |
+
+All chains pass `ValidateCommandChain` → max-over-stages `risk.Assess` → per-stage
+`policy.Check` → dry-run / confirm → shell-host exec (same as single argv).
+
+**Hybrid AI command generation (Phase 2.7).** When the resolver chain misses and
+`features.ai_command_generation` is on, the provider returns flat `argv` and/or
+`chain`. Gates:
 
 ```
-ValidateGeneratedArgv → risk.Assess → policy.Check → dry-run → (risk-based) confirm → argv-only exec
+ValidateGeneratedArgv | ValidateCommandChain → risk → policy → dry-run → confirm → exec
 ```
 
-`executor.ValidateGeneratedArgv` rejects shell metacharacters, unbounded token
-counts/lengths, and null bytes, so the command can only ever run argv-only. This
-trades the allowlist's provable safety for heuristic risk classification; it is
-opt-out via config and Medium/High-risk commands always require confirmation.
-The command prompt is grounded with the full system profile (OS+version, shell,
-WSL, package managers, detected tools) so commands match the target platform.
+Flat argv rejects embedded `|` / `&&` (use `chain` instead). This trades
+allowlist safety for heuristic risk; Medium/High always confirm. Prompts include
+full system profile (OS, shell, tools).
 
 **Sentinel errors (`internal/providers`):**
 

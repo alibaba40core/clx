@@ -31,7 +31,7 @@ func TestDecodeExampleConfig(t *testing.T) {
 
 func TestDecodeRejectsFlowSyntax(t *testing.T) {
 	t.Parallel()
-	_, err := yamlutil.Decode(strings.NewReader("key: {a: 1}\n"))
+	_, err := yamlutil.Decode(strings.NewReader(`key: {"a": 1}` + "\n"))
 	if err == nil {
 		t.Fatal("expected error for flow syntax")
 	}
