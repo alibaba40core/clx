@@ -25,11 +25,15 @@ func Check(ctx context.Context, gen generator.GeneratedCommand, ra risk.RiskAsse
 		return Result{}, err
 	}
 
+	explain := opts.ExplainOnly
+
+	if gen.Chain != nil && len(gen.Chain.Stages) >= 2 {
+		return checkChainPolicy(gen, ra, pol, opts)
+	}
+
 	if len(gen.Argv) == 0 {
 		return AllowedResult(), nil
 	}
-
-	explain := opts.ExplainOnly
 
 	for _, pattern := range pol.Blocked {
 		tokens := tokenizePattern(pattern)

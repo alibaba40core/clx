@@ -51,6 +51,10 @@ func Assess(ctx context.Context, gen generator.GeneratedCommand) (RiskAssessment
 		return RiskAssessment{}, err
 	}
 
+	if gen.Chain != nil && len(gen.Chain.Stages) >= 2 {
+		return assessChain(ctx, gen), nil
+	}
+
 	if len(gen.Argv) > 0 {
 		if _, ok := destructiveArgv[strings.ToLower(gen.Argv[0])]; ok {
 			return high("destructive command verb"), nil
