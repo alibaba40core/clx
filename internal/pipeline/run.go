@@ -49,6 +49,17 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 		return 1, err
 	}
 
+	if req.InputType == parser.InputChainedShell && req.ShellChain != nil {
+		chain := generatorChainFromShell(req.ShellChain)
+		if chain == nil {
+			fmt.Fprintf(opts.Stderr, "parse: invalid shell chain\n")
+			return 1, errors.New("invalid shell chain")
+		}
+		gen := generator.NewShellChainCommand(chain, profile)
+		resolved := intent.ResolvedIntent{Intent: "shell chain", Source: intent.SourceRule}
+		return executePlan(ctx, cfg, opts, profile, req, resolved, gen)
+	}
+
 	if cfg.Memory.Enabled && opts.MemoryStore == nil {
 		if store, merr := memory.Open(ctx, memory.DefaultSessionID(), cfg.Memory); merr == nil {
 			opts.MemoryStore = store

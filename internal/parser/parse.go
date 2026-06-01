@@ -66,6 +66,12 @@ func Parse(ctx context.Context, raw string, profile environment.SystemProfile, l
 		return req, nil
 	}
 
+	if chain, ok := SplitShellChain(tokResult.tokens); ok {
+		req.InputType = InputChainedShell
+		req.ShellChain = chain
+		return req, nil
+	}
+
 	req.InputType = InputShell
 	return req, nil
 }

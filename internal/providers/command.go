@@ -157,7 +157,7 @@ func ParseCommandContent(content string) (*CommandResponse, error) {
 	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
 		return nil, ErrInvalidResp
 	}
-	if chain := parseChain(parsed.Chain); chain != nil {
+	if chain := parseChain(parsed.Chain); chain != nil && len(chain.Stages) >= 2 {
 		return &CommandResponse{
 			Chain:       chain,
 			Shell:       strings.TrimSpace(parsed.Shell),
@@ -233,72 +233,10 @@ func BuildOpenAICommandResponseFormat(schema map[string]any) map[string]any {
 
 // ChainFromArgv splits argv on connector tokens into a CommandChain.
 func ChainFromArgv(argv []string) *generator.CommandChain {
-	if len(argv) < 3 {
-		return nil
-	}
-	type seg struct {
-		tokens      []string
-		after       generator.ChainConnector
-		hasAfter    bool
-	}
-	var segments []seg
-	cur := make([]string, 0, len(argv))
-	flush := func(after generator.ChainConnector, has bool) {
-		if len(cur) == 0 {
-			return
-		}
-		segments = append(segments, seg{tokens: append([]string(nil), cur...), after: after, hasAfter: has})
-		cur = cur[:0]
-	}
-	for _, tok := range argv {
-		switch tok {
-		case "|":
-			flush(generator.ChainPipe, true)
-		case "&&":
-			flush(generator.ChainAnd, true)
-		case ";":
-			flush(generator.ChainAnd, true)
-		default:
-			cur = append(cur, tok)
-		}
-	}
-	flush(generator.ChainPipe, false)
-	if len(segments) < 2 {
-		return nil
-	}
-	stages := make([]generator.ChainStage, len(segments))
-	conns := make([]generator.ChainConnector, len(segments)-1)
-	for i, s := range segments {
-		toks := make([]generator.ChainToken, 0, len(s.tokens))
-		for _, v := range s.tokens {
-			toks = append(toks, generator.ChainToken{Value: v, Expr: tokenLooksLikeExpr(v)})
-		}
-		stages[i] = generator.ChainStage{Tokens: toks}
-		if i < len(segments)-1 {
-			if s.hasAfter {
-				conns[i] = s.after
-			} else {
-				conns[i] = generator.ChainPipe
-			}
-		}
-	}
-	return &generator.CommandChain{Stages: stages, Connectors: conns}
-}
-
-func tokenLooksLikeExpr(v string) bool {
-	if strings.HasPrefix(strings.TrimSpace(v), "{") {
-		return true
-	}
-	return strings.ContainsRune(v, '$')
+	return generator.ChainFromArgv(argv)
 }
 
 // ArgvHasChainConnector reports whether argv contains a chain connector token.
 func ArgvHasChainConnector(argv []string) bool {
-	for _, tok := range argv {
-		switch tok {
-		case "|", "&&", ";":
-			return true
-		}
-	}
-	return false
+	return generator.ArgvHasChainConnector(argv)
 }

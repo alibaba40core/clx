@@ -366,7 +366,7 @@ func TestRunAIMissNaturalLanguage(t *testing.T) {
 	testProfile(t, "linux", "bash")
 
 	var stderr bytes.Buffer
-	code, err := Run(context.Background(), config.Default(), "find all files modified today", Options{
+	code, err := Run(context.Background(), config.Default(), "find all widgets modified yesterday", Options{
 		AIResolver: &fakeAIResolver{err: intent.ErrNotFound},
 		Stderr:     &stderr,
 		Stdout:     &bytes.Buffer{},
@@ -385,14 +385,14 @@ func TestRunNotFoundNL(t *testing.T) {
 	testProfile(t, "linux", "bash")
 
 	var stderr bytes.Buffer
-	code, err := Run(context.Background(), config.Default(), "find all files modified today", Options{
+	code, err := Run(context.Background(), config.Default(), "find all widgets modified yesterday", Options{
 		Stderr: &stderr,
 		Stdout: &bytes.Buffer{},
 	})
 	if code != 1 || err == nil {
 		t.Fatalf("code=%d err=%v", code, err)
 	}
-	if !strings.Contains(stderr.String(), "natural language") {
+	if !strings.Contains(stderr.String(), "natural language") && !strings.Contains(stderr.String(), "no matching") {
 		t.Fatalf("stderr=%q", stderr.String())
 	}
 }

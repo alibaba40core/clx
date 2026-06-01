@@ -11,7 +11,7 @@ func buildGeneratedFromAI(resp *providers.CommandResponse, shellHint string, pro
 	if resp.HasChain() {
 		return buildFromChain(resp.Chain, shellHint, resp.Explanation, profile)
 	}
-	if chain := providers.ChainFromArgv(resp.Argv); chain != nil {
+	if chain := generator.ChainFromArgv(resp.Argv); chain != nil {
 		return buildFromChain(chain, shellHint, resp.Explanation, profile)
 	}
 	if vErr := executor.ValidateGeneratedArgv(resp.Argv, shellHint); vErr != nil {
