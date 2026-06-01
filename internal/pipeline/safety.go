@@ -6,7 +6,6 @@ import (
 
 	"github.com/alibaba40core/clx/internal/config"
 	"github.com/alibaba40core/clx/internal/environment"
-	"github.com/alibaba40core/clx/internal/executor"
 	"github.com/alibaba40core/clx/internal/generator"
 	"github.com/alibaba40core/clx/internal/intent"
 )
@@ -21,11 +20,8 @@ func safetyFlagsFromOptions(opts Options) config.SafetyFlagOverrides {
 
 // printDryRunLine writes the preview invocation to stdout.
 func printDryRunLine(w io.Writer, gen generator.GeneratedCommand, profile environment.SystemProfile) error {
-	inv, err := executor.FormatInvocation(gen, profile)
-	if err != nil {
-		inv = executor.QuoteArgv(gen.Shell, gen.Argv)
-	}
-	_, err = fmt.Fprintf(w, "dry-run: would execute: %s\n", inv)
+	inv := formatCommandForDisplay(gen, profile)
+	_, err := fmt.Fprintf(w, "dry-run: would execute: %s\n", inv)
 	return err
 }
 

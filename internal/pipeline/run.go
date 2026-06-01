@@ -215,7 +215,7 @@ func executePlan(ctx context.Context, cfg config.Config, opts Options, profile e
 		if shouldEnrichForSafety(action, opts, resolved, gen) {
 			displayGen.Explanation = enrichExplanation(ctx, opts, resolved, gen)
 		}
-		if err := printDisplay(opts.Stdout, req, resolved, displayGen, ra); err != nil {
+		if err := printDisplay(opts.Stdout, req, resolved, displayGen, profile, ra); err != nil {
 			return 1, err
 		}
 	}

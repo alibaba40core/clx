@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/alibaba40core/clx/internal/environment"
 	"github.com/alibaba40core/clx/internal/executor"
 	"github.com/alibaba40core/clx/internal/generator"
 	"github.com/alibaba40core/clx/internal/intent"
@@ -13,8 +14,8 @@ import (
 	"github.com/alibaba40core/clx/internal/risk"
 )
 
-func printDisplay(w io.Writer, req parser.Request, resolved intent.ResolvedIntent, gen generator.GeneratedCommand, ra risk.RiskAssessment) error {
-	quoted := executor.QuoteArgv(gen.Shell, gen.Argv)
+func printDisplay(w io.Writer, req parser.Request, resolved intent.ResolvedIntent, gen generator.GeneratedCommand, profile environment.SystemProfile, ra risk.RiskAssessment) error {
+	quoted := formatCommandForDisplay(gen, profile)
 
 	var b strings.Builder
 	if req.EffectiveInput != "" && req.EffectiveInput != strings.TrimSpace(req.RawInput) {
@@ -42,4 +43,17 @@ func printDisplay(w io.Writer, req parser.Request, resolved intent.ResolvedInten
 	fmt.Fprintf(&b, "Risk:        %s (%s)\n", ra.Level, ra.Reason)
 	_, err := io.WriteString(w, b.String())
 	return err
+}
+
+// formatCommandForDisplay shows argv-quoted or full chain invocation (same as dry-run).
+func formatCommandForDisplay(gen generator.GeneratedCommand, profile environment.SystemProfile) string {
+	if gen.Chain != nil {
+		if inv, err := executor.FormatInvocation(gen, profile); err == nil && inv != "" {
+			return inv
+		}
+	}
+	if len(gen.Argv) > 0 {
+		return executor.QuoteArgv(gen.Shell, gen.Argv)
+	}
+	return gen.Command
 }
