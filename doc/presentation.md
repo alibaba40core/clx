@@ -304,7 +304,7 @@ dry-run: would execute: pwd
 
 ## AI generation (not shown in live captures)
 
-Live demos intentionally use **rules only** (no Ollama/OpenAI in the container). With a configured provider, natural-language requests can hit **AI** or **cache**; see [generation-test-report.md](generation-test-report.md) for a 40-case matrix (95% pass after rule/prompt improvements).
+Live demos intentionally use **rules only** (no Ollama/OpenAI in the container). With a configured provider, natural-language requests can hit **AI** or **cache**; see [generation-test-report.md](development/generation-test-report.md) for a 40-case matrix (95% pass after rule/prompt improvements).
 
 Example NL flows validated on Windows + OpenAI:
 
@@ -349,6 +349,6 @@ docker run --rm -v "$(pwd)/bin:/app:ro" -w /workspace alpine \
 ## Further reading
 
 - [README.md](../README.md) — quickstart and configuration
-- [architecture.md](architecture.md) — full V1 architecture
-- [generation-test-report.md](generation-test-report.md) — command-generation test matrix
+- [architecture.md](development/architecture.md) — full V1 architecture
+- [generation-test-report.md](development/generation-test-report.md) — command-generation test matrix
 - [provider-config.md](provider-config.md) — AI provider setup

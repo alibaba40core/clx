@@ -1,0 +1,552 @@
+CLX — Detailed Runtime & System Design (V1)
+This document defines:
+installation behavior 
+initialization flow 
+config architecture 
+memory system 
+skill system 
+runtime lifecycle 
+safety model 
+AI provider behavior 
+environment intelligence 
+command execution pipeline 
+The goal:
+lightweight + safe + extensible
+NOT:
+heavy autonomous agent
+
+1. Installation Behaviour
+Installation Methods
+Windows
+winget install clx
+OR
+choco install clx
+
+Linux/macOS
+curl -fsSL https://clx.sh/install | bash
+OR
+brew install clx
+
+Installation Flow
+Step 1 — Binary Install
+Installs:
+clx
+clxmax
+Adds to PATH.
+
+Step 2 — Environment Detection
+CLX automatically scans:
+OS 
+shell 
+shell version 
+installed tools 
+package managers 
+WSL 
+terminal type 
+Example:
+{
+  "os": "windows",
+  "shell": "powershell",
+  "shell_version": "7.4",
+  "package_managers": [
+    "winget",
+    "choco"
+  ],
+  "installed_tools": [
+    "git",
+    "docker",
+    "node",
+    "python"
+  ]
+}
+Saved into:
+~/.clx/system_profile.json
+
+Step 3 — AI Provider Setup
+User chooses:
+Select AI provider:
+1. Ollama (local)
+2. OpenAI
+3. Azure AI Foundry
+
+Step 4 — Local Model Check
+If Ollama selected:
+Checks:
+ollama list
+If not installed:
+Ollama not found.
+Install automatically? [Y/n]
+
+Step 5 — Generate Configs
+Creates:
+~/.clx/
+Structure:
+~/.clx/
+│
+├── config.yaml
+├── system_profile.json
+├── memory/
+├── cache/
+├── skills/
+├── policies/
+├── sessions/
+└── logs/
+
+Step 6 — Shell Integration (Optional)
+Optional shell hook:
+Enable shell auto-fix integration? [Y/n]
+This enables:
+command interception 
+broken command suggestions 
+shell correction 
+
+2. Config Architecture
+Config 1 — Global Runtime Config
+Purpose
+Controls:
+AI providers 
+execution behavior 
+safety 
+logging 
+UX 
+
+config.yaml
+provider: ollama
+
+model: llama3
+
+providers:
+  openai:
+    api_key: ""
+    model: gpt-4.1-mini
+
+  azure:
+    endpoint: ""
+    api_key: ""
+    deployment: ""
+
+  ollama:
+    host: "http://localhost:11434"
+    model: llama3
+
+execution:
+  auto_execute: false
+  timeout: 30
+  shell_integration: true
+
+safety:
+  level: medium
+  require_confirmation: true
+  dry_run: true
+
+features:
+  explain: true
+  cache_commands: true
+  learning_mode: true
+
+logging:
+  enabled: true
+  level: info
+
+Design Principles
+Config MUST:
+be human editable 
+survive upgrades 
+support enterprise overrides 
+support profiles later 
+
+3. Config 2 — System Profile
+Purpose
+Represents:
+“Current machine intelligence”
+Generated automatically.
+
+system_profile.json
+{
+  "os": "windows",
+  "os_version": "11",
+
+  "shell": "powershell",
+  "shell_version": "7.4",
+
+  "terminal": "windows_terminal",
+
+  "package_managers": [
+    "winget",
+    "choco"
+  ],
+
+  "available_tools": [
+    "git",
+    "docker",
+    "node",
+    "python",
+    "kubectl"
+  ],
+
+  "wsl_enabled": true,
+
+  "paths": {
+    "home": "C:\\Users\\user",
+    "workspace": "D:\\Projects"
+  }
+}
+
+Why this matters
+This becomes:
+grounding context for AI
+Without this:
+AI guesses.
+With this:
+AI becomes deterministic.
+
+Runtime Usage
+Every AI request automatically injects:
+Current OS: Windows 11
+Shell: PowerShell 7
+Installed Tools:
+- git
+- docker
+- kubectl
+This massively improves:
+accuracy 
+translation quality 
+command relevance 
+
+4. Rule Engine
+Purpose
+Avoid unnecessary AI calls.
+
+IMPORTANT
+Most requests should NOT invoke LLMs.
+
+Example
+clx locate help.txt
+Should resolve using:
+rules/filesystem.yaml
+NOT AI.
+
+Rule Structure
+intent: find_file
+
+examples:
+  - locate help.txt
+  - search for file
+  - find file recursively
+
+strategies:
+  linux:
+    command: "find . -name {{filename}}"
+
+  powershell:
+    command: "Get-ChildItem -Recurse -Filter {{filename}}"
+
+  cmd:
+    command: "dir /s {{filename}}"
+
+Rule Resolution Flow
+Input
+  ↓
+Intent Match
+  ↓
+OS Detection
+  ↓
+Command Template
+  ↓
+Variable Injection
+  ↓
+Final Command
+
+5. AI Layer
+Purpose
+Used ONLY for:
+ambiguous inputs 
+natural language 
+reasoning 
+explanation 
+contextual tasks 
+
+AI Invocation Examples
+Needs AI
+new changes are into feature branch, do the same
+Because:
+contextual 
+ambiguous 
+workflow reasoning required 
+
+Does NOT need AI
+clx grep errors logs.txt
+Rules can handle it.
+
+AI Prompt Structure
+You are a cross-platform shell translator.
+
+Current OS:
+Windows 11
+
+Current Shell:
+PowerShell 7
+
+Installed Tools:
+git, docker, node
+
+User Intent:
+Search recursively for files named help.txt
+
+Generate:
+1. Native shell command
+2. Explanation
+3. Risk level
+
+6. Memory System
+IMPORTANT
+V1 memory should be:
+lightweight session memory ONLY
+NOT:
+long autonomous agent memory
+
+Memory Purpose
+Store:
+previous commands 
+previous outputs 
+aliases 
+preferences 
+session context 
+
+Example
+clx merge feature branch into main
+Then:
+do the same for release branch
+Memory resolves:
+previous git strategy 
+previous branch flow 
+
+Storage
+~/.clx/sessions/
+
+Session Example
+{
+  "session_id": "abc123",
+
+  "commands": [
+    {
+      "input": "merge feature branch into main",
+      "resolved_command": "git merge feature"
+    }
+  ]
+}
+
+Memory Rules
+DO store:
+workflow context 
+command history 
+aliases 
+
+DO NOT store:
+entire filesystem knowledge 
+massive embeddings 
+long-term autonomous planning 
+Keep lightweight.
+
+7. Skills System
+Purpose
+Domain specialization.
+
+Skills Are:
+“intent capability packs”
+Examples:
+git 
+docker 
+kubernetes 
+filesystem 
+networking 
+
+Example Structure
+skills/
+    git/
+        intents.yaml
+        prompts.yaml
+
+    docker/
+        intents.yaml
+
+Example Git Skill
+skill: git
+
+intents:
+  - cherry_pick
+  - merge_branch
+  - rebase
+  - undo_commit
+
+Why Skills Matter
+They:
+reduce hallucination 
+improve command quality 
+improve speed 
+reduce token usage 
+
+8. Capability Resolver
+Purpose
+Determine:
+“What tools are available on THIS machine?”
+
+Example
+Linux machine:
+rg installed
+fd installed
+bat installed
+Prefer:
+rg over grep 
+fd over find 
+Because:
+faster 
+better UX 
+
+Example Logic
+IF rg exists
+  use rg
+ELSE
+  use grep
+This makes CLX intelligent WITHOUT AI.
+
+9. Risk Engine
+Purpose
+Prevent dangerous execution.
+
+Risk Levels
+
+Example
+rm -rf temp/
+Returns:
+{
+  "risk": "high",
+  "requires_confirmation": true
+}
+
+10. Policy Engine
+Purpose
+User-defined restrictions.
+
+Example
+blocked:
+  - "rm -rf"
+  - "shutdown"
+  - "format"
+
+allowed:
+  - "git"
+  - "docker"
+
+Access Levels
+Safe
+Read-only.
+
+Moderate
+Development operations.
+
+Full
+Advanced users.
+
+11. Execution Engine
+Purpose
+Safely execute commands.
+
+Execution Flow
+Generate Command
+    ↓
+Risk Scan
+    ↓
+Policy Check
+    ↓
+Dry Run Preview
+    ↓
+User Confirmation
+    ↓
+Execute
+
+Dry Run Example
+clx cleanup temp files
+Shows:
+Will execute:
+rm -rf ./temp/*
+
+Affected Files: 82
+Risk Level: Medium
+
+Proceed? [Y/n]
+
+12. Caching Layer
+Purpose
+Avoid repeated AI calls.
+
+Cache Example
+clx grep errors logs.txt
+Next time:
+reuse resolved intent 
+reuse generated translation 
+Massively improves:
+speed 
+cost 
+
+Cache Storage
+~/.clx/cache/
+
+13. Shell Interception Mode
+Optional V1.5 Feature
+
+Example
+User types:
+grep errors logs.txt
+PowerShell fails:
+grep is not recognized...
+CLX intercepts:
+Did you mean:
+Select-String "errors" logs.txt
+THIS becomes VERY sticky behavior.
+
+14. clxmax
+Purpose
+Advanced reasoning mode.
+
+Difference
+
+Example
+clxmax cleanup docker safely
+Can:
+inspect state 
+chain commands 
+reason 
+ask clarifications 
+
+Final Architecture Philosophy
+CLX should behave like:
+A smart shell abstraction layer
+NOT:
+an uncontrolled AI agent
+
+Key Success Factors
+Must Be:
+✅ fast
+✅ predictable
+✅ explainable
+✅ safe
+✅ lightweight
+✅ cross-platform
+
+Biggest Mistakes To Avoid
+❌ full autonomous agents too early
+❌ overusing LLMs
+❌ giant hardcoded command lists
+❌ long-term memory complexity
+❌ unsafe auto-execution
+❌ slow response times
+
+Final V1 Goal
+A developer should be able to type:
+clx locate help.txt
+and instantly get:
+correct native command 
+explanation 
+safe execution 
+on ANY supported shell/OS.
