@@ -32,3 +32,21 @@ func TestEffectiveParamsNormalizesWindowsRootPath(t *testing.T) {
 		t.Fatalf("path = %q, want .", got["path"])
 	}
 }
+
+func TestEffectiveParamsFindLargeFilesDefaults(t *testing.T) {
+	t.Parallel()
+	profile := environment.SystemProfile{OS: "windows", Shell: "powershell"}
+	got := effectiveParams("find_large_files", map[string]string{}, profile)
+	if got["path"] != "." || got["size"] != "100M" || got["size_bytes"] != "104857600" {
+		t.Fatalf("got %v", got)
+	}
+}
+
+func TestEffectiveParamsFindLargeFilesParsesMB(t *testing.T) {
+	t.Parallel()
+	profile := environment.SystemProfile{OS: "linux", Shell: "bash"}
+	got := effectiveParams("find_large_files", map[string]string{"size": "100MB"}, profile)
+	if got["size"] != "100M" || got["size_bytes"] != "104857600" {
+		t.Fatalf("got %v", got)
+	}
+}

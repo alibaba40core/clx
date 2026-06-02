@@ -47,6 +47,46 @@ func (c *countingCmdProvider) GenerateCommand(ctx context.Context, req providers
 	return c.fakeCmdProvider.GenerateCommand(ctx, req)
 }
 
+type retryValidationCmdProvider struct {
+	calls    atomic.Int32
+	feedback string
+}
+
+func (r *retryValidationCmdProvider) Name() string { return "retry" }
+
+func (r *retryValidationCmdProvider) ResolveIntent(context.Context, providers.IntentRequest) (*providers.IntentResponse, error) {
+	return nil, providers.ErrNoMatch
+}
+
+func (r *retryValidationCmdProvider) Explain(context.Context, generator.GeneratedCommand) (string, error) {
+	return "", nil
+}
+
+func (r *retryValidationCmdProvider) GenerateCommand(_ context.Context, req providers.CommandRequest) (*providers.CommandResponse, error) {
+	n := r.calls.Add(1)
+	if n == 1 {
+		return &providers.CommandResponse{
+			Argv:        []string{"Get-Process | Sort-Object CPU"},
+			Shell:       "powershell",
+			Explanation: "bad pipe in argv",
+			Confidence:  0.9,
+		}, nil
+	}
+	r.feedback = req.Feedback
+	return &providers.CommandResponse{
+		Chain: &generator.CommandChain{
+			Stages: []generator.ChainStage{
+				{Tokens: []generator.ChainToken{{Value: "Get-Process"}}},
+				{Tokens: []generator.ChainToken{{Value: "Sort-Object"}, {Value: "CPU"}, {Value: "-Descending"}}},
+			},
+			Connectors: []generator.ChainConnector{generator.ChainPipe},
+		},
+		Shell:       "powershell",
+		Explanation: "top CPU process",
+		Confidence:  0.9,
+	}, nil
+}
+
 func newAICmdEnv(t *testing.T) {
 	t.Helper()
 	t.Setenv("CLX_HOME", t.TempDir())
@@ -205,6 +245,33 @@ func TestRunAICommandProviderRateLimited(t *testing.T) {
 	}
 	if bytes.Contains(stderr.Bytes(), []byte("try rephrasing")) {
 		t.Fatalf("stderr should not say rephrasing: %q", stderr.String())
+	}
+}
+
+func TestRunAICommandValidationRetry(t *testing.T) {
+	newAICmdEnv(t)
+	testProfile(t, "windows", "powershell")
+
+	prov := &retryValidationCmdProvider{}
+	var stdout, stderr bytes.Buffer
+	code, err := Run(context.Background(), config.Default(), "show top cpu process", Options{
+		DryRun:     true,
+		AIResolver: &fakeAIResolver{err: intent.ErrNotFound},
+		Provider:   prov,
+		Stdout:     &stdout,
+		Stderr:     &stderr,
+	})
+	if err != nil || code != 0 {
+		t.Fatalf("code=%d err=%v stderr=%s", code, err, stderr.String())
+	}
+	if prov.calls.Load() != 2 {
+		t.Fatalf("calls=%d want 2 (initial + retry)", prov.calls.Load())
+	}
+	if prov.feedback == "" {
+		t.Fatal("retry did not receive validation feedback")
+	}
+	if !bytes.Contains(stdout.Bytes(), []byte("Source:      AI")) {
+		t.Fatalf("stdout=%s", stdout.String())
 	}
 }
 

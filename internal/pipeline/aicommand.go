@@ -9,6 +9,7 @@ import (
 	"github.com/alibaba40core/clx/internal/cache"
 	"github.com/alibaba40core/clx/internal/config"
 	"github.com/alibaba40core/clx/internal/environment"
+	"github.com/alibaba40core/clx/internal/executor"
 	"github.com/alibaba40core/clx/internal/intent"
 	"github.com/alibaba40core/clx/internal/parser"
 	"github.com/alibaba40core/clx/internal/providers"
@@ -41,10 +42,12 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 
 	var resp *providers.CommandResponse
 	var genErr error
+	fromCache := false
 	if opts.CommandCache != nil {
 		key := cache.CommandKeyFor(raw, profile)
 		if entry, ok := opts.CommandCache.Lookup(callCtx, key); ok {
 			resp = cache.ToCommandResponse(entry)
+			fromCache = true
 		}
 	}
 	if resp == nil {
@@ -54,12 +57,6 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 		})
 		if genErr != nil {
 			return reportAICommandError(cfg, opts, genErr), true, genErr
-		}
-		if resp != nil && opts.CommandCache != nil && !resp.HasChain() && !providers.ArgvHasChainConnector(resp.Argv) {
-			key := cache.CommandKeyFor(raw, profile)
-			if err := opts.CommandCache.Put(callCtx, key, resp); err != nil && opts.Logger != nil {
-				opts.Logger.Warn("command cache write failed", "err", err)
-			}
 		}
 	}
 	if resp == nil {
@@ -77,10 +74,35 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 		shellHint = profile.Shell
 	}
 
-	gcmd, err := buildGeneratedFromAI(resp, shellHint, profile)
-	if err != nil {
-		fmt.Fprintf(opts.Stderr, "AI command rejected as unsafe: %v\n", err)
-		return 1, true, err
+	gcmd, valErr := buildGeneratedFromAI(resp, shellHint, profile)
+	if valErr != nil && isAIValidationError(valErr) && !fromCache {
+		retryResp, retryErr := gen.GenerateCommand(callCtx, providers.CommandRequest{
+			RawInput: raw,
+			Profile:  profile,
+			Feedback: valErr.Error(),
+		})
+		if retryErr != nil {
+			fmt.Fprintf(opts.Stderr, "AI command rejected as unsafe: %v\n", valErr)
+			return 1, true, valErr
+		}
+		if retryResp != nil {
+			resp = retryResp
+			if resp.Shell != "" {
+				shellHint = resp.Shell
+			}
+			gcmd, valErr = buildGeneratedFromAI(resp, shellHint, profile)
+		}
+	}
+	if valErr != nil {
+		fmt.Fprintf(opts.Stderr, "AI command rejected as unsafe: %v\n", valErr)
+		return 1, true, valErr
+	}
+
+	if !fromCache && opts.CommandCache != nil && resp != nil && !resp.HasChain() && !providers.ArgvHasChainConnector(resp.Argv) {
+		key := cache.CommandKeyFor(raw, profile)
+		if err := opts.CommandCache.Put(callCtx, key, resp); err != nil && opts.Logger != nil {
+			opts.Logger.Warn("command cache write failed", "err", err)
+		}
 	}
 
 	resolved := intent.ResolvedIntent{
@@ -91,6 +113,20 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 
 	code, err = executePlan(ctx, cfg, opts, profile, req, resolved, gcmd)
 	return code, true, err
+}
+
+func isAIValidationError(err error) bool {
+	if err == nil {
+		return false
+	}
+	return errors.Is(err, executor.ErrAIArgvEmpty) ||
+		errors.Is(err, executor.ErrAIArgvTooLong) ||
+		errors.Is(err, executor.ErrAIArgvToken) ||
+		errors.Is(err, executor.ErrChainEmpty) ||
+		errors.Is(err, executor.ErrChainTooLong) ||
+		errors.Is(err, executor.ErrChainExprCap) ||
+		errors.Is(err, executor.ErrEmptyScriptArgv) ||
+		errors.Is(err, executor.ErrScriptMetachar)
 }
 
 func reportAICommandError(cfg config.Config, opts Options, err error) int {

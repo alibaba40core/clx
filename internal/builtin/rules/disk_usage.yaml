@@ -1,6 +1,9 @@
 intent: disk_usage
 examples:
   - disk usage
+  - how much disk space is free
+  - free disk space
+  - disk space
   - df {{path}}
   - du -sh {{path}}
 strategies:

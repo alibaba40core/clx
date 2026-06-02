@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/alibaba40core/clx/internal/environment"
@@ -64,8 +65,20 @@ func effectiveParams(intentName string, params map[string]string, profile enviro
 	}
 	if _, ok := out["path"]; !ok {
 		switch intentName {
-		case "disk_usage", "list_dir", "find_file", "find_modified_today":
+		case "disk_usage", "list_dir", "find_file", "find_modified_today", "find_large_files":
 			out["path"] = "."
+		}
+	}
+	if _, ok := out["size"]; !ok {
+		if intentName == "find_large_files" {
+			out["size"] = "100M"
+		}
+	}
+	if intentName == "find_large_files" {
+		sizeBytes, findSize, err := normalizeFileSizeParams(out["size"])
+		if err == nil {
+			out["size"] = findSize
+			out["size_bytes"] = strconv.FormatInt(sizeBytes, 10)
 		}
 	}
 	if _, ok := out["n"]; !ok {
@@ -79,4 +92,54 @@ func effectiveParams(intentName string, params map[string]string, profile enviro
 		}
 	}
 	return out
+}
+
+// normalizeFileSizeParams converts user size tokens (e.g. 100MB) into find(1) suffix
+// form and byte count for PowerShell length comparisons.
+func normalizeFileSizeParams(size string) (bytes int64, findSize string, err error) {
+	s := strings.TrimSpace(strings.ToUpper(size))
+	if s == "" {
+		return 0, "", fmt.Errorf("empty size")
+	}
+	mult := int64(1)
+	switch {
+	case strings.HasSuffix(s, "GB"):
+		mult = 1024 * 1024 * 1024
+		s = strings.TrimSuffix(s, "GB")
+	case strings.HasSuffix(s, "MB"):
+		mult = 1024 * 1024
+		s = strings.TrimSuffix(s, "MB")
+	case strings.HasSuffix(s, "KB"):
+		mult = 1024
+		s = strings.TrimSuffix(s, "KB")
+	case strings.HasSuffix(s, "G"):
+		mult = 1024 * 1024 * 1024
+		s = strings.TrimSuffix(s, "G")
+	case strings.HasSuffix(s, "M"):
+		mult = 1024 * 1024
+		s = strings.TrimSuffix(s, "M")
+	case strings.HasSuffix(s, "K"):
+		mult = 1024
+		s = strings.TrimSuffix(s, "K")
+	}
+	n, err := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
+	if err != nil || n <= 0 {
+		return 0, "", fmt.Errorf("invalid size %q", size)
+	}
+	bytes = n * mult
+	findSize = fmt.Sprintf("%d%c", n, sizeSuffixForFind(mult))
+	return bytes, findSize, nil
+}
+
+func sizeSuffixForFind(mult int64) byte {
+	switch mult {
+	case 1024:
+		return 'K'
+	case 1024 * 1024:
+		return 'M'
+	case 1024 * 1024 * 1024:
+		return 'G'
+	default:
+		return 'M'
+	}
 }

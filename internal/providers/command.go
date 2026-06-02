@@ -28,6 +28,8 @@ type CommandGenerator interface {
 type CommandRequest struct {
 	RawInput string
 	Profile  environment.SystemProfile
+	// Feedback, when set, tells the model a prior response failed CLX validation.
+	Feedback string
 }
 
 // CommandResponse is a provider-generated command before validation/gating.
@@ -49,15 +51,26 @@ const commandSystemPrompt = `/no_think
 You are CLX, a command generator. Map the user's request to shell command(s) for the platform described in the user message.
 
 Rules:
-- Prefer "chain" when the task needs pipe or sequential composition (filtering, grep after list, etc.).
+- Prefer "chain" when the task needs pipe or sequential composition (filtering, grep after list, sorting, etc.).
 - chain.stages: array of stages; each stage has "tokens": [{"value":"...","expr":false}].
-- Use "expr":true only for scriptblock/predicate tokens (e.g. Where-Object filter body).
+- Use "expr":true only for short scriptblock/predicate tokens (e.g. Where-Object filter body). Keep expr tokens under 200 chars; split complex logic across stages.
 - connectors: array of "pipe" or "and" between stages (length = stages-1). Use "pipe" for filtering; "and" for sequential success-only steps.
 - Do NOT put |, &&, or ; inside token values — CLX inserts connectors.
+- Never use placeholders like URL, file, or . as a stand-in path; pick sensible defaults from the request.
+- For bulk rename, pipe Get-ChildItem to Rename-Item; never use semicolon between stages.
 - For a single simple command, use flat "argv" and set "chain" to null.
 - Use programs on the platform; set "shell" (cmd, powershell, bash, sh).
 - Set "explanation" and "confidence" (0-1).
-Respond with JSON only: {"argv":[],"chain":null,"shell":"...","explanation":"...","confidence":0.9} or with chain populated and argv [].`
+Respond with JSON only.
+
+Example (largest files, PowerShell chain):
+{"argv":[],"chain":{"stages":[{"tokens":[{"value":"Get-ChildItem","expr":false},{"value":".","expr":false},{"value":"-File","expr":false},{"value":"-Recurse","expr":false}]},{"tokens":[{"value":"Sort-Object","expr":false},{"value":"Length","expr":false},{"value":"-Descending","expr":false}]},{"tokens":[{"value":"Select-Object","expr":false},{"value":"-First","expr":false},{"value":"10","expr":false}]}],"connectors":["pipe","pipe"]},"shell":"powershell","explanation":"List 10 largest files","confidence":0.9}
+
+Example (CPU and memory, PowerShell chain):
+{"argv":[],"chain":{"stages":[{"tokens":[{"value":"Get-CimInstance","expr":false},{"value":"Win32_OperatingSystem","expr":false}]},{"tokens":[{"value":"Select-Object","expr":false},{"value":"TotalVisibleMemorySize","expr":false},{"value":"FreePhysicalMemory","expr":false}]}],"connectors":["pipe"]},"shell":"powershell","explanation":"Show memory stats","confidence":0.9}
+
+Example (simple single command):
+{"argv":["git","status"],"chain":null,"shell":"powershell","explanation":"Show git status","confidence":0.95}`
 
 // BuildCommandPrompt assembles the system and user messages for AI command generation.
 func BuildCommandPrompt(req CommandRequest) (system, user string, err error) {
@@ -83,6 +96,11 @@ func buildCommandUserMessage(req CommandRequest) string {
 	}
 	b.WriteString("\n\nRequest: ")
 	b.WriteString(executor.Redact(req.RawInput))
+	if fb := strings.TrimSpace(req.Feedback); fb != "" {
+		b.WriteString("\n\nPrevious attempt was rejected: ")
+		b.WriteString(executor.Redact(fb))
+		b.WriteString(". Return a valid chain or argv without shell metacharacters in tokens.")
+	}
 	return b.String()
 }
 

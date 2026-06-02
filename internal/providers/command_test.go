@@ -61,6 +61,23 @@ func TestBuildCommandPromptRedactsSecrets(t *testing.T) {
 	}
 }
 
+func TestBuildCommandPromptIncludesValidationFeedback(t *testing.T) {
+	_, user, err := BuildCommandPrompt(CommandRequest{
+		RawInput: "show docker stats",
+		Profile:  sampleProfile(),
+		Feedback: "shell metacharacters in \"|\"",
+	})
+	if err != nil {
+		t.Fatalf("BuildCommandPrompt: %v", err)
+	}
+	if !strings.Contains(user, "Previous attempt was rejected") {
+		t.Fatalf("feedback missing from user prompt: %s", user)
+	}
+	if !strings.Contains(user, "shell metacharacters") {
+		t.Fatalf("feedback detail missing: %s", user)
+	}
+}
+
 func TestBuildCommandSchemaShape(t *testing.T) {
 	schema := BuildCommandSchema()
 	if schema["additionalProperties"] != false {

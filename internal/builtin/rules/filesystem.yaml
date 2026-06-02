@@ -196,9 +196,40 @@ intents:
           - -Path
           - {{file}}
 
+  - intent: find_large_files
+    examples:
+      - files larger than {{size}}
+      - find files larger than {{size}}
+      - find large files
+    strategies:
+      linux:
+        argv:
+          - find
+          - {{path}}
+          - -type
+          - f
+          - -size
+          - +{{size}}
+      powershell:
+        chain:
+          stages:
+            - tokens:
+                - value: Get-ChildItem
+                - value: -Path
+                - value: {{path}}
+                - value: -Recurse
+                - value: -File
+            - tokens:
+                - value: Where-Object
+                - value: "{ $_.Length -gt {{size_bytes}} }"
+                  expr: true
+          connectors:
+            - pipe
+
   - intent: copy_file
     examples:
       - cp {{source}} {{dest}}
+      - copy {{source}} {{dest}}
       - copy {{source}} to {{dest}}
     strategies:
       linux:
@@ -222,6 +253,7 @@ intents:
   - intent: move_file
     examples:
       - mv {{source}} {{dest}}
+      - move {{source}} {{dest}}
       - move {{source}} to {{dest}}
     strategies:
       linux:

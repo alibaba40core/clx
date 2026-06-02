@@ -9,6 +9,7 @@ var intentExplanations = map[string]string{
 	"show_ip_addresses":   "Show local IP addresses",
 	"current_dir":         "Print current working directory",
 	"disk_usage":          "Show disk usage",
+	"find_large_files":    "Find files larger than a size threshold",
 	"git_status":          "Show git working tree status",
 	"git_log":             "Show recent git commits (oneline)",
 	"git_diff":            "Show unstaged changes in working tree",
