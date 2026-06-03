@@ -2,7 +2,7 @@
 
 **Write commands once. Run anywhere.**
 
-Presentation doc with live captures from **Windows** (`clx` on PATH, run from `C:\Users`) and **Linux** (Alpine Docker, `clx` on PATH in the container). Windows screenshots are PNG renders of real terminal output; Linux uses text blocks (headless container).
+Presentation doc with live captures from **Windows** (`clx` on PATH, run from `C:\Users`) and **Linux** (Alpine Docker, `clx` on PATH in the container). Windows screenshots include real execution (`clx -y`) and explain/dry-run demos; most Windows PNGs are renders of real terminal output. Linux uses text blocks (headless container).
 
 ---
 
@@ -36,6 +36,30 @@ clx find all files modified today
 Run `clx` with no arguments to see the built-in help (subcommands, flags, examples). Captured from `PS C:\Users>`:
 
 ![CLX help in PowerShell](./images/clx-help-powershell.png)
+
+### Real execution (not just `--explain` or `--dry-run`)
+
+These runs use **`clx -y`** from `PS C:\Users>` so CLX translates the input, passes risk/policy, and **executes** the native command. You see the actual command output below.
+
+#### Unix-style command on PowerShell
+
+Input uses familiar Unix syntax (`grep`); CLX runs the PowerShell equivalent (`Select-String`) and prints matches:
+
+```text
+clx -y grep CLX C:\Users\user\example-workspace\clx\README.md
+```
+
+![Executed: grep on PowerShell](./images/powershell-exec-grep-unix.png)
+
+#### Natural language
+
+Plain English resolves via rules (no AI provider needed for this phrase) and runs `ipconfig`:
+
+```text
+clx -y "what is my ip"
+```
+
+![Executed: what is my ip](./images/powershell-exec-nl-ip.png)
 
 ---
 
