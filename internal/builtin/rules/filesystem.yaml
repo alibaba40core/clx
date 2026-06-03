@@ -408,6 +408,29 @@ intents:
           - mylink
           - .
 
+  - intent: find_pdf_downloads
+    examples:
+      - find all pdf files in the downloads folder
+    strategies:
+      powershell:
+        chain:
+          stages:
+            - tokens:
+                - value: Get-ChildItem
+                - value: -Path
+                - value: "{ Join-Path $env:USERPROFILE 'Downloads' }"
+                  expr: true
+                - value: -Recurse
+                - value: -File
+            - tokens:
+                - value: Where-Object
+                - value: "{ $_.Extension -eq '.pdf' }"
+                  expr: true
+          connectors:
+            - pipe
+      linux:
+        primary: "find ~/Downloads -type f -name .pdf"
+
   - intent: list_recycle_bin
     examples:
       - list files in the recycle bin

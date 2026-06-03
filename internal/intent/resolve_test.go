@@ -175,6 +175,36 @@ func TestResolveRound2NLRuleIntents(t *testing.T) {
 	}
 }
 
+func TestResolveRound3NLRuleIntents(t *testing.T) {
+	t.Parallel()
+	eng := testEngine(t)
+	cases := []struct {
+		name       string
+		tokens     []string
+		wantIntent string
+	}{
+		{"disk_performance", []string{"show", "disk", "read", "and", "write", "performance", "counters"}, "show_disk_performance"},
+		{"list_local_users", []string{"list", "local", "user", "accounts", "on", "this", "computer"}, "list_local_users"},
+		{"find_pdf_downloads", []string{"find", "all", "pdf", "files", "in", "the", "downloads", "folder"}, "find_pdf_downloads"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := eng.Resolve(context.Background(), parser.Request{Tokens: tc.tokens})
+			if err != nil {
+				t.Fatalf("resolve: %v", err)
+			}
+			if got.Intent != tc.wantIntent {
+				t.Fatalf("intent: got %q want %q", got.Intent, tc.wantIntent)
+			}
+			if got.Source != SourceRule {
+				t.Fatalf("source: got %v want SourceRule", got.Source)
+			}
+		})
+	}
+}
+
 func TestResolveNotFound(t *testing.T) {
 	t.Parallel()
 	eng := testEngine(t)

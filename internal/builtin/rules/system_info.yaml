@@ -127,3 +127,22 @@ intents:
                   expr: true
           connectors:
             - pipe
+
+  - intent: show_disk_performance
+    examples:
+      - show disk read and write performance counters
+    strategies:
+      powershell:
+        primary: "Get-CimInstance Win32_PerfFormattedData_PhysicalDisk_PhysicalDisk"
+      linux:
+        primary: "iostat -x 1 1"
+
+  - intent: list_local_users
+    examples:
+      - list local user accounts on this computer
+    strategies:
+      powershell:
+        argv:
+          - Get-LocalUser
+      linux:
+        primary: "getent passwd"
