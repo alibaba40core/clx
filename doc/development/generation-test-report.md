@@ -119,3 +119,16 @@ These require either a quality gate that rejects placeholder tokens or interacti
 
 - Post-generation quality gate rejecting placeholder tokens (`URL`, `file`, lone `.` as path)
 - Optional: prompt user for missing URL/filename when input is ambiguous
+
+---
+
+## Post-fix re-run (Round 2 fix plan, 2026-06-03)
+
+After implementing the Round 2 fix plan (`ValidateCommandQuality`, `Where-Object` few-shot, `list_recycle_bin` rule, `list_env`/`print_text` rule fixes), the two remaining Round 1 NL failures were re-run:
+
+| # | Input | Result | Notes |
+|---|-------|--------|-------|
+| 12 | download a file from a URL and save it | FAIL | Quality gate rejects placeholder `file` after retry; input has no concrete URL/filename |
+| 18 | show a file with line numbers | FAIL | Validation rejects complex `$i`/`ForEach-Object` expr token; retry did not produce a valid chain |
+
+These remain **ambiguous-input** failures — the quality gate correctly blocks placeholders rather than executing unsafe stand-ins.

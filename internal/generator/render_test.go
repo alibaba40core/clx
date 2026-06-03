@@ -200,6 +200,28 @@ func TestRenderFindModifiedTodayChain(t *testing.T) {
 	}
 }
 
+func TestRenderListEnvPowerShell(t *testing.T) {
+	t.Parallel()
+	resolved := intent.ResolvedIntent{Intent: "list_env", Params: map[string]string{}}
+	selected := capabilities.SelectedStrategy{
+		Key:      "powershell",
+		Strategy: intent.Strategy{Primary: "Get-ChildItem env:"},
+	}
+	got, err := Render(context.Background(), resolved, selected, environment.SystemProfile{Shell: "powershell"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"Get-ChildItem", "env:"}
+	if len(got.Argv) != len(want) {
+		t.Fatalf("argv %v", got.Argv)
+	}
+	for i := range want {
+		if got.Argv[i] != want[i] {
+			t.Fatalf("argv[%d]=%q want %q", i, got.Argv[i], want[i])
+		}
+	}
+}
+
 func TestRenderRejectsControlChars(t *testing.T) {
 	t.Parallel()
 	resolved := intent.ResolvedIntent{

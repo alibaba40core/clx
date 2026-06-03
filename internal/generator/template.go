@@ -91,6 +91,15 @@ func effectiveParams(intentName string, params map[string]string, profile enviro
 			out["lines"] = "200"
 		}
 	}
+	if _, ok := out["text"]; !ok {
+		if intentName == "print_text" {
+			if w1, ok1 := out["word1"]; ok1 {
+				if w2, ok2 := out["word2"]; ok2 {
+					out["text"] = w1 + " " + w2
+				}
+			}
+		}
+	}
 	return out
 }
 

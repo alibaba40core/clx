@@ -44,6 +44,36 @@ func TestLoadRulesFromFS(t *testing.T) {
 	_ = filepath.Join(root, "internal/builtin/rules")
 }
 
+func TestLoadListEnvPowerShellArgv(t *testing.T) {
+	root, err := findModuleRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rules, err := LoadRulesFromFS(os.DirFS(root), "internal/builtin/rules")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var listEnv *Rule
+	for i := range rules {
+		if rules[i].Intent == "list_env" {
+			listEnv = &rules[i]
+			break
+		}
+	}
+	if listEnv == nil {
+		t.Fatal("list_env not loaded")
+	}
+	st, ok := listEnv.Strategies["powershell"]
+	if !ok {
+		t.Fatal("powershell strategy missing for list_env")
+	}
+	want := "Get-ChildItem env:"
+	if st.Primary != want {
+		t.Fatalf("primary=%q want %q", st.Primary, want)
+	}
+	_ = root
+}
+
 func TestParseRulesFileSingleIntentBackCompat(t *testing.T) {
 	t.Parallel()
 	data := []byte(`intent: foo

@@ -51,9 +51,7 @@ intents:
         argv:
           - env
       powershell:
-        argv:
-          - Get-ChildItem
-          - env:
+        primary: "Get-ChildItem env:"
 
   - intent: which_command
     examples:
@@ -78,6 +76,7 @@ intents:
     examples:
       - echo {{text}}
       - print {{text}}
+      - echo {{word1}} {{word2}}
     strategies:
       linux:
         argv:
@@ -91,3 +90,40 @@ intents:
         argv:
           - echo
           - {{text}}
+
+  - intent: show_installed_ram
+    examples:
+      - how much ram is installed on this machine
+      - show installed ram
+      - total physical memory
+    strategies:
+      powershell:
+        chain:
+          stages:
+            - tokens:
+                - value: Get-CimInstance
+                - value: Win32_ComputerSystem
+            - tokens:
+                - value: Select-Object
+                - value: TotalPhysicalMemory
+          connectors:
+            - pipe
+      linux:
+        primary: "grep MemTotal /proc/meminfo"
+
+  - intent: list_scheduled_tasks_today
+    examples:
+      - show scheduled tasks that run today
+      - list scheduled tasks for today
+    strategies:
+      powershell:
+        chain:
+          stages:
+            - tokens:
+                - value: Get-ScheduledTask
+            - tokens:
+                - value: Where-Object
+                - value: "{ (Get-ScheduledTaskInfo $_).NextRunTime.Date -eq (Get-Date).Date }"
+                  expr: true
+          connectors:
+            - pipe

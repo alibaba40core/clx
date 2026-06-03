@@ -58,6 +58,7 @@ Rules:
 - Do NOT put |, &&, or ; inside token values — CLX inserts connectors.
 - Never use placeholders like URL, file, or . as a stand-in path; pick sensible defaults from the request.
 - For bulk rename, pipe Get-ChildItem to Rename-Item; never use semicolon between stages.
+- Never pipe to bare $_ or { scriptblock } alone — always use Where-Object or ForEach-Object as the stage command, with the predicate in an expr:true token.
 - For a single simple command, use flat "argv" and set "chain" to null.
 - Use programs on the platform; set "shell" (cmd, powershell, bash, sh).
 - Set "explanation" and "confidence" (0-1).
@@ -68,6 +69,9 @@ Example (largest files, PowerShell chain):
 
 Example (CPU and memory, PowerShell chain):
 {"argv":[],"chain":{"stages":[{"tokens":[{"value":"Get-CimInstance","expr":false},{"value":"Win32_OperatingSystem","expr":false}]},{"tokens":[{"value":"Select-Object","expr":false},{"value":"TotalVisibleMemorySize","expr":false},{"value":"FreePhysicalMemory","expr":false}]}],"connectors":["pipe"]},"shell":"powershell","explanation":"Show memory stats","confidence":0.9}
+
+Example (filter with Where-Object, PowerShell chain):
+{"argv":[],"chain":{"stages":[{"tokens":[{"value":"Get-NetTCPConnection","expr":false},{"value":"-LocalPort","expr":false},{"value":"443","expr":false}]},{"tokens":[{"value":"Where-Object","expr":false},{"value":"{$_.State -eq 'Listen'}","expr":true}]}],"connectors":["pipe"]},"shell":"powershell","explanation":"Show listeners on port 443","confidence":0.9}
 
 Example (simple single command):
 {"argv":["git","status"],"chain":null,"shell":"powershell","explanation":"Show git status","confidence":0.95}`

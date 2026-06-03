@@ -319,3 +319,103 @@ intents:
         argv:
           - rmdir
           - {{path}}
+
+  - intent: extract_tar_gz
+    examples:
+      - extract a tar.gz file into the current folder
+      - extract tar.gz to current folder
+    strategies:
+      linux:
+        argv:
+          - tar
+          - -xzf
+          - archive.tar.gz
+          - -C
+          - .
+      powershell:
+        argv:
+          - tar
+          - -xzf
+          - archive.tar.gz
+          - -C
+          - .
+      cmd:
+        argv:
+          - tar
+          - -xzf
+          - archive.tar.gz
+          - -C
+          - .
+
+  - intent: compare_folders
+    examples:
+      - compare two folders and show differences
+      - compare folders for differences
+    strategies:
+      linux:
+        argv:
+          - diff
+          - -qr
+          - .
+          - ..
+      powershell:
+        argv:
+          - robocopy
+          - .
+          - ..
+          - /L
+          - /NJH
+          - /NJS
+          - /NP
+          - /NS
+          - /NC
+      cmd:
+        argv:
+          - robocopy
+          - .
+          - ..
+          - /L
+          - /NJH
+          - /NJS
+          - /NP
+          - /NS
+          - /NC
+
+  - intent: create_symlink
+    examples:
+      - create a symbolic link to a directory
+      - create symlink to directory
+    strategies:
+      linux:
+        argv:
+          - ln
+          - -s
+          - .
+          - mylink
+      powershell:
+        argv:
+          - New-Item
+          - -ItemType
+          - SymbolicLink
+          - -Path
+          - mylink
+          - -Target
+          - .
+      cmd:
+        argv:
+          - mklink
+          - /D
+          - mylink
+          - .
+
+  - intent: list_recycle_bin
+    examples:
+      - list files in the recycle bin
+      - show recycle bin contents
+    strategies:
+      powershell:
+        primary: "Get-ChildItem -Force -Recurse -Path ([Environment]::GetFolderPath('RecycleBin'))"
+      linux:
+        primary: "ls -la ~/.local/share/Trash/files"
+      cmd:
+        primary: "dir /a %systemdrive%\\$Recycle.Bin"

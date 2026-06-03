@@ -143,6 +143,38 @@ func TestResolveDailyUsageIntents(t *testing.T) {
 	}
 }
 
+func TestResolveRound2NLRuleIntents(t *testing.T) {
+	t.Parallel()
+	eng := testEngine(t)
+	cases := []struct {
+		name       string
+		tokens     []string
+		wantIntent string
+	}{
+		{"scheduled_tasks_today", []string{"show", "scheduled", "tasks", "that", "run", "today"}, "list_scheduled_tasks_today"},
+		{"extract_tar_gz", []string{"extract", "a", "tar.gz", "file", "into", "the", "current", "folder"}, "extract_tar_gz"},
+		{"compare_folders", []string{"compare", "two", "folders", "and", "show", "differences"}, "compare_folders"},
+		{"create_symlink", []string{"create", "a", "symbolic", "link", "to", "a", "directory"}, "create_symlink"},
+		{"show_ram", []string{"how", "much", "ram", "is", "installed", "on", "this", "machine"}, "show_installed_ram"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := eng.Resolve(context.Background(), parser.Request{Tokens: tc.tokens})
+			if err != nil {
+				t.Fatalf("resolve: %v", err)
+			}
+			if got.Intent != tc.wantIntent {
+				t.Fatalf("intent: got %q want %q", got.Intent, tc.wantIntent)
+			}
+			if got.Source != SourceRule {
+				t.Fatalf("source: got %v want SourceRule", got.Source)
+			}
+		})
+	}
+}
+
 func TestResolveNotFound(t *testing.T) {
 	t.Parallel()
 	eng := testEngine(t)

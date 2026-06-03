@@ -74,7 +74,7 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 		shellHint = profile.Shell
 	}
 
-	gcmd, valErr := buildGeneratedFromAI(resp, shellHint, profile)
+	gcmd, valErr := buildGeneratedFromAI(resp, shellHint, profile, raw)
 	if valErr != nil && isAIValidationError(valErr) && !fromCache {
 		retryResp, retryErr := gen.GenerateCommand(callCtx, providers.CommandRequest{
 			RawInput: raw,
@@ -90,7 +90,7 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 			if resp.Shell != "" {
 				shellHint = resp.Shell
 			}
-			gcmd, valErr = buildGeneratedFromAI(resp, shellHint, profile)
+			gcmd, valErr = buildGeneratedFromAI(resp, shellHint, profile, raw)
 		}
 	}
 	if valErr != nil {
@@ -126,7 +126,8 @@ func isAIValidationError(err error) bool {
 		errors.Is(err, executor.ErrChainTooLong) ||
 		errors.Is(err, executor.ErrChainExprCap) ||
 		errors.Is(err, executor.ErrEmptyScriptArgv) ||
-		errors.Is(err, executor.ErrScriptMetachar)
+		errors.Is(err, executor.ErrScriptMetachar) ||
+		errors.Is(err, executor.ErrCommandQuality)
 }
 
 func reportAICommandError(cfg config.Config, opts Options, err error) int {

@@ -20,3 +20,14 @@ func TestMatchPatternLiteral(t *testing.T) {
 		t.Fatal("expected match")
 	}
 }
+
+func TestMatchPatternPrintTextMultiWord(t *testing.T) {
+	t.Parallel()
+	params, ok := matchPattern("echo {{word1}} {{word2}}", []string{"echo", "Hello", "CLX"})
+	if !ok {
+		t.Fatal("expected match")
+	}
+	if params["word1"] != "Hello" || params["word2"] != "CLX" {
+		t.Fatalf("got %v", params)
+	}
+}

@@ -7,17 +7,25 @@ import (
 	"github.com/alibaba40core/clx/internal/providers"
 )
 
-func buildGeneratedFromAI(resp *providers.CommandResponse, shellHint string, profile environment.SystemProfile) (generator.GeneratedCommand, error) {
+func buildGeneratedFromAI(resp *providers.CommandResponse, shellHint string, profile environment.SystemProfile, rawInput string) (generator.GeneratedCommand, error) {
+	var gcmd generator.GeneratedCommand
+	var err error
 	if resp.HasChain() {
-		return buildFromChain(resp.Chain, shellHint, resp.Explanation, profile)
-	}
-	if chain := generator.ChainFromArgv(resp.Argv); chain != nil {
-		return buildFromChain(chain, shellHint, resp.Explanation, profile)
-	}
-	if vErr := executor.ValidateGeneratedArgv(resp.Argv, shellHint); vErr != nil {
+		gcmd, err = buildFromChain(resp.Chain, shellHint, resp.Explanation, profile)
+	} else if chain := generator.ChainFromArgv(resp.Argv); chain != nil {
+		gcmd, err = buildFromChain(chain, shellHint, resp.Explanation, profile)
+	} else if vErr := executor.ValidateGeneratedArgv(resp.Argv, shellHint); vErr != nil {
 		return generator.GeneratedCommand{}, vErr
+	} else {
+		gcmd = generator.NewAICommand(resp.Argv, resp.Shell, resp.Explanation, profile)
 	}
-	return generator.NewAICommand(resp.Argv, resp.Shell, resp.Explanation, profile), nil
+	if err != nil {
+		return generator.GeneratedCommand{}, err
+	}
+	if qErr := executor.ValidateCommandQuality(gcmd, rawInput); qErr != nil {
+		return generator.GeneratedCommand{}, qErr
+	}
+	return gcmd, nil
 }
 
 func buildFromChain(chain *generator.CommandChain, shell, explanation string, profile environment.SystemProfile) (generator.GeneratedCommand, error) {
