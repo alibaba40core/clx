@@ -1,6 +1,6 @@
 # CLX — Cross-Platform Command Intelligence
 
-**Write commands once. Run anywhere.**
+**Learn commands once. Run anywhere.**
 
 Presentation doc with live captures from **Windows** (`clx` on PATH, run from `C:\Users`) and **Linux** (Alpine Docker, `clx` on PATH in the container). Windows screenshots include real execution (`clx -y`) and explain/dry-run demos; most Windows PNGs are renders of real terminal output. Linux uses text blocks (headless container).
 
