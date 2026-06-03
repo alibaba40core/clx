@@ -18,8 +18,9 @@ func Render(ctx context.Context, resolved intent.ResolvedIntent, selected capabi
 
 	params := effectiveParams(resolved.Intent, resolved.Params, profile)
 	shell := profile.Shell
-	if selected.Strategy.HasChain() {
-		chain, err := renderChain(ctx, selected.Strategy.Chain, params)
+	strategy := diskUsageStrategy(resolved, selected.Strategy, profile)
+	if strategy.HasChain() {
+		chain, err := renderChain(ctx, strategy.Chain, params)
 		if err != nil {
 			return GeneratedCommand{}, err
 		}
@@ -34,9 +35,9 @@ func Render(ctx context.Context, resolved intent.ResolvedIntent, selected capabi
 
 	var argv []string
 
-	if len(selected.Strategy.Argv) > 0 {
-		argv = make([]string, 0, len(selected.Strategy.Argv))
-		for _, slot := range selected.Strategy.Argv {
+	if len(strategy.Argv) > 0 {
+		argv = make([]string, 0, len(strategy.Argv))
+		for _, slot := range strategy.Argv {
 			if err := ctx.Err(); err != nil {
 				return GeneratedCommand{}, err
 			}
@@ -47,7 +48,7 @@ func Render(ctx context.Context, resolved intent.ResolvedIntent, selected capabi
 			argv = append(argv, sub)
 		}
 	} else {
-		primary, err := substituteSlot(selected.Strategy.Primary, params)
+		primary, err := substituteSlot(strategy.Primary, params)
 		if err != nil {
 			return GeneratedCommand{}, err
 		}

@@ -146,3 +146,85 @@ intents:
           - Get-LocalUser
       linux:
         primary: "getent passwd"
+
+  - intent: show_dns_servers
+    examples:
+      - show dns server addresses for active adapters
+    strategies:
+      powershell:
+        argv:
+          - Get-DnsClientServerAddress
+
+  - intent: show_temp_path
+    examples:
+      - show the path to the temp directory
+    strategies:
+      powershell:
+        chain:
+          stages:
+            - tokens:
+                - value: Get-Item
+                - value: -Path
+                - value: "([System.IO.Path]::GetTempPath())"
+                  expr: true
+            - tokens:
+                - value: Select-Object
+                - value: -ExpandProperty
+                - value: FullName
+          connectors:
+            - pipe
+
+  - intent: list_autostart_services
+    examples:
+      - list services set to start automatically
+    strategies:
+      powershell:
+        chain:
+          stages:
+            - tokens:
+                - value: Get-Service
+            - tokens:
+                - value: Where-Object
+                - value: "{ $_.StartType -eq 'Automatic' }"
+                  expr: true
+          connectors:
+            - pipe
+
+  - intent: show_security_event_log
+    examples:
+      - show the last 20 entries in the security event log
+    strategies:
+      powershell:
+        chain:
+          stages:
+            - tokens:
+                - value: Get-WinEvent
+                - value: -LogName
+                - value: Security
+                - value: -MaxEvents
+                - value: "20"
+            - tokens:
+                - value: Format-Table
+                - value: TimeCreated
+                - value: Id
+                - value: Message
+                - value: -AutoSize
+          connectors:
+            - pipe
+
+  - intent: show_cpu_info
+    examples:
+      - show cpu model and number of cores
+    strategies:
+      powershell:
+        chain:
+          stages:
+            - tokens:
+                - value: Get-CimInstance
+                - value: Win32_Processor
+            - tokens:
+                - value: Select-Object
+                - value: Name
+                - value: NumberOfLogicalProcessors
+          connectors:
+            - pipe

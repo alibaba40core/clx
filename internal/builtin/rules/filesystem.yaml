@@ -431,6 +431,18 @@ intents:
       linux:
         primary: "find ~/Downloads -type f -name .pdf"
 
+  - intent: find_hidden_files
+    examples:
+      - find hidden files in the current folder
+    strategies:
+      powershell:
+        argv:
+          - Get-ChildItem
+          - -Force
+          - -Hidden
+      linux:
+        primary: "ls -la"
+
   - intent: list_recycle_bin
     examples:
       - list files in the recycle bin

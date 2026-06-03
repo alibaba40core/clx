@@ -31,6 +31,7 @@ intents:
     examples:
       - docker logs {{container}}
       - docker logs --tail {{lines}} {{container}}
+      - docker logs {{container}} --tail {{lines}}
     strategies:
       default:
         argv:

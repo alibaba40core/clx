@@ -10,6 +10,22 @@ strategies:
   linux:
     primary: "df -h {{path}}"
   powershell:
-    primary: "Get-PSDrive"
+    chain:
+      stages:
+        - tokens:
+            - value: Get-ChildItem
+            - value: -Path
+            - value: {{path}}
+            - value: -Recurse
+            - value: -File
+            - value: -ErrorAction
+            - value: SilentlyContinue
+        - tokens:
+            - value: Measure-Object
+            - value: -Property
+            - value: Length
+            - value: -Sum
+      connectors:
+        - pipe
   cmd:
     primary: "dir {{path}}"

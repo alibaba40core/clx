@@ -205,6 +205,39 @@ func TestResolveRound3NLRuleIntents(t *testing.T) {
 	}
 }
 
+func TestResolveRound4NLRuleIntents(t *testing.T) {
+	t.Parallel()
+	eng := testEngine(t)
+	cases := []struct {
+		name       string
+		tokens     []string
+		wantIntent string
+	}{
+		{"show_dns_servers", []string{"show", "dns", "server", "addresses", "for", "active", "adapters"}, "show_dns_servers"},
+		{"show_temp_path", []string{"show", "the", "path", "to", "the", "temp", "directory"}, "show_temp_path"},
+		{"show_cpu_info", []string{"show", "cpu", "model", "and", "number", "of", "cores"}, "show_cpu_info"},
+		{"find_hidden_files", []string{"find", "hidden", "files", "in", "the", "current", "folder"}, "find_hidden_files"},
+		{"list_autostart_services", []string{"list", "services", "set", "to", "start", "automatically"}, "list_autostart_services"},
+		{"show_security_event_log", []string{"show", "the", "last", "20", "entries", "in", "the", "security", "event", "log"}, "show_security_event_log"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := eng.Resolve(context.Background(), parser.Request{Tokens: tc.tokens})
+			if err != nil {
+				t.Fatalf("resolve: %v", err)
+			}
+			if got.Intent != tc.wantIntent {
+				t.Fatalf("intent: got %q want %q", got.Intent, tc.wantIntent)
+			}
+			if got.Source != SourceRule {
+				t.Fatalf("source: got %v want SourceRule", got.Source)
+			}
+		})
+	}
+}
+
 func TestResolveNotFound(t *testing.T) {
 	t.Parallel()
 	eng := testEngine(t)
@@ -266,6 +299,7 @@ func TestResolveDockerIntents(t *testing.T) {
 		{"docker_images", []string{"docker", "images"}, "docker_images", map[string]string{}},
 		{"docker_logs_bare", []string{"docker", "logs", "web"}, "docker_logs", map[string]string{"container": "web"}},
 		{"docker_logs_tail", []string{"docker", "logs", "--tail", "100", "web"}, "docker_logs", map[string]string{"container": "web", "lines": "100"}},
+		{"docker_logs_tail_after_container", []string{"docker", "logs", "api", "--tail", "50"}, "docker_logs", map[string]string{"container": "api", "lines": "50"}},
 	}
 	for _, tc := range cases {
 		tc := tc

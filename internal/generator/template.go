@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/alibaba40core/clx/internal/environment"
+	"github.com/alibaba40core/clx/internal/intent"
 )
 
 func substituteSlot(slot string, params map[string]string) (string, error) {
@@ -101,6 +102,19 @@ func effectiveParams(intentName string, params map[string]string, profile enviro
 		}
 	}
 	return out
+}
+
+// diskUsageStrategy keeps Get-PSDrive for bare free-space queries while using the
+// directory-measure chain when the user supplied an explicit path (e.g. du -sh data).
+func diskUsageStrategy(resolved intent.ResolvedIntent, selected intent.Strategy, profile environment.SystemProfile) intent.Strategy {
+	if resolved.Intent != "disk_usage" || strings.ToLower(profile.Shell) != "powershell" {
+		return selected
+	}
+	path, explicit := resolved.Params["path"]
+	if !explicit || path == "." {
+		return intent.Strategy{Primary: "Get-PSDrive"}
+	}
+	return selected
 }
 
 // normalizeFileSizeParams converts user size tokens (e.g. 100MB) into find(1) suffix
