@@ -343,7 +343,7 @@ Example NL flows validated on Windows + OpenAI:
 |------|--------|
 | **clx** | v1.0.0 — rules-first pipeline, AI fallback (Ollama, OpenAI, Gemini), risk/policy, aliases, `clx init` / `clx doctor` / `clx config` |
 | **clxmax** | Phase 5 stub (`clxmax --version` only) — multi-step planning in v2 |
-| **Install** | Build from source (`make build` / `make install`) or user PATH install; no brew/winget yet |
+| **Install** | Primary: build from source (`make build` / `make install`). Secondary: prebuilt one-liner installers (`get.sh` / `get.ps1`). See [doc/installation.md](installation.md); no brew/winget yet |
 
 **CLI subcommands:** `doctor`, `init`, `config`, `safety`, `policy`, `alias`, `cache` — run `clx <cmd> help` for each.
 
