@@ -1,0 +1,221 @@
+﻿{
+    "runAt":  "2026-06-04T13:32:27.0764604+05:30",
+    "commit":  "8d907c1",
+    "clxVersion":  "clx version 8d907c1 (commit 8d907c1, built unknown, go go1.26.3)",
+    "totalTests":  160,
+    "totalPass":  149,
+    "totalExpectedFail":  2,
+    "totalOverall":  151,
+    "totalBaseline":  158,
+    "unexpectedFailCount":  9,
+    "regressionCount":  9,
+    "rounds":  [
+                   {
+                       "round":  1,
+                       "rulePass":  19,
+                       "ruleBaseline":  20,
+                       "nlPass":  15,
+                       "nlBaseline":  18,
+                       "overallPass":  34,
+                       "overallBaseline":  38,
+                       "meetsBaseline":  false
+                   },
+                   {
+                       "round":  2,
+                       "rulePass":  20,
+                       "ruleBaseline":  20,
+                       "nlPass":  20,
+                       "nlBaseline":  20,
+                       "overallPass":  40,
+                       "overallBaseline":  40,
+                       "meetsBaseline":  true
+                   },
+                   {
+                       "round":  3,
+                       "rulePass":  20,
+                       "ruleBaseline":  20,
+                       "nlPass":  17,
+                       "nlBaseline":  20,
+                       "overallPass":  37,
+                       "overallBaseline":  40,
+                       "meetsBaseline":  false
+                   },
+                   {
+                       "round":  4,
+                       "rulePass":  20,
+                       "ruleBaseline":  20,
+                       "nlPass":  20,
+                       "nlBaseline":  20,
+                       "overallPass":  40,
+                       "overallBaseline":  40,
+                       "meetsBaseline":  true
+                   }
+               ],
+    "regressions":  [
+                        {
+                            "round":  1,
+                            "suite":  "rule",
+                            "n":  20,
+                            "input":  "move a.txt b.txt",
+                            "source":  "",
+                            "intent":  "",
+                            "exit":  1,
+                            "stderr":  "untrusted resolver output rejected: unexpected param \"file\"",
+                            "command":  ""
+                        },
+                        {
+                            "round":  1,
+                            "suite":  "nl",
+                            "n":  1,
+                            "input":  "show me the 10 largest files in this folder",
+                            "source":  "",
+                            "intent":  "",
+                            "exit":  1,
+                            "stderr":  "AI command rejected as unsafe: executor: ai command quality rejected: placeholder token \".\"",
+                            "command":  ""
+                        },
+                        {
+                            "round":  1,
+                            "suite":  "nl",
+                            "n":  4,
+                            "input":  "show running docker containers sorted by memory",
+                            "source":  "",
+                            "intent":  "",
+                            "exit":  1,
+                            "stderr":  "AI command rejected as unsafe: executor: ai command token rejected: forbidden characters in expression \"$idName = $_.Split(\u0027 \u0027); $idName\"",
+                            "command":  ""
+                        },
+                        {
+                            "round":  1,
+                            "suite":  "nl",
+                            "n":  5,
+                            "input":  "compress this folder into a zip archive",
+                            "source":  "",
+                            "intent":  "",
+                            "exit":  1,
+                            "stderr":  "AI command rejected as unsafe: executor: ai command quality rejected: placeholder token \".\"",
+                            "command":  ""
+                        },
+                        {
+                            "round":  1,
+                            "suite":  "nl",
+                            "n":  8,
+                            "input":  "find every TODO comment in the source files",
+                            "source":  "",
+                            "intent":  "",
+                            "exit":  1,
+                            "stderr":  "AI command rejected as unsafe: executor: ai command quality rejected: placeholder token \".\"",
+                            "command":  ""
+                        },
+                        {
+                            "round":  1,
+                            "suite":  "nl",
+                            "n":  20,
+                            "input":  "find duplicate files by name",
+                            "source":  "",
+                            "intent":  "",
+                            "exit":  1,
+                            "stderr":  "AI command rejected as unsafe: executor: ai command quality rejected: pipe stage must use Where-Object or ForEach-Object, not bare \"$_.Count -gt 1\"",
+                            "command":  ""
+                        },
+                        {
+                            "round":  3,
+                            "suite":  "nl",
+                            "n":  4,
+                            "input":  "find empty files in this directory tree",
+                            "source":  "",
+                            "intent":  "",
+                            "exit":  1,
+                            "stderr":  "AI command rejected as unsafe: executor: ai command quality rejected: placeholder token \".\"",
+                            "command":  ""
+                        },
+                        {
+                            "round":  3,
+                            "suite":  "nl",
+                            "n":  16,
+                            "input":  "display monitor resolution and refresh rate",
+                            "source":  "",
+                            "intent":  "",
+                            "exit":  1,
+                            "stderr":  "AI command rejected as unsafe: executor: ai command token rejected: forbidden characters in expression \"@{Name=\u0027Resolution\u0027;Expression={$_.MaxHorizontalImageSize*10 + \u0027x\u0027 + $_.MaxVerticalImageSize*10}}, @{Name=\u0027RefreshRate\u0027;Expression={$_.VideoModeDescription -match \u0027\\\\d+Hz\u0027; $matches[0]}}\"",
+                            "command":  ""
+                        },
+                        {
+                            "round":  3,
+                            "suite":  "nl",
+                            "n":  17,
+                            "input":  "list mapped network drives",
+                            "source":  "",
+                            "intent":  "",
+                            "exit":  1,
+                            "stderr":  "AI could not generate a command for this request; try rephrasing",
+                            "command":  ""
+                        }
+                    ],
+    "spotChecks":  [
+                       {
+                           "label":  "R1 nl #2",
+                           "status":  "pass",
+                           "source":  "Rule",
+                           "intent":  "disk_usage",
+                           "command":  "Get-PSDrive",
+                           "stderr":  ""
+                       },
+                       {
+                           "label":  "R2 rule #10",
+                           "status":  "pass",
+                           "source":  "Rule",
+                           "intent":  "disk_usage",
+                           "command":  "Get-PSDrive",
+                           "stderr":  ""
+                       },
+                       {
+                           "label":  "R2 rule #11",
+                           "status":  "pass",
+                           "source":  "Rule",
+                           "intent":  "disk_usage",
+                           "command":  "Get-PSDrive",
+                           "stderr":  ""
+                       },
+                       {
+                           "label":  "R2 rule #16",
+                           "status":  "pass",
+                           "source":  "Rule",
+                           "intent":  "print_text",
+                           "command":  "Write-Output \u0027Hello CLX\u0027",
+                           "stderr":  ""
+                       },
+                       {
+                           "label":  "R2 rule #17",
+                           "status":  "pass",
+                           "source":  "Rule",
+                           "intent":  "list_env",
+                           "command":  "Get-ChildItem env:",
+                           "stderr":  ""
+                       },
+                       {
+                           "label":  "R2 rule #6",
+                           "status":  "pass",
+                           "source":  "Rule",
+                           "intent":  "docker_logs",
+                           "command":  "docker logs --tail 200 nginx",
+                           "stderr":  ""
+                       },
+                       {
+                           "label":  "R3 rule #1",
+                           "status":  "pass",
+                           "source":  "Rule",
+                           "intent":  "disk_usage",
+                           "command":  "Get-PSDrive",
+                           "stderr":  ""
+                       },
+                       {
+                           "label":  "R4 rule #15",
+                           "status":  "pass",
+                           "source":  "Rule",
+                           "intent":  "disk_usage",
+                           "command":  "\u0027C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\u0027 -NoProfile -NonInteractive -Command \u0027Get-ChildItem -Path data -Recurse -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum\u0027",
+                           "stderr":  ""
+                       }
+                   ]
+}

@@ -1,5 +1,6 @@
 ﻿[
     {
+        "round":  4,
         "suite":  "rule",
         "n":  1,
         "input":  "what time is it",
@@ -11,6 +12,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  2,
         "input":  "current user",
@@ -22,6 +24,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  3,
         "input":  "show current directory",
@@ -33,6 +36,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  4,
         "input":  "echo Round4",
@@ -44,6 +48,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  5,
         "input":  "files changed today",
@@ -55,6 +60,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  6,
         "input":  "find file pom.xml",
@@ -66,6 +72,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  7,
         "input":  "locate settings.ini in etc",
@@ -77,6 +84,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  8,
         "input":  "grep WARNING system.log",
@@ -88,6 +96,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  9,
         "input":  "cat package.json",
@@ -99,6 +108,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  10,
         "input":  "touch deploy.marker",
@@ -110,6 +120,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  11,
         "input":  "remove directory staging",
@@ -121,6 +132,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  12,
         "input":  "copy backup.zip to archive.zip",
@@ -132,6 +144,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  13,
         "input":  "move inbox.csv to processed.csv",
@@ -143,6 +156,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  14,
         "input":  "files larger than 50MB",
@@ -154,6 +168,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  15,
         "input":  "du -sh data",
@@ -165,6 +180,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  16,
         "input":  "docker logs api --tail 50",
@@ -176,6 +192,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  17,
         "input":  "tracert cloudflare.com",
@@ -187,6 +204,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  18,
         "input":  "ping localhost",
@@ -198,6 +216,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  19,
         "input":  "git diff src/main.go",
@@ -209,6 +228,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "rule",
         "n":  20,
         "input":  "list directory tmp",
@@ -220,6 +240,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  1,
         "input":  "show installed windows hotfixes",
@@ -231,6 +252,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  2,
         "input":  "list processes listening on port 8080",
@@ -242,17 +264,19 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  3,
         "input":  "stop all notepad processes",
         "intent":  "ai-generated command",
         "wantIntent":  null,
         "source":  "AI",
-        "command":  "\u0027C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\u0027 -NoProfile -NonInteractive -Command \u0027Get-Process notepad ; Stop-Process -Name notepad\u0027",
+        "command":  "\u0027C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\u0027 -NoProfile -NonInteractive -Command \u0027Get-Process notepad ; Stop-Process -Force\u0027",
         "exit":  0,
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  4,
         "input":  "show dns server addresses for active adapters",
@@ -264,6 +288,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  5,
         "input":  "list enabled optional windows features",
@@ -275,6 +300,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  6,
         "input":  "show free space on the C drive",
@@ -286,6 +312,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  7,
         "input":  "find files modified in the last seven days",
@@ -297,6 +324,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  8,
         "input":  "show the powershell execution policy",
@@ -308,6 +336,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  9,
         "input":  "list all scheduled tasks on this system",
@@ -319,6 +348,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  10,
         "input":  "show ip configuration for all network adapters",
@@ -330,6 +360,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  11,
         "input":  "clear the arp cache on this computer",
@@ -341,6 +372,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  12,
         "input":  "show the path to the temp directory",
@@ -352,6 +384,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  13,
         "input":  "list services set to start automatically",
@@ -363,6 +396,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  14,
         "input":  "show cpu model and number of cores",
@@ -374,6 +408,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  15,
         "input":  "find hidden files in the current folder",
@@ -385,6 +420,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  16,
         "input":  "show the last 20 entries in the security event log",
@@ -396,17 +432,19 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  17,
         "input":  "check whether hyper-v is enabled on this pc",
         "intent":  "ai-generated command",
         "wantIntent":  null,
         "source":  "AI",
-        "command":  "\u0027C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\u0027 -NoProfile -NonInteractive -Command \u0027Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All | Select-Object {$_.State}\u0027",
+        "command":  "\u0027C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\u0027 -NoProfile -NonInteractive -Command \u0027Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All | Select-Object -ExpandProperty State\u0027",
         "exit":  0,
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  18,
         "input":  "show the installed dotnet runtime version",
@@ -418,6 +456,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  19,
         "input":  "list exe files in the program files folder",
@@ -429,6 +468,7 @@
         "stderr":  ""
     },
     {
+        "round":  4,
         "suite":  "nl",
         "n":  20,
         "input":  "start the windows time service",

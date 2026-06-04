@@ -228,3 +228,60 @@ intents:
                 - value: NumberOfLogicalProcessors
           connectors:
             - pipe
+
+  - intent: display_monitor_resolution
+    examples:
+      - display monitor resolution and refresh rate
+    strategies:
+      powershell:
+        chain:
+          stages:
+            - tokens:
+                - value: Get-CimInstance
+                - value: Win32_VideoController
+            - tokens:
+                - value: Select-Object
+                - value: Name
+                - value: VideoModeDescription
+                - value: CurrentHorizontalResolution
+                - value: CurrentVerticalResolution
+          connectors:
+            - pipe
+
+  - intent: list_mapped_network_drives
+    examples:
+      - list mapped network drives
+    strategies:
+      powershell:
+        chain:
+          stages:
+            - tokens:
+                - value: Get-PSDrive
+            - tokens:
+                - value: Where-Object
+                - value: "{ $null -ne $_.DisplayRoot }"
+                  expr: true
+          connectors:
+            - pipe
+
+  - intent: docker_ps_sorted_by_memory
+    examples:
+      - show running docker containers sorted by memory
+    strategies:
+      default:
+        chain:
+          stages:
+            - tokens:
+                - value: docker
+                - value: ps
+            - tokens:
+                - value: docker
+                - value: stats
+                - value: --no-stream
+            - tokens:
+                - value: Sort-Object
+                - value: MemUsage
+                - value: -Descending
+          connectors:
+            - pipe
+            - pipe

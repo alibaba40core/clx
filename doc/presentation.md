@@ -46,7 +46,7 @@ These runs use **`clx -y`** from `PS C:\Users>` so CLX translates the input, pas
 Input uses familiar Unix syntax (`grep`); CLX runs the PowerShell equivalent (`Select-String`) and prints matches:
 
 ```text
-clx -y grep CLX C:\Users\user\example-workspace\clx\README.md
+clx -y grep CLX C:\Users\example-workspace\clx\README.md
 ```
 
 ![Executed: grep on PowerShell](./images/powershell-exec-grep-unix.png)

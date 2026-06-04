@@ -1,5 +1,6 @@
 $ErrorActionPreference = "Continue"
-$clx = Join-Path $env:LOCALAPPDATA "Programs\clx\clx.exe"
+. (Join-Path $PSScriptRoot "generation-test-lib.ps1")
+
 $outFile = Join-Path $PSScriptRoot "..\doc\development\gen-test-round3-results.json"
 
 $ruleTests = @(
@@ -48,49 +49,4 @@ $nlTests = @(
     @{ n=20; phrase="restart the print spooler service" }
 )
 
-function Run-Explain([string]$phrase) {
-    $tmpOut = [System.IO.Path]::GetTempFileName()
-    $tmpErr = [System.IO.Path]::GetTempFileName()
-    $p = Start-Process -FilePath $clx -ArgumentList "--explain", $phrase -NoNewWindow -PassThru -Wait -RedirectStandardOutput $tmpOut -RedirectStandardError $tmpErr
-    $out = [IO.File]::ReadAllText($tmpOut)
-    $err = [IO.File]::ReadAllText($tmpErr)
-    Remove-Item $tmpOut, $tmpErr -Force -ErrorAction SilentlyContinue
-    return @{ out = $out; err = $err; exit = $p.ExitCode }
-}
-
-function Parse-Explain($suite, $n, $phrase, $wantIntent, $r) {
-    $out = $r.out
-    $err = $r.err
-    $intent = ""
-    if ($out -match "(?m)^Intent:\s+(.+)$") { $intent = [string]$Matches[1].Trim() }
-    $source = ""
-    if ($out -match "(?m)^Source:\s+(\S+)") { $source = [string]$Matches[1] }
-    $cmd = ""
-    if ($out -match "(?m)^Command:\s+(.+)$") { $cmd = [string]$Matches[1].Trim() }
-    [PSCustomObject]@{
-        suite = $suite
-        n = $n
-        input = $phrase
-        intent = $intent
-        source = $source
-        command = $cmd
-        exit = $r.exit
-        stderr = ($err -replace '\s+', ' ').Trim()
-    }
-}
-
-$results = New-Object System.Collections.Generic.List[object]
-foreach ($t in $ruleTests) {
-    Write-Host "rule $($t.n): $($t.phrase)"
-    $r = Run-Explain $t.phrase
-    $results.Add((Parse-Explain "rule" $t.n $t.phrase $t.wantIntent $r)) | Out-Null
-    $results | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 $outFile
-}
-foreach ($t in $nlTests) {
-    Write-Host "nl $($t.n): $($t.phrase)"
-    $r = Run-Explain $t.phrase
-    $results.Add((Parse-Explain "nl" $t.n $t.phrase $null $r)) | Out-Null
-    $results | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 $outFile
-}
-
-Write-Host "Done. Results: $outFile"
+Invoke-GenerationTestSuite -Round 3 -OutFile $outFile -RuleTests $ruleTests -NlTests $nlTests | Out-Null

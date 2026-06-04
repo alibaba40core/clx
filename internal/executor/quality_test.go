@@ -10,7 +10,7 @@ import (
 
 func TestValidateCommandQualityRejectsPlaceholders(t *testing.T) {
 	t.Parallel()
-	cases := []string{"URL", "file", "linkName", "file.tar.gz", "."}
+	cases := []string{"URL", "file", "linkName", "file.tar.gz"}
 	for _, tok := range cases {
 		gen := generator.NewAICommand([]string{"curl", "-o", tok}, "powershell", "x", testProfile())
 		if err := ValidateCommandQuality(gen, "download"); err == nil {
@@ -18,6 +18,14 @@ func TestValidateCommandQualityRejectsPlaceholders(t *testing.T) {
 		} else if !strings.Contains(err.Error(), "placeholder") {
 			t.Fatalf("unexpected error for %q: %v", tok, err)
 		}
+	}
+	genDot := generator.NewAICommand([]string{"Get-Content", "."}, "powershell", "x", testProfile())
+	if err := ValidateCommandQuality(genDot, "show a file with line numbers"); err == nil {
+		t.Fatal("expected ambiguous . rejection")
+	}
+	genPathDot := generator.NewAICommand([]string{"Compress-Archive", "-Path", "."}, "powershell", "x", testProfile())
+	if err := ValidateCommandQuality(genPathDot, "compress this folder into a zip archive"); err != nil {
+		t.Fatalf("expected . after -Path to pass: %v", err)
 	}
 }
 

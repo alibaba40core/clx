@@ -27,7 +27,7 @@ func ValidateCommandQuality(gen generator.GeneratedCommand, rawInput string) err
 		}
 	}
 	if len(gen.Argv) > 0 {
-		if err := validateArgvQuality(gen.Argv); err != nil {
+		if err := validateArgvQuality(gen.Argv, rawInput); err != nil {
 			return err
 		}
 	}
@@ -37,9 +37,13 @@ func ValidateCommandQuality(gen generator.GeneratedCommand, rawInput string) err
 	return nil
 }
 
-func validateArgvQuality(argv []string) error {
-	for _, tok := range argv {
-		if isPlaceholderToken(tok) {
+func validateArgvQuality(argv []string, rawInput string) error {
+	for i, tok := range argv {
+		prev := ""
+		if i > 0 {
+			prev = argv[i-1]
+		}
+		if isPlaceholderToken(tok, prev, rawInput) {
 			return fmt.Errorf("%w: placeholder token %q", ErrCommandQuality, tok)
 		}
 	}
@@ -51,8 +55,12 @@ func validateChainQuality(chain *generator.CommandChain, rawInput string, shell 
 		return nil
 	}
 	for _, st := range chain.Stages {
-		for _, tok := range st.Tokens {
-			if isPlaceholderToken(tok.Value) {
+		for i, tok := range st.Tokens {
+			prev := ""
+			if i > 0 {
+				prev = st.Tokens[i-1].Value
+			}
+			if isPlaceholderToken(tok.Value, prev, rawInput) {
 				return fmt.Errorf("%w: placeholder token %q", ErrCommandQuality, tok.Value)
 			}
 		}
@@ -109,18 +117,40 @@ func isFilterCmdlet(cmd string) bool {
 	}
 }
 
-func isPlaceholderToken(tok string) bool {
+var pathFlagTokens = map[string]struct{}{
+	"-path":              {},
+	"-literalpath":       {},
+	"-destinationpath":   {},
+	"-c":                 {},
+}
+
+var dotAllowedInputHints = []string{
+	"folder", "directory", "this", "current", "tree", "project", "archive",
+	"compress", "zip", "largest", "todo", "source", "empty", "duplicate",
+	"recycle", "downloads", "here", "workspace",
+}
+
+func isPlaceholderToken(tok, prevTok, rawInput string) bool {
 	v := strings.TrimSpace(tok)
 	if v == "" {
 		return false
 	}
-	if v == "." {
-		return true
-	}
 	if _, ok := placeholderTokens[strings.ToLower(v)]; ok {
 		return true
 	}
-	return false
+	if v != "." {
+		return false
+	}
+	if _, ok := pathFlagTokens[strings.ToLower(strings.TrimSpace(prevTok))]; ok {
+		return false
+	}
+	lower := strings.ToLower(rawInput)
+	for _, hint := range dotAllowedInputHints {
+		if strings.Contains(lower, hint) {
+			return false
+		}
+	}
+	return true
 }
 
 func validateCompareIntent(rawInput string, gen generator.GeneratedCommand) error {
@@ -190,7 +220,7 @@ func distinctPathLikeTokens(gen generator.GeneratedCommand) []string {
 }
 
 func pathLikeToken(v string) bool {
-	if v == "" || isPlaceholderToken(v) {
+	if v == "" || isPlaceholderToken(v, "", "") {
 		return false
 	}
 	if strings.ContainsAny(v, `/\`) {

@@ -443,6 +443,104 @@ intents:
       linux:
         primary: "ls -la"
 
+  - intent: largest_files_in_folder
+    examples:
+      - show me the 10 largest files in this folder
+    strategies:
+      powershell:
+        chain:
+          stages:
+            - tokens:
+                - value: Get-ChildItem
+                - value: -File
+                - value: -Recurse
+            - tokens:
+                - value: Sort-Object
+                - value: Length
+                - value: -Descending
+            - tokens:
+                - value: Select-Object
+                - value: -First
+                - value: "10"
+          connectors:
+            - pipe
+            - pipe
+
+  - intent: compress_folder_zip
+    examples:
+      - compress this folder into a zip archive
+    strategies:
+      powershell:
+        argv:
+          - Compress-Archive
+          - -Path
+          - .
+          - -DestinationPath
+          - archive.zip
+      linux:
+        primary: "tar -czf archive.tar.gz ."
+
+  - intent: find_todo_in_sources
+    examples:
+      - find every TODO comment in the source files
+    strategies:
+      powershell:
+        chain:
+          stages:
+            - tokens:
+                - value: Get-ChildItem
+                - value: -Recurse
+                - value: -File
+            - tokens:
+                - value: Select-String
+                - value: TODO
+          connectors:
+            - pipe
+      linux:
+        primary: "grep -r TODO ."
+
+  - intent: find_duplicate_files_by_name
+    examples:
+      - find duplicate files by name
+    strategies:
+      powershell:
+        chain:
+          stages:
+            - tokens:
+                - value: Get-ChildItem
+                - value: -Recurse
+                - value: -File
+            - tokens:
+                - value: Group-Object
+                - value: Name
+            - tokens:
+                - value: Where-Object
+                - value: "{ $_.Count -gt 1 }"
+                  expr: true
+          connectors:
+            - pipe
+            - pipe
+
+  - intent: find_empty_files_tree
+    examples:
+      - find empty files in this directory tree
+    strategies:
+      powershell:
+        chain:
+          stages:
+            - tokens:
+                - value: Get-ChildItem
+                - value: -File
+                - value: -Recurse
+            - tokens:
+                - value: Where-Object
+                - value: "{ $_.Length -eq 0 }"
+                  expr: true
+          connectors:
+            - pipe
+      linux:
+        primary: "find . -type f -empty"
+
   - intent: list_recycle_bin
     examples:
       - list files in the recycle bin

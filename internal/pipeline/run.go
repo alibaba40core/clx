@@ -102,8 +102,14 @@ func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) 
 					"err", err,
 				)
 			}
-			fmt.Fprintf(opts.Stderr, "untrusted resolver output rejected: %v\n", err)
-			return 1, err
+			if ruleResolved, rerr := eng.Resolve(ctx, req); rerr == nil {
+				resolved = ruleResolved
+			} else if code, handled, aiErr := tryAICommand(ctx, cfg, opts, profile, req); handled {
+				return code, aiErr
+			} else {
+				fmt.Fprintf(opts.Stderr, "untrusted resolver output rejected: %v\n", err)
+				return 1, err
+			}
 		}
 	}
 

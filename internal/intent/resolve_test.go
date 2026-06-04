@@ -238,6 +238,41 @@ func TestResolveRound4NLRuleIntents(t *testing.T) {
 	}
 }
 
+func TestResolveRegressionNLRuleIntents(t *testing.T) {
+	t.Parallel()
+	eng := testEngine(t)
+	cases := []struct {
+		name       string
+		tokens     []string
+		wantIntent string
+	}{
+		{"largest_files", []string{"show", "me", "the", "10", "largest", "files", "in", "this", "folder"}, "largest_files_in_folder"},
+		{"compress_zip", []string{"compress", "this", "folder", "into", "a", "zip", "archive"}, "compress_folder_zip"},
+		{"find_todo", []string{"find", "every", "TODO", "comment", "in", "the", "source", "files"}, "find_todo_in_sources"},
+		{"find_duplicates", []string{"find", "duplicate", "files", "by", "name"}, "find_duplicate_files_by_name"},
+		{"find_empty_tree", []string{"find", "empty", "files", "in", "this", "directory", "tree"}, "find_empty_files_tree"},
+		{"display_monitor", []string{"display", "monitor", "resolution", "and", "refresh", "rate"}, "display_monitor_resolution"},
+		{"mapped_drives", []string{"list", "mapped", "network", "drives"}, "list_mapped_network_drives"},
+		{"docker_sorted_mem", []string{"show", "running", "docker", "containers", "sorted", "by", "memory"}, "docker_ps_sorted_by_memory"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := eng.Resolve(context.Background(), parser.Request{Tokens: tc.tokens})
+			if err != nil {
+				t.Fatalf("resolve: %v", err)
+			}
+			if got.Intent != tc.wantIntent {
+				t.Fatalf("intent: got %q want %q", got.Intent, tc.wantIntent)
+			}
+			if got.Source != SourceRule {
+				t.Fatalf("source: got %v want SourceRule", got.Source)
+			}
+		})
+	}
+}
+
 func TestResolveNotFound(t *testing.T) {
 	t.Parallel()
 	eng := testEngine(t)
