@@ -52,10 +52,45 @@ Focus: **trustable cross-platform command abstraction** — fast, reliable, safe
 
 | Need | Notes |
 |------|--------|
-| **Build from source** | Go **1.26+** (`go.mod`). There is no `brew` / `winget` / curl installer yet — use `make build` or `make install`. |
+| **Quick install (no Go)** | Download prebuilt binaries via the one-liners under [Install](#install). Requires a published GitHub Release. |
+| **Build from source** | Go **1.26+** (`go.mod`). Use `make build` or `make install`. No `brew` / `winget` package yet. |
 | **Local AI (optional)** | Default provider is **Ollama** (`http://localhost:11434`). Install [Ollama](https://ollama.com) and pull a model (e.g. `qwen3:1.7b`) for offline use. |
 | **Cloud AI (optional)** | OpenAI or Gemini API keys via `clx config set providers.openai.api_key` (see [doc/provider-config.md](doc/provider-config.md)). |
 | **Azure** | Listed in config/help but **not implemented** in v1 — use `ollama`, `openai`, or `gemini`. |
+
+## Install
+
+**Quick install (prebuilt binaries, no Go required).** These download `clx` + `clxmax`
+from the latest [GitHub Release](https://github.com/alibaba40core/clx/releases),
+verify the SHA-256 checksum, and place them on your PATH.
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/alibaba40core/clx/main/scripts/get.sh | bash
+```
+
+```powershell
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/alibaba40core/clx/main/scripts/get.ps1 | iex
+```
+
+Pin a version or change the install dir with environment variables:
+
+```bash
+CLX_VERSION=v1.0.0 CLX_INSTALL_DIR="$HOME/.local/bin" \
+  curl -fsSL https://raw.githubusercontent.com/alibaba40core/clx/main/scripts/get.sh | bash
+```
+
+```powershell
+$env:CLX_VERSION="v1.0.0"; irm https://raw.githubusercontent.com/alibaba40core/clx/main/scripts/get.ps1 | iex
+```
+
+> The quick installers require a published release. Releases are produced
+> automatically when a `v*` tag is pushed (see `.github/workflows/release.yml`).
+> Until the first release exists, use **Build from source** below.
+
+**Build from source** (Go 1.26+): `make install` builds and copies `clx` + `clxmax`
+into your user PATH (`scripts/install.sh` / `scripts/install.ps1`).
 
 ## Getting started
 
@@ -121,7 +156,7 @@ make bootstrap-local
 
 ### Install and avoiding a stale binary
 
-- **Install today:** from source only (`make build` / `make install`). Packaged installs (brew, winget) are not shipped yet.
+- **Install today:** prebuilt one-liners (see [Install](#install), once a release is published) or from source (`make build` / `make install`). Packaged installs (brew, winget) are not shipped yet.
 - **Preferred:** `make build` then run `./bin/clx` (or `make install` to copy into your user PATH).
 - **Stale binary trap:** A `clx.exe` in the **repo root** (from an old `go build` in `.`) can appear **before** `bin/` on PATH when your shell cwd is the repo — you may run weeks-old code while `bin/clx` is current. Use `where clx` (Windows) or `which clx` (Unix) to see what runs; remove stray root copies or run `make clean` (deletes root `clx.exe` / `clxmax.exe` and `bin/`).
 - **Check version:** `clx --version` should report **1.0.0** on a fresh `make build` (unless overridden). Rebuild after pulling: `go build -o bin/clx.exe ./cmd/clx` on Windows.
