@@ -57,7 +57,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	dryRun := fs.Bool("dry-run", false, "preview command without executing")
 	yes := fs.Bool("y", false, "skip confirmation and execute")
 	yesLong := fs.Bool("yes", false, "skip confirmation and execute")
-	providerFlag := fs.String("provider", "", "override AI provider (ollama, openai, azure)")
+	providerFlag := fs.String("provider", "", "override AI provider (none, ollama, openai, gemini)")
 
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -90,7 +90,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 
 	if *providerFlag != "" {
+		// Make the flag authoritative: providers.primary otherwise wins in
+		// EffectivePrimary and would silently ignore the override.
 		cfg.Provider = *providerFlag
+		cfg.Providers.Primary = *providerFlag
 		cfg.Providers.Fallback = ""
 		if err := config.Validate(cfg); err != nil {
 			fmt.Fprintf(stderr, "config: %v\n", err)
@@ -107,14 +110,19 @@ func run(args []string, stdout, stderr io.Writer) int {
 	var aiResolver intent.Resolver
 	var aiProvider providers.Provider
 	p, perr := providerfactory.NewFromConfig(cfg, logger)
-	if perr != nil {
+	switch {
+	case perr != nil:
 		aiResolver = providers.ErrorResolver(perr)
-	} else {
+	case p != nil:
 		aiProvider = p
 		timeout := config.ProviderTimeout(cfg)
 		aiResolver = providers.AsResolver(p, eng, logger, providers.AdapterConfig{
 			Timeout: timeout,
 		})
+	default:
+		// provider "none": rules-only mode. Leave aiResolver/aiProvider nil so the
+		// chain is rules (+cache) only and a rule miss reports "no matching rule"
+		// instead of an AI-provider error.
 	}
 
 	var cacheStore *cache.Store
@@ -283,7 +291,7 @@ func printHelp(w io.Writer) {
 	fmt.Fprintln(w, "  --version       Print version and exit")
 	fmt.Fprintln(w, "  --help          Show this help")
 	fmt.Fprintln(w, "  --config path   Path to config.yaml")
-	fmt.Fprintln(w, "  --provider      Override AI provider (ollama, openai, azure)")
+	fmt.Fprintln(w, "  --provider      Override AI provider (none, ollama, openai, gemini; none = rules only)")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Exit codes: 0 success, 1 error, 2 flag error")
 }

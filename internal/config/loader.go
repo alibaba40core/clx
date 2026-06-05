@@ -9,8 +9,10 @@ import (
 )
 
 var (
+	// "none" disables the AI provider entirely (rules-only mode). It is a valid
+	// provider value so users are never forced to run Ollama or any LLM.
 	validProviders = map[string]struct{}{
-		"ollama": {}, "openai": {}, "azure": {}, "gemini": {},
+		"none": {}, "ollama": {}, "openai": {}, "azure": {}, "gemini": {},
 	}
 	validSafetyModes = map[string]struct{}{
 		"low": {}, "medium": {}, "high": {}, "custom": {},
@@ -60,7 +62,7 @@ func Load(ctx context.Context, path string) (Config, error) {
 // Validate checks configuration invariants.
 func Validate(c Config) error {
 	if _, ok := validProviders[c.Provider]; !ok {
-		return fmt.Errorf("invalid provider %q: must be ollama, openai, azure, or gemini", c.Provider)
+		return fmt.Errorf("invalid provider %q: must be none, ollama, openai, azure, or gemini", c.Provider)
 	}
 	if _, ok := validSafetyModes[c.Safety.Mode]; !ok {
 		return fmt.Errorf("invalid safety.mode %q: must be low, medium, high, or custom", c.Safety.Mode)

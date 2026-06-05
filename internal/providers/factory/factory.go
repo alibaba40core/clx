@@ -16,8 +16,13 @@ import (
 )
 
 // NewFromConfig constructs the configured Provider. No network I/O occurs here.
+// A provider of "none" (or empty) returns (nil, nil): rules-only mode with no AI
+// wired, so CLX never requires Ollama or any other LLM to run.
 func NewFromConfig(cfg config.Config, logger *slog.Logger) (providers.Provider, error) {
 	primaryName := config.EffectivePrimary(cfg)
+	if primaryName == "" || primaryName == "none" {
+		return nil, nil
+	}
 	primary, err := newNamedProvider(cfg, primaryName, logger)
 	if err != nil {
 		return nil, err
@@ -37,6 +42,8 @@ func NewFromConfig(cfg config.Config, logger *slog.Logger) (providers.Provider, 
 
 func newNamedProvider(cfg config.Config, name string, logger *slog.Logger) (providers.Provider, error) {
 	switch name {
+	case "none", "":
+		return nil, nil
 	case "ollama":
 		return newOllamaFromConfig(cfg, logger)
 	case "openai":

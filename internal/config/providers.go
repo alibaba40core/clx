@@ -45,7 +45,7 @@ func validateProviderName(name, field string) error {
 		return nil
 	}
 	if _, ok := validProviders[name]; !ok {
-		return fmt.Errorf("invalid %s %q: must be ollama, openai, azure, or gemini", field, name)
+		return fmt.Errorf("invalid %s %q: must be none, ollama, openai, azure, or gemini", field, name)
 	}
 	return nil
 }

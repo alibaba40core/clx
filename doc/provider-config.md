@@ -31,11 +31,29 @@ clx config encrypt-secrets
 
 Run `clx config help` for the full command list.
 
+## Rules-only mode (no AI provider)
+
+CLX does **not** require Ollama or any LLM. An AI provider is optional — it is only
+consulted when the built-in rules and cache miss. To run fully offline with no AI:
+
+```bash
+# Disable the AI provider entirely (rules + cache only)
+clx config provider use none      # or: clx config set provider none
+
+# Per-run override without changing config
+clx --provider none ls
+```
+
+In `none` mode a request that no rule matches reports `no matching rule for input`
+instead of an AI-provider error. The first-run wizard's **"skip (rules only)"**
+choice sets this for you. The shipped default provider is `ollama` (local), but it
+is never mandatory — switch to `none` (or `openai`/`gemini`) at any time.
+
 ## Configurable paths
 
 | Path | Purpose |
 |------|---------|
-| `provider` | Active provider (`ollama`, `openai`, `azure`, `gemini`) |
+| `provider` | Active provider (`none`, `ollama`, `openai`, `azure`, `gemini`). `none` = rules-only, no AI |
 | `model` | Default model when provider block omits one |
 | `providers.primary` | Optional chain primary (overrides `provider` when set) |
 | `providers.fallback` | Optional fallback provider (infrastructure errors only) |

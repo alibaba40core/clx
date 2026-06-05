@@ -48,7 +48,7 @@ func printConfigHelp(w io.Writer) {
 	fmt.Fprintln(w, "  clx config set <secret-path> [--stdin] [--config path]")
 	fmt.Fprintln(w, "  clx config set <path> --stdin [--config path]")
 	fmt.Fprintln(w, "  clx config provider list")
-	fmt.Fprintln(w, "  clx config provider use <ollama|openai|azure|gemini> [--config path]")
+	fmt.Fprintln(w, "  clx config provider use <none|ollama|openai|azure|gemini> [--config path]")
 	fmt.Fprintln(w, "  clx config encrypt-secrets [--config path]")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Settable paths (use clx config get <path>):")
@@ -180,6 +180,7 @@ func runConfigProvider(args []string, stdout, stderr io.Writer) int {
 	}
 	switch args[0] {
 	case "list":
+		fmt.Fprintln(stdout, "none")
 		fmt.Fprintln(stdout, "ollama")
 		fmt.Fprintln(stdout, "openai")
 		fmt.Fprintln(stdout, "azure")
@@ -206,7 +207,7 @@ func runConfigProviderUse(args []string, stdout, stderr io.Writer) int {
 	}
 	name := strings.ToLower(strings.TrimSpace(fs.Arg(0)))
 	switch name {
-	case "ollama", "openai", "azure", "gemini":
+	case "none", "ollama", "openai", "azure", "gemini":
 	default:
 		fmt.Fprintf(stderr, "config provider use: invalid provider %q\n", name)
 		return 2
@@ -217,6 +218,10 @@ func runConfigProviderUse(args []string, stdout, stderr io.Writer) int {
 		return code
 	}
 	config.SetProviderActive(&cfg, name)
+	if name == "none" {
+		// Rules-only: drop any fallback so validation doesn't demand its credentials.
+		cfg.Providers.Fallback = ""
+	}
 	if err := config.Validate(cfg); err != nil {
 		fmt.Fprintf(stderr, "config provider use: %v\n", err)
 		return 1

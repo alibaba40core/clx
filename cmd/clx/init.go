@@ -59,6 +59,11 @@ func runInit(args []string, stdout, stderr io.Writer) int {
 		cfg.Provider = "gemini"
 		cfg.Providers.Primary = "gemini"
 	case 3:
+		// Rules only: disable the AI provider entirely so CLX never depends on
+		// Ollama or any LLM. Rule-backed commands still work.
+		cfg.Provider = "none"
+		cfg.Providers.Primary = "none"
+		cfg.Providers.Fallback = ""
 		cfg.Features.AICommandGeneration = false
 	default:
 		cfg.Provider = "ollama"
