@@ -1,9 +1,13 @@
 intents:
   - intent: list_dir
     examples:
+      - ls
+      - la
+      - ll
+      - dir
+      - list directory
       - list directory {{path}}
       - ls {{path}}
-      - ll
       - ll {{path}}
       - dir {{path}}
     strategies:

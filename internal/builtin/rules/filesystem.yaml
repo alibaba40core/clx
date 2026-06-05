@@ -79,10 +79,14 @@ intents:
 
   - intent: list_dir
     examples:
+      - ls
       - ls {{path}}
       - ls -la {{path}}
+      - la
       - ll
       - ll {{path}}
+      - dir
+      - list directory
       - list directory {{path}}
       - dir {{path}}
     strategies:
