@@ -16,6 +16,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `clxmax` advanced reasoning: clarification loop, multi-step planning, sequenced execution, plan explainability.
 - See [doc/phase-5.md](doc/phase-5.md) for the full Phase 5 tracker.
 
+## [1.0.1] — 2026-06-05
+
+Patch release: installers, rules-only mode, and bare `ls`/`dir` fix.
+
+### Added
+
+- Download-based installers (`scripts/get.sh`, `scripts/get.ps1`) and GitHub release pipeline (`.github/workflows/release.yml`); install guide in [doc/installation.md](doc/installation.md).
+- First-class `none` (rules-only) provider so Ollama/AI is never mandatory; `clx config provider use none` and `--provider none`; init wizard "skip (rules only)" sets `provider: none`.
+
+### Fixed
+
+- Bare `clx ls` / `clx dir` resolve via built-in rules instead of falling through to AI and failing with "provider unavailable" when no provider is configured.
+
 ## [1.0.0] — 2026-05-31
 
 First stable release. Ships through Phase 4 plus Phase 3.5 aliases and V1 polish.
