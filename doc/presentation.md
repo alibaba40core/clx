@@ -357,7 +357,7 @@ Example NL flows validated on Windows + OpenAI:
 | Windows CMD | Real `clx` output → PNG | `C:\Users`, `clx` on PATH |
 | Linux | Real `docker run` output → markdown code blocks | Alpine, `clx` on PATH (`/usr/local/bin/clx`) |
 
-Raw capture text: `doc/capture/{powershell,cmd,linux}/*.txt`
+Screenshots are rendered with `scripts/render-terminal-png.py` from sanitized terminal transcripts (no real host paths or network details).
 
 **Linux Docker setup (for reproducing captures):** cross-compile `bin/clx-linux`, mount `bin/` read-only, symlink to `clx` inside the container:
 
