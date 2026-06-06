@@ -16,7 +16,9 @@ require_go() {
 
 build_binaries() {
   mkdir -p "${BIN_DIR}"
-  go build -trimpath -ldflags="${LDFLAGS}" -o "${BIN_DIR}/clx" ./cmd/clx
+  go run ./cmd/genrules
+  go build -trimpath -tags=lite -ldflags="${LDFLAGS}" -o "${BIN_DIR}/clx" ./cmd/clx
+  go build -trimpath -ldflags="${LDFLAGS}" -o "${BIN_DIR}/clx-ai" ./cmd/clx-ai
   go build -trimpath -ldflags="${LDFLAGS}" -o "${BIN_DIR}/clxmax" ./cmd/clxmax
 }
 
@@ -36,8 +38,9 @@ main() {
 
   DEST="$(install_dest)"
   cp "${BIN_DIR}/clx" "${DEST}/clx"
+  cp "${BIN_DIR}/clx-ai" "${DEST}/clx-ai"
   cp "${BIN_DIR}/clxmax" "${DEST}/clxmax"
-  chmod +x "${DEST}/clx" "${DEST}/clxmax"
+  chmod +x "${DEST}/clx" "${DEST}/clx-ai" "${DEST}/clxmax"
 
   # Remove stale repo-root binaries that shadow PATH when cwd is the clone.
   for stale in clx clxmax; do
@@ -47,7 +50,7 @@ main() {
     fi
   done
 
-  echo "installed clx and clxmax to ${DEST}"
+  echo "installed clx, clx-ai (internal), and clxmax to ${DEST}"
   if [[ "${DEST}" == "${HOME}/.local/bin" ]]; then
     echo "ensure ${DEST} is on your PATH"
   fi

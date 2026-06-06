@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BIN_DIR="${ROOT}/bin"
 
 : "${MAX_BIN_SIZE_BYTES:=$((20 * 1024 * 1024))}"
+: "${MAX_LITE_BIN_SIZE_BYTES:=$((4500 * 1024))}"
 : "${MAX_COLDSTART_MS:=}"
 : "${COLDSTART_RUNS:=11}"
 : "${COLDSTART_WARMUP:=2}"
@@ -34,6 +35,19 @@ resolve_bin() {
       ;;
     *)
       echo "${BIN_DIR}/clx"
+      ;;
+  esac
+}
+
+resolve_ai_bin() {
+  local os
+  os="$(uname -s)"
+  case "${os}" in
+    MINGW* | MSYS* | CYGWIN*)
+      echo "${BIN_DIR}/clx-ai.exe"
+      ;;
+    *)
+      echo "${BIN_DIR}/clx-ai"
       ;;
   esac
 }
@@ -88,19 +102,32 @@ measure_cold_start_ms() {
 }
 
 check_binary_size() {
-  local bin size limit
+  local bin size limit ai_bin ai_size
   bin="$(resolve_bin)"
   if [[ ! -f "${bin}" ]]; then
     fail "binary size: ${bin} not found (run make build first)"
     return
   fi
   size="$(wc -c < "${bin}" | tr -d '[:space:]')"
-  limit="$(format_bytes "${MAX_BIN_SIZE_BYTES}")"
-  if (( size > MAX_BIN_SIZE_BYTES )); then
-    fail "binary size: $(format_bytes "${size}") (limit ${limit})"
+  limit="$(format_bytes "${MAX_LITE_BIN_SIZE_BYTES}")"
+  if (( size > MAX_LITE_BIN_SIZE_BYTES )); then
+    fail "lite binary size: $(format_bytes "${size}") (limit ${limit})"
     return
   fi
-  pass "binary size: $(format_bytes "${size}") (limit ${limit})"
+  pass "lite binary size: $(format_bytes "${size}") (limit ${limit})"
+
+  ai_bin="$(resolve_ai_bin)"
+  if [[ ! -f "${ai_bin}" ]]; then
+    fail "binary size: ${ai_bin} not found (run make build first)"
+    return
+  fi
+  ai_size="$(wc -c < "${ai_bin}" | tr -d '[:space:]')"
+  limit="$(format_bytes "${MAX_BIN_SIZE_BYTES}")"
+  if (( ai_size > MAX_BIN_SIZE_BYTES )); then
+    fail "clx-ai binary size: $(format_bytes "${ai_size}") (limit ${limit})"
+    return
+  fi
+  pass "clx-ai binary size: $(format_bytes "${ai_size}") (limit ${limit})"
 }
 
 check_cold_start() {
@@ -168,7 +195,8 @@ build_release() {
   goexe="$(go env GOEXE)"
   mkdir -p "${BIN_DIR}"
   go run ./cmd/genrules
-  go build -trimpath -ldflags="${ldf}" -o "${BIN_DIR}/clx${goexe}" ./cmd/clx
+  go build -trimpath -tags=lite -ldflags="${ldf}" -o "${BIN_DIR}/clx${goexe}" ./cmd/clx
+  go build -trimpath -ldflags="${ldf}" -o "${BIN_DIR}/clx-ai${goexe}" ./cmd/clx-ai
   go build -trimpath -ldflags="${ldf}" -o "${BIN_DIR}/clxmax${goexe}" ./cmd/clxmax
 }
 

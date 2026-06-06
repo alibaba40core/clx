@@ -13,7 +13,7 @@ if (-not (Test-Path $Bin)) {
     Write-Host "Building release binary..."
     Push-Location $Root
     go run ./cmd/genrules
-    go build -trimpath -ldflags="-s -w" -o $Bin ./cmd/clx
+    go build -trimpath -tags=lite -ldflags="-s -w" -o $Bin ./cmd/clx
     Pop-Location
 }
 

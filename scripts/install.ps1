@@ -24,7 +24,9 @@ function Build-Binaries {
     $ldflags = Get-LdFlags
     Push-Location $Root
     try {
-        go build -trimpath -ldflags $ldflags -o (Join-Path $BinDir "clx.exe") ./cmd/clx
+        go run ./cmd/genrules
+        go build -trimpath -tags lite -ldflags $ldflags -o (Join-Path $BinDir "clx.exe") ./cmd/clx
+        go build -trimpath -ldflags $ldflags -o (Join-Path $BinDir "clx-ai.exe") ./cmd/clx-ai
         go build -trimpath -ldflags $ldflags -o (Join-Path $BinDir "clxmax.exe") ./cmd/clxmax
     } finally {
         Pop-Location
@@ -79,6 +81,7 @@ function Install-ToDest {
     New-Item -ItemType Directory -Force -Path $Dest | Out-Null
     Stop-DestProcesses
     Install-Binary -Name "clx"
+    Install-Binary -Name "clx-ai"
     Install-Binary -Name "clxmax"
 }
 
@@ -99,7 +102,7 @@ Add-ToUserPath
 
 # Stale binaries in the repo root shadow "clx" when the shell cwd is the clone (Windows
 # searches .\clx.exe before PATH). Remove them so make install fixes alias/config subcommands.
-foreach ($stale in @("clx.exe", "clxmax.exe", "clx", "clxmax")) {
+foreach ($stale in @("clx.exe", "clx-ai.exe", "clxmax.exe", "clx", "clx-ai", "clxmax")) {
     $p = Join-Path $Root $stale
     if (Test-Path $p) {
         Remove-Item -Force $p
@@ -107,7 +110,7 @@ foreach ($stale in @("clx.exe", "clxmax.exe", "clx", "clxmax")) {
     }
 }
 
-Write-Host "installed clx and clxmax to $Dest"
+Write-Host "installed clx, clx-ai (internal), and clxmax to $Dest"
 $installed = Join-Path $Dest "clx.exe"
 & $installed --version
 & $installed doctor

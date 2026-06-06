@@ -2,6 +2,7 @@
 
 BIN_DIR := bin
 CLX_BIN := $(BIN_DIR)/clx
+CLX_AI_BIN := $(BIN_DIR)/clx-ai
 CLXMAX_BIN := $(BIN_DIR)/clxmax
 
 # v1.0.0 = Phases 1–4 + 3.5 (clx). v2.0.0-dev = Phase 5 clxmax (in development).
@@ -16,18 +17,20 @@ GOFLAGS := -trimpath
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
-build: ## Build clx and clxmax binaries
+build: ## Build clx (lite), clx-ai (worker), and clxmax binaries
 ifeq ($(OS),Windows_NT)
 	@if not exist "$(BIN_DIR)" mkdir "$(BIN_DIR)"
 else
 	@mkdir -p $(BIN_DIR)
 endif
 	go run ./cmd/genrules
-	go build $(GOFLAGS) -ldflags="$(LDFLAGS)" -o $(CLX_BIN) ./cmd/clx
+	go build $(GOFLAGS) -tags=lite -ldflags="$(LDFLAGS)" -o $(CLX_BIN) ./cmd/clx
+	go build $(GOFLAGS) -ldflags="$(LDFLAGS)" -o $(CLX_AI_BIN) ./cmd/clx-ai
 	go build $(GOFLAGS) -ldflags="$(CLXMAX_LDFLAGS)" -o $(CLXMAX_BIN) ./cmd/clxmax
 
 test: ## Run unit and integration tests
 	go test -race ./...
+	go test -tags=lite -race ./internal/pipeline/ ./internal/clxsidecar/ ./cmd/clx/
 
 lint: ## Run go vet
 	go vet ./...
@@ -43,10 +46,11 @@ clean: ## Remove build artifacts
 ifeq ($(OS),Windows_NT)
 	@if exist "$(BIN_DIR)" rmdir /s /q "$(BIN_DIR)" 2>nul
 	@if exist clx.exe del /f /q clx.exe 2>nul
+	@if exist clx-ai.exe del /f /q clx-ai.exe 2>nul
 	@if exist clxmax.exe del /f /q clxmax.exe 2>nul
 else
 	@rm -rf $(BIN_DIR)
-	@rm -f clx clxmax clx.exe clxmax.exe
+	@rm -f clx clx-ai clxmax clx.exe clx-ai.exe clxmax.exe
 endif
 	@echo "clean: done"
 

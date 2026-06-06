@@ -55,17 +55,19 @@ jobs:
             ext=""
             if [ "$goos" = "windows" ]; then ext=".exe"; fi
 
-            GOOS="$goos" GOARCH="$goarch" go build -trimpath -ldflags="${LDFLAGS}" \
+            GOOS="$goos" GOARCH="$goarch" go build -trimpath -tags=lite -ldflags="${LDFLAGS}" \
               -o "${workdir}/clx${ext}" ./cmd/clx
+            GOOS="$goos" GOARCH="$goarch" go build -trimpath -ldflags="${LDFLAGS}" \
+              -o "${workdir}/clx-ai${ext}" ./cmd/clx-ai
             GOOS="$goos" GOARCH="$goarch" go build -trimpath -ldflags="${LDFLAGS}" \
               -o "${workdir}/clxmax${ext}" ./cmd/clxmax
 
             if [ "$goos" = "windows" ]; then
               asset="clx_${goos}_${goarch}.zip"
-              (cd "${workdir}" && zip -q "${DIST}/${asset}" "clx${ext}" "clxmax${ext}")
+              (cd "${workdir}" && zip -q "${DIST}/${asset}" "clx${ext}" "clx-ai${ext}" "clxmax${ext}")
             else
               asset="clx_${goos}_${goarch}.tar.gz"
-              tar -czf "${DIST}/${asset}" -C "${workdir}" "clx${ext}" "clxmax${ext}"
+              tar -czf "${DIST}/${asset}" -C "${workdir}" "clx${ext}" "clx-ai${ext}" "clxmax${ext}"
             fi
             rm -rf "${workdir}"
           done

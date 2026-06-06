@@ -47,6 +47,12 @@ type Options struct {
 
 	// MemoryStore, when set, is used for session follow-ups and append (tests).
 	MemoryStore *memory.Store
+
+	// ForwardedArgv is the original os.Args[1:] slice for lite→worker delegation.
+	ForwardedArgv []string
+
+	// WorkerPath overrides clx-ai location in tests (lite build only).
+	WorkerPath string
 }
 
 // WithDefaults fills nil writers and stdin.

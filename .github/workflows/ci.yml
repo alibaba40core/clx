@@ -22,18 +22,26 @@ jobs:
           go-version: "1.26"
 
       - name: Build
-        run: go build -trimpath ./...
+        run: |
+          go build -trimpath ./cmd/clx-ai ./cmd/clxmax
+          go build -tags=lite -trimpath ./cmd/clx
 
       - name: Vet
-        run: go vet ./...
+        run: |
+          go vet ./cmd/clx-ai ./cmd/clxmax ./...
+          go vet -tags=lite ./cmd/clx/...
 
       - name: Test (race on Unix)
         if: runner.os != 'Windows'
-        run: go test -race ./...
+        run: |
+          go test -race ./...
+          go test -tags=lite -race ./internal/pipeline/ ./internal/clxsidecar/ ./cmd/clx/
 
       - name: Test (Windows, no race — requires gcc for -race)
         if: runner.os == 'Windows'
-        run: go test ./...
+        run: |
+          go test ./...
+          go test -tags=lite ./internal/pipeline/ ./internal/clxsidecar/ ./cmd/clx/
 
       - name: Build CLI
         shell: bash
@@ -41,7 +49,8 @@ jobs:
           mkdir -p bin
           go run ./cmd/genrules
           EXE="$(go env GOEXE)"
-          go build -trimpath -ldflags="-s -w" -o "bin/clx${EXE}" ./cmd/clx
+          go build -tags=lite -trimpath -ldflags="-s -w" -o "bin/clx${EXE}" ./cmd/clx
+          go build -trimpath -ldflags="-s -w" -o "bin/clx-ai${EXE}" ./cmd/clx-ai
           go build -trimpath -ldflags="-s -w" -o "bin/clxmax${EXE}" ./cmd/clxmax
 
       - name: Check runtime budgets

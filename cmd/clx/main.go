@@ -97,12 +97,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 	rawInput := strings.Join(fs.Args(), " ")
 	skipConfirm := *yes || *yesLong
 	code, err := pipeline.Run(ctx, cfg, rawInput, pipeline.Options{
-		Explain:  *explain,
-		DryRun:   *dryRun,
-		Yes:      skipConfirm,
-		Logger:   logger,
-		Stdout:   stdout,
-		Stderr:   stderr,
+		Explain:       *explain,
+		DryRun:        *dryRun,
+		Yes:           skipConfirm,
+		Logger:        logger,
+		Stdout:        stdout,
+		Stderr:        stderr,
+		ForwardedArgv: args,
 	})
 	if err != nil && code == 0 {
 		return 1
