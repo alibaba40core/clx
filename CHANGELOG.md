@@ -16,6 +16,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `clxmax` advanced reasoning: clarification loop, multi-step planning, sequenced execution, plan explainability.
 - See [doc/phase-5.md](doc/phase-5.md) for the full Phase 5 tracker.
 
+## [1.0.2] — 2026-06-05
+
+Patch release: faster startup via lite `clx` + internal `clx-ai` worker split.
+
+### Added
+
+- Lite `clx` front binary (`-tags=lite`) for rules-first hot path; hidden `clx-ai` sibling handles AI providers when needed (single `clx` command for users).
+- Build-tag split in pipeline, sidecar path resolution (`internal/clxsidecar`), and startup benchmarks in [doc/development/startup-split.md](doc/development/startup-split.md).
+
+### Changed
+
+- `make build` / install scripts / release zips ship `clx`, `clx-ai`, and `clxmax`.
+- Standalone CLI speed improvements: tiered init, lazy pipeline loading, build-time rules codegen (from prior development commits).
+
 ## [1.0.1] — 2026-06-05
 
 Patch release: installers, rules-only mode, and bare `ls`/`dir` fix.

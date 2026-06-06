@@ -21,7 +21,7 @@ There is no `brew` / `winget` / `scoop` package yet.
 git clone https://github.com/alibaba40core/clx.git
 cd clx
 
-# Build + copy clx and clxmax into your user PATH
+# Build + copy clx, clx-ai (internal), and clxmax into your user PATH
 make install
 ```
 
@@ -52,8 +52,8 @@ make build
 
 ## 2. Download prebuilt binaries (secondary)
 
-These one-liners download `clx` + `clxmax` from the latest
-[GitHub Release](https://github.com/alibaba40core/clx/releases), **verify the
+These one-liners download `clx`, `clx-ai` (internal AI worker), and `clxmax` from the latest
+[GitHub Release](https://github.com/alibaba40core/clx/releases) (currently **v1.0.2**), **verify the
 SHA-256 checksum**, install them onto your PATH, and print the version. No Go
 toolchain or source checkout required.
 
@@ -81,18 +81,18 @@ Pin a specific release or change the install directory with environment variable
 
 ```powershell
 # Windows
-$env:CLX_VERSION="v1.0.0"; $env:CLX_INSTALL_DIR="C:\tools\clx"; irm https://raw.githubusercontent.com/alibaba40core/clx/main/scripts/get.ps1 | iex
+$env:CLX_VERSION="v1.0.2"; $env:CLX_INSTALL_DIR="C:\tools\clx"; irm https://raw.githubusercontent.com/alibaba40core/clx/main/scripts/get.ps1 | iex
 ```
 
 ```bash
 # macOS / Linux
-CLX_VERSION=v1.0.0 CLX_INSTALL_DIR="$HOME/.local/bin" \
+CLX_VERSION=v1.0.2 CLX_INSTALL_DIR="$HOME/.local/bin" \
   curl -fsSL https://raw.githubusercontent.com/alibaba40core/clx/main/scripts/get.sh | bash
 ```
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `CLX_VERSION` | `latest` | Release tag to install, e.g. `v1.0.0` |
+| `CLX_VERSION` | `latest` (resolves to current release, e.g. `v1.0.2`) | Release tag to install, e.g. `v1.0.2` |
 | `CLX_INSTALL_DIR` | `/usr/local/bin` or `~/.local/bin` (Unix); `%LOCALAPPDATA%\Programs\clx` (Windows) | Install destination |
 
 ### How releases are produced
@@ -101,7 +101,7 @@ Prebuilt assets are published automatically by
 [`.github/workflows/release.yml`](../.github/workflows/release.yml) whenever a
 `v*` tag is pushed. Each release contains
 `clx_<os>_<arch>.tar.gz` / `clx_windows_<arch>.zip` for
-linux/darwin/windows × amd64/arm64, plus `checksums.txt`. If no release exists for
+linux/darwin/windows × amd64/arm64 (includes `clx`, internal `clx-ai`, and `clxmax`), plus `checksums.txt`. If no release exists for
 your platform, fall back to **Build from source**.
 
 ---

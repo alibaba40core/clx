@@ -6,7 +6,7 @@ CLX_AI_BIN := $(BIN_DIR)/clx-ai
 CLXMAX_BIN := $(BIN_DIR)/clxmax
 
 # v1.0.0 = Phases 1–4 + 3.5 (clx). v2.0.0-dev = Phase 5 clxmax (in development).
-VERSION ?= 1.0.1
+VERSION ?= 1.0.2
 CLXMAX_VERSION ?= 2.0.0-dev
 COMMIT ?= unknown
 LDFLAGS := -s -w -X github.com/alibaba40core/clx/internal/cliversion.Version=$(VERSION) -X github.com/alibaba40core/clx/internal/cliversion.Commit=$(COMMIT)

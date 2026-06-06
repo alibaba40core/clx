@@ -1,16 +1,16 @@
 #Requires -Version 5.1
 # CLX download installer (Windows).
 #
-# Fetches prebuilt clx.exe + clxmax.exe from GitHub Releases — no Go toolchain
-# and no source checkout required. Downloads are verified against the published
-# checksums.txt (SHA-256) before anything is installed, then the install dir is
-# added to the user PATH.
+# Fetches prebuilt clx.exe, clx-ai.exe (internal worker), and clxmax.exe from GitHub
+# Releases — no Go toolchain and no source checkout required. Downloads are verified
+# against the published checksums.txt (SHA-256) before anything is installed, then the
+# install dir is added to the user PATH.
 #
 # Usage:
 #   irm https://raw.githubusercontent.com/alibaba40core/clx/main/scripts/get.ps1 | iex
 #
 # Environment overrides:
-#   $env:CLX_VERSION      Release tag to install (default: latest), e.g. v1.0.0
+#   $env:CLX_VERSION      Release tag to install (default: latest), e.g. v1.0.2
 #   $env:CLX_INSTALL_DIR  Install destination (default: %LOCALAPPDATA%\Programs\clx)
 $ErrorActionPreference = "Stop"
 
@@ -86,11 +86,14 @@ try {
     Start-Sleep -Milliseconds 300
 
     Copy-Item -Force (Join-Path $tmp "clx.exe") (Join-Path $Dest "clx.exe")
+    if (Test-Path (Join-Path $tmp "clx-ai.exe")) {
+        Copy-Item -Force (Join-Path $tmp "clx-ai.exe") (Join-Path $Dest "clx-ai.exe")
+    }
     if (Test-Path (Join-Path $tmp "clxmax.exe")) {
         Copy-Item -Force (Join-Path $tmp "clxmax.exe") (Join-Path $Dest "clxmax.exe")
     }
 
-    Write-Log "installed clx and clxmax to $Dest"
+    Write-Log "installed clx, clx-ai (internal), and clxmax to $Dest"
 
     $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
     if ($userPath -notlike "*$Dest*") {

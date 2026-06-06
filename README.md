@@ -6,7 +6,9 @@ CLX is an AI-powered cross-platform command intelligence layer for developers. I
 
 ## Status
 
-> **v1.0.1 (latest)** — Patch: prebuilt one-liner installers ([Install](#install), [doc/installation.md](doc/installation.md)), `none` rules-only provider (AI/Ollama optional), bare `clx ls`/`dir` fixed. See [CHANGELOG.md](CHANGELOG.md).
+> **v1.0.2 (latest)** — Patch: lite `clx` + internal `clx-ai` worker for faster rule-path startup; download installers include both binaries. See [CHANGELOG.md](CHANGELOG.md).
+>
+> **v1.0.1** — Prebuilt one-liner installers ([Install](#install), [doc/installation.md](doc/installation.md)), `none` rules-only provider (AI/Ollama optional), bare `clx ls`/`dir` fixed.
 >
 > **v1.0.0** — Phases 1–4 + 3.5: rules-first pipeline with AI fallback (Ollama, OpenAI, Gemini), intent cache, risk/policy gates, safety presets, aliases, and `clx init`. Manage settings with `clx config` / `clx safety` / `clx policy` / `clx cache` / `clx alias` (API keys encrypted at rest). Provider HTTP 429 surfaces as a clear rate-limit message. Common NL phrases (e.g. `what is my ip`) hit built-in rules before AI. Flags: `--provider`, `--explain`, `--dry-run`, `-y`. See [doc/architecture.md](doc/architecture.md), [doc/provider-config.md](doc/provider-config.md), and [CHANGELOG.md](CHANGELOG.md).
 

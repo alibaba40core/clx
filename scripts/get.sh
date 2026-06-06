@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # CLX download installer (macOS / Linux).
 #
-# Fetches prebuilt clx + clxmax binaries from GitHub Releases — no Go toolchain
-# and no source checkout required. Downloads are verified against the published
-# checksums.txt (SHA-256) before anything is installed.
+# Fetches prebuilt clx, clx-ai (internal worker), and clxmax from GitHub Releases —
+# no Go toolchain and no source checkout required. Downloads are verified against the
+# published checksums.txt (SHA-256) before anything is installed.
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/alibaba40core/clx/main/scripts/get.sh | bash
 #
 # Environment overrides:
-#   CLX_VERSION      Release tag to install (default: latest), e.g. v1.0.0
+#   CLX_VERSION      Release tag to install (default: latest), e.g. v1.0.2
 #   CLX_INSTALL_DIR  Install destination (default: /usr/local/bin if writable, else ~/.local/bin)
 set -euo pipefail
 
@@ -118,9 +118,13 @@ main() {
   dest="$(choose_install_dir)"
   install -m 0755 "${tmp}/clx" "${dest}/clx" 2>/dev/null || { cp "${tmp}/clx" "${dest}/clx" && chmod 0755 "${dest}/clx"; }
   local installed="clx"
+  if [[ -f "${tmp}/clx-ai" ]]; then
+    install -m 0755 "${tmp}/clx-ai" "${dest}/clx-ai" 2>/dev/null || { cp "${tmp}/clx-ai" "${dest}/clx-ai" && chmod 0755 "${dest}/clx-ai"; }
+    installed="clx and clx-ai"
+  fi
   if [[ -f "${tmp}/clxmax" ]]; then
     install -m 0755 "${tmp}/clxmax" "${dest}/clxmax" 2>/dev/null || { cp "${tmp}/clxmax" "${dest}/clxmax" && chmod 0755 "${dest}/clxmax"; }
-    installed="clx and clxmax"
+    installed="${installed} and clxmax"
   fi
 
   log "installed ${installed} to ${dest}"
