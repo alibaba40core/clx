@@ -22,6 +22,7 @@ ifeq ($(OS),Windows_NT)
 else
 	@mkdir -p $(BIN_DIR)
 endif
+	go run ./cmd/genrules
 	go build $(GOFLAGS) -ldflags="$(LDFLAGS)" -o $(CLX_BIN) ./cmd/clx
 	go build $(GOFLAGS) -ldflags="$(CLXMAX_LDFLAGS)" -o $(CLXMAX_BIN) ./cmd/clxmax
 

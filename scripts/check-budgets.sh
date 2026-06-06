@@ -167,6 +167,7 @@ build_release() {
   # below also expects clx.exe under MINGW/MSYS/CYGWIN.
   goexe="$(go env GOEXE)"
   mkdir -p "${BIN_DIR}"
+  go run ./cmd/genrules
   go build -trimpath -ldflags="${ldf}" -o "${BIN_DIR}/clx${goexe}" ./cmd/clx
   go build -trimpath -ldflags="${ldf}" -o "${BIN_DIR}/clxmax${goexe}" ./cmd/clxmax
 }

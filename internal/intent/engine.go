@@ -18,7 +18,9 @@ var ErrNotFound = errors.New("intent not found")
 
 // Engine resolves intents using loaded rules.
 type Engine struct {
-	rules []Rule
+	rules    []Rule
+	byIntent map[string]Rule
+	index    patternIndex
 }
 
 // Rules returns a snapshot of loaded rules (read-only use).
@@ -33,7 +35,12 @@ func (e *Engine) Rules() []Rule {
 
 // NewEngine returns an engine with the given rules (later entries override duplicate intents).
 func NewEngine(rules []Rule) *Engine {
-	return &Engine{rules: mergeRules(rules)}
+	merged := mergeRules(rules)
+	return &Engine{
+		rules:    merged,
+		byIntent: buildIntentMap(merged),
+		index:    compileRules(merged),
+	}
 }
 
 // NewDefaultEngine loads built-in rules and skills embedded in the binary.
@@ -106,10 +113,11 @@ func mergeRules(rules []Rule) []Rule {
 // AI providers use this as their closed vocabulary, per
 // .cursor/rules/safe-command-execution.mdc.
 func (e *Engine) KnownIntents() []string {
-	names := make([]string, 0, len(e.rules))
-	for _, r := range e.rules {
-		names = append(names, r.Intent)
+	names := make([]string, 0, len(e.byIntent))
+	for name := range e.byIntent {
+		names = append(names, name)
 	}
+	sort.Strings(names)
 	return names
 }
 
@@ -146,12 +154,11 @@ func (e *Engine) SkillPacks() []string {
 
 // RuleForIntent returns the rule definition for an intent name.
 func (e *Engine) RuleForIntent(name string) (Rule, bool) {
-	for _, r := range e.rules {
-		if r.Intent == name {
-			return r, true
-		}
+	if e == nil || e.byIntent == nil {
+		return Rule{}, false
 	}
-	return Rule{}, false
+	r, ok := e.byIntent[name]
+	return r, ok
 }
 
 // Resolve matches a parsed request to a rule-backed intent.
@@ -163,27 +170,48 @@ func (e *Engine) Resolve(ctx context.Context, req parser.Request) (ResolvedInten
 		return ResolvedIntent{}, ErrNotFound
 	}
 
-	for _, rule := range e.rules {
+	if hit, ok := e.index.exact[tokenKey(req.Tokens)]; ok {
+		return ResolvedIntent{
+			Intent:     hit.intent,
+			Params:     hit.params,
+			Confidence: 1.0,
+			Source:     SourceRule,
+		}, nil
+	}
+
+	for _, comp := range e.index.candidates(req.Tokens) {
 		if err := ctx.Err(); err != nil {
 			return ResolvedIntent{}, err
 		}
-		for _, ex := range rule.Examples {
-			params, ok := matchPattern(ex, req.Tokens)
-			if !ok {
-				continue
-			}
-			if err := validateParams(rule, params); err != nil {
-				continue
-			}
-			return ResolvedIntent{
-				Intent:     rule.Intent,
-				Params:     params,
-				Confidence: 1.0,
-				Source:     SourceRule,
-			}, nil
+		params, ok := matchCompiled(comp, req.Tokens)
+		if !ok {
+			continue
 		}
+		if err := validateParams(comp.rule, params); err != nil {
+			continue
+		}
+		return ResolvedIntent{
+			Intent:     comp.rule.Intent,
+			Params:     params,
+			Confidence: 1.0,
+			Source:     SourceRule,
+		}, nil
 	}
 	return ResolvedIntent{}, ErrNotFound
+}
+
+// RuleNeedsTools reports whether any strategy for intent requires tool probing.
+func RuleNeedsTools(eng *Engine, intentName string) bool {
+	rule, ok := eng.RuleForIntent(intentName)
+	if !ok {
+		return false
+	}
+	for _, strat := range rule.Strategies {
+		if strat.RequiresTool != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func findModuleRoot() (string, error) {

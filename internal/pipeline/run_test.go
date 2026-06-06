@@ -19,6 +19,11 @@ import (
 
 func testProfile(t *testing.T, osName, shell string) {
 	t.Helper()
+	if osName == "" || shell == "" {
+		mp := environment.MinimalProfile()
+		osName = mp.OS
+		shell = mp.Shell
+	}
 	path, err := config.SystemProfilePath()
 	if err != nil {
 		t.Fatal(err)
@@ -41,7 +46,7 @@ func TestRunExplainGrepLinux(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
 	policy.ResetCache()
-	testProfile(t, "linux", "bash")
+	testProfile(t, "", "")
 
 	var stdout, stderr bytes.Buffer
 	cfg := config.Default()
@@ -68,7 +73,7 @@ func TestRunDryRun(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
 	policy.ResetCache()
-	testProfile(t, "linux", "bash")
+	testProfile(t, "", "")
 
 	var stdout bytes.Buffer
 	code, err := Run(context.Background(), config.Default(), "pwd", Options{
@@ -88,7 +93,7 @@ func TestRunExplainHighAllowListWarns(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
 	policy.ResetCache()
-	testProfile(t, "linux", "bash")
+	testProfile(t, "", "")
 
 	polPath, err := config.PolicyPath()
 	if err != nil {
@@ -122,7 +127,7 @@ func TestRunMediumModeLowRiskNoDryRun(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
 	policy.ResetCache()
-	testProfile(t, "linux", "bash")
+	testProfile(t, "", "")
 
 	var stdout bytes.Buffer
 	code, err := Run(context.Background(), config.Default(), "pwd", Options{
@@ -142,7 +147,7 @@ func TestRunCustomDryRunPreviewOnly(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
 	policy.ResetCache()
-	testProfile(t, "linux", "bash")
+	testProfile(t, "", "")
 
 	cfg := config.Default()
 	cfg.Safety.Mode = "custom"
@@ -167,7 +172,7 @@ func TestRunDryRunFromConfig(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
 	policy.ResetCache()
-	testProfile(t, "linux", "bash")
+	testProfile(t, "", "")
 
 	var stdout bytes.Buffer
 	cfg := config.Default()
@@ -189,7 +194,7 @@ func TestRunYesDoesNotBypassConfigDryRun(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
 	policy.ResetCache()
-	testProfile(t, "linux", "bash")
+	testProfile(t, "", "")
 
 	var stdout bytes.Buffer
 	cfg := config.Default()
@@ -212,7 +217,7 @@ func TestRunDryRunFlagWhenConfigDisabled(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
 	policy.ResetCache()
-	testProfile(t, "linux", "bash")
+	testProfile(t, "", "")
 
 	cfg := config.Default()
 	cfg.Safety.DryRun = false
@@ -235,7 +240,7 @@ func TestRunNilAIResolverSameAsRulesOnly(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
 	policy.ResetCache()
-	testProfile(t, "linux", "bash")
+	testProfile(t, "", "")
 
 	var stdout, stderr bytes.Buffer
 	cfg := config.Default()
@@ -275,7 +280,7 @@ func TestRunAIResolverRejectsExtraParam(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
 	policy.ResetCache()
-	testProfile(t, "linux", "bash")
+	testProfile(t, "", "")
 
 	var stderr bytes.Buffer
 	code, err := Run(context.Background(), config.Default(), "totally unknown input xyz", Options{
@@ -304,7 +309,7 @@ func TestRunAIResolverRejectsUnknownIntent(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
 	policy.ResetCache()
-	testProfile(t, "linux", "bash")
+	testProfile(t, "", "")
 
 	var stderr bytes.Buffer
 	code, err := Run(context.Background(), config.Default(), "unknown xyz", Options{
@@ -330,7 +335,7 @@ func TestRunAIResolverValidIntentExplain(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
 	policy.ResetCache()
-	testProfile(t, "linux", "bash")
+	testProfile(t, "", "")
 
 	var stdout, stderr bytes.Buffer
 	code, err := Run(context.Background(), config.Default(), "unknown xyz", Options{
@@ -363,10 +368,13 @@ func TestRunAIResolverValidIntentExplain(t *testing.T) {
 func TestRunAIMissNaturalLanguage(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
-	testProfile(t, "linux", "bash")
+	testProfile(t, "", "")
 
 	var stderr bytes.Buffer
-	code, err := Run(context.Background(), config.Default(), "find all widgets modified yesterday", Options{
+	cfg := config.Default()
+	cfg.Features.AICommandGeneration = false
+	cfg.Provider = "none"
+	code, err := Run(context.Background(), cfg, "find all widgets modified yesterday", Options{
 		AIResolver: &fakeAIResolver{err: intent.ErrNotFound},
 		Stderr:     &stderr,
 		Stdout:     &bytes.Buffer{},
@@ -382,10 +390,13 @@ func TestRunAIMissNaturalLanguage(t *testing.T) {
 func TestRunNotFoundNL(t *testing.T) {
 	t.Setenv("CLX_HOME", t.TempDir())
 	_, _ = config.Bootstrap(context.Background())
-	testProfile(t, "linux", "bash")
+	testProfile(t, "", "")
 
 	var stderr bytes.Buffer
-	code, err := Run(context.Background(), config.Default(), "find all widgets modified yesterday", Options{
+	cfg := config.Default()
+	cfg.Features.AICommandGeneration = false
+	cfg.Provider = "none"
+	code, err := Run(context.Background(), cfg, "find all widgets modified yesterday", Options{
 		Stderr: &stderr,
 		Stdout: &bytes.Buffer{},
 	})

@@ -56,7 +56,7 @@ func (p *Provider) ResolveIntent(ctx context.Context, req providers.IntentReques
 
 // Explain calls Gemini for a plain-text command explanation.
 func (p *Provider) Explain(ctx context.Context, gen generator.GeneratedCommand) (string, error) {
-	profile, err := environment.LoadOrDetect(ctx)
+	profile, err := environment.ProfileForResolver(ctx)
 	if err != nil {
 		return "", err
 	}

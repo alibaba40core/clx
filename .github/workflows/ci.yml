@@ -39,9 +39,10 @@ jobs:
         shell: bash
         run: |
           mkdir -p bin
+          go run ./cmd/genrules
           EXE="$(go env GOEXE)"
-          go build -trimpath -o "bin/clx${EXE}" ./cmd/clx
-          go build -trimpath -o "bin/clxmax${EXE}" ./cmd/clxmax
+          go build -trimpath -ldflags="-s -w" -o "bin/clx${EXE}" ./cmd/clx
+          go build -trimpath -ldflags="-s -w" -o "bin/clxmax${EXE}" ./cmd/clxmax
 
       - name: Check runtime budgets
         shell: bash

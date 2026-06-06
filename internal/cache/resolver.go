@@ -37,7 +37,7 @@ func (r *readResolver) Resolve(ctx context.Context, req parser.Request) (intent.
 	if err := ctx.Err(); err != nil {
 		return intent.ResolvedIntent{}, err
 	}
-	profile, err := environment.LoadOrDetect(ctx)
+	profile, err := environment.ProfileForResolver(ctx)
 	if err != nil {
 		return intent.ResolvedIntent{}, err
 	}
@@ -69,7 +69,7 @@ func (r *writeResolver) Resolve(ctx context.Context, req parser.Request) (intent
 		return resolved, nil
 	}
 
-	profile, perr := environment.LoadOrDetect(ctx)
+	profile, perr := environment.ProfileForResolver(ctx)
 	if perr != nil {
 		if r.logger != nil {
 			r.logger.Warn("cache write skipped: profile unavailable", "err", perr)

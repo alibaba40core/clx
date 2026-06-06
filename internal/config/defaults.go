@@ -73,7 +73,7 @@ func Default() Config {
 			TTLDays:              7,
 		},
 		Logging: LoggingConfig{
-			Enabled: true,
+			Enabled: false,
 			Level:   "info",
 		},
 	}

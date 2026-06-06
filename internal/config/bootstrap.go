@@ -89,7 +89,7 @@ func Bootstrap(ctx context.Context) (BootstrapResult, error) {
 	}
 	result.WroteAliases = wrote
 
-	// system_profile.json is created by clx doctor or LoadOrDetect on first pipeline run.
+	// system_profile.json is created by clx doctor (not auto-detected on pipeline run).
 
 	return result, nil
 }

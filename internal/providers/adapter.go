@@ -64,7 +64,7 @@ func (r *providerResolver) Resolve(ctx context.Context, req parser.Request) (int
 		return intent.ResolvedIntent{}, err
 	}
 
-	profile, err := environment.LoadOrDetect(ctx)
+	profile, err := environment.ProfileForResolver(ctx)
 	if err != nil {
 		return intent.ResolvedIntent{}, err
 	}

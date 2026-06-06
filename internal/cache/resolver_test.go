@@ -26,18 +26,29 @@ func (s *stubResolver) Resolve(context.Context, parser.Request) (intent.Resolved
 	return s.result, nil
 }
 
-func seedProfile(t *testing.T, profile environment.SystemProfile) {
+func seedProfile(t *testing.T, overlay environment.SystemProfile) {
 	t.Helper()
-	t.Setenv("CLX_HOME", t.TempDir())
+	dir := t.TempDir()
+	t.Setenv("CLX_HOME", dir)
 	if _, err := config.Bootstrap(context.Background()); err != nil {
 		t.Fatal(err)
+	}
+	p, err := environment.Detect(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(overlay.AvailableTools) > 0 {
+		p.AvailableTools = overlay.AvailableTools
+	}
+	if overlay.OSVersion != "" {
+		p.OSVersion = overlay.OSVersion
 	}
 	path, err := config.SystemProfilePath()
 	if err != nil {
 		t.Fatal(err)
 	}
 	store := environment.NewProfileStore()
-	store.UpsertProfile(profile)
+	store.UpsertProfile(p)
 	if err := environment.SaveStore(context.Background(), path, store); err != nil {
 		t.Fatal(err)
 	}
@@ -49,8 +60,17 @@ func TestAsResolverHitAndMiss(t *testing.T) {
 	if _, err := config.Bootstrap(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	profile, err := environment.LoadOrDetect(context.Background())
+	profile, err := environment.Detect(context.Background())
 	if err != nil {
+		t.Fatal(err)
+	}
+	path, err := config.SystemProfilePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := environment.NewProfileStore()
+	store.UpsertProfile(profile)
+	if err := environment.SaveStore(context.Background(), path, store); err != nil {
 		t.Fatal(err)
 	}
 
@@ -75,7 +95,7 @@ func TestAsResolverHitAndMiss(t *testing.T) {
 }
 
 func TestWrapAIResolverWriteThrough(t *testing.T) {
-	seedProfile(t, environment.SystemProfile{OS: "linux", Shell: "bash"})
+	seedProfile(t, environment.SystemProfile{})
 	cachePath := filepath.Join(t.TempDir(), "intents.json")
 	s := testStore(t, cachePath, config.Default().Cache)
 
@@ -101,7 +121,7 @@ func TestWrapAIResolverWriteThrough(t *testing.T) {
 }
 
 func TestWrapAIResolverSkipsNonAI(t *testing.T) {
-	seedProfile(t, environment.SystemProfile{OS: "linux", Shell: "bash"})
+	seedProfile(t, environment.SystemProfile{})
 	cachePath := filepath.Join(t.TempDir(), "intents.json")
 	s := testStore(t, cachePath, config.Default().Cache)
 	inner := &stubResolver{result: intent.ResolvedIntent{
@@ -122,7 +142,7 @@ func TestWrapAIResolverSkipsNonAI(t *testing.T) {
 }
 
 func TestWrapAIResolverSkipsOnError(t *testing.T) {
-	seedProfile(t, environment.SystemProfile{OS: "linux", Shell: "bash"})
+	seedProfile(t, environment.SystemProfile{})
 	s := testStore(t, filepath.Join(t.TempDir(), "intents.json"), config.Default().Cache)
 	inner := &stubResolver{err: intent.ErrNotFound}
 	wrapped := WrapAIResolver(inner, s, nil)
@@ -145,15 +165,20 @@ func TestAsResolverProfileChangeMisses(t *testing.T) {
 	// resolver actually reads it, then vary a non-store-key field
 	// (AvailableTools) to model a profile refresh: the store key stays the
 	// same but the cache key changes, so a prior entry must miss.
-	detected, err := environment.LoadOrDetect(context.Background())
+	detected, err := environment.Detect(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 	path, _ := config.SystemProfilePath()
+	storeProf := environment.NewProfileStore()
+	storeProf.UpsertProfile(detected)
+	if err := environment.SaveStore(context.Background(), path, storeProf); err != nil {
+		t.Fatal(err)
+	}
 
 	p1 := detected
 	p1.AvailableTools = []string{"git"}
-	storeProf := environment.NewProfileStore()
+	storeProf = environment.NewProfileStore()
 	storeProf.UpsertProfile(p1)
 	if err := environment.SaveStore(context.Background(), path, storeProf); err != nil {
 		t.Fatal(err)

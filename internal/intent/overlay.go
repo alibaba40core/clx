@@ -12,8 +12,16 @@ import (
 	"github.com/alibaba40core/clx/internal/config"
 )
 
-// loadBuiltinRulesAndSkills returns built-in rules and skills from the embedded FS.
+// loadBuiltinRulesAndSkills returns built-in rules and skills from generated
+// JSON when available, otherwise from the embedded YAML FS.
 func loadBuiltinRulesAndSkills() ([]Rule, error) {
+	if rules, err := loadGeneratedBuiltinRules(); err != nil {
+		return nil, err
+	} else if len(rules) > 0 {
+		out := make([]Rule, len(rules))
+		copy(out, rules)
+		return out, nil
+	}
 	rules, err := LoadRulesFromFS(builtin.FS, "rules")
 	if err != nil {
 		return nil, err

@@ -72,7 +72,7 @@ func mapClientError(err error) error {
 
 // Explain calls the provider for a plain-text command explanation (Phase 2.4).
 func (p *Provider) Explain(ctx context.Context, gen generator.GeneratedCommand) (string, error) {
-	profile, err := environment.LoadOrDetect(ctx)
+	profile, err := environment.ProfileForResolver(ctx)
 	if err != nil {
 		return "", err
 	}

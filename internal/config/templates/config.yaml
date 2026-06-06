@@ -48,5 +48,5 @@ cache:
   max_disk_bytes: 5242880
 
 logging:
-  enabled: true
+  enabled: false
   level: info

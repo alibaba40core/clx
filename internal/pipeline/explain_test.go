@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/alibaba40core/clx/internal/config"
+	"github.com/alibaba40core/clx/internal/environment"
 	"github.com/alibaba40core/clx/internal/generator"
 	"github.com/alibaba40core/clx/internal/intent"
 	"github.com/alibaba40core/clx/internal/parser"
@@ -17,11 +18,25 @@ import (
 
 func explainTestHome(t *testing.T) {
 	t.Helper()
-	t.Setenv("CLX_HOME", t.TempDir())
+	dir := t.TempDir()
+	t.Setenv("CLX_HOME", dir)
 	if _, err := config.Bootstrap(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 	policy.ResetCache()
+	p, err := environment.Detect(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	path, err := config.SystemProfilePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := environment.NewProfileStore()
+	store.UpsertProfile(p)
+	if err := environment.SaveStore(context.Background(), path, store); err != nil {
+		t.Fatal(err)
+	}
 }
 
 type explainStubProvider struct {

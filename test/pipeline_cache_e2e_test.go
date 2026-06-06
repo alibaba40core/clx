@@ -113,9 +113,13 @@ func TestE2ECacheProfileChangeMisses(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := environment.LoadOrDetect(context.Background())
+	p, err := environment.LoadProfile(context.Background())
 	if err != nil {
-		t.Fatal(err)
+		detected, derr := environment.Detect(context.Background())
+		if derr != nil {
+			t.Fatal(derr)
+		}
+		p = detected
 	}
 	profStore, err := environment.LoadStore(context.Background(), path)
 	if err != nil {

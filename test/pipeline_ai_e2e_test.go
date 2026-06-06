@@ -150,8 +150,10 @@ func TestE2EAIProviderFlagDisablesFallback(t *testing.T) {
 
 func TestE2EAILowConfidenceTreatedAsMiss(t *testing.T) {
 	setupCLXHomeForHost(t, nil)
+	cfg := config.Default()
+	cfg.Features.AICommandGeneration = false
 	var stderr bytes.Buffer
-	code, err := pipeline.Run(context.Background(), config.Default(), "find all widgets modified yesterday", pipeline.Options{
+	code, err := pipeline.Run(context.Background(), cfg, "find all widgets modified yesterday", pipeline.Options{
 		AIResolver: providers.AsResolver(stubProvider{resp: &providers.IntentResponse{
 			Intent: "list_dir", Params: map[string]string{}, Confidence: 0.2,
 		}}, mustEngine(t), nil, providers.AdapterConfig{MinConfidence: 0.5}),

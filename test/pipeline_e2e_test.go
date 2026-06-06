@@ -73,23 +73,25 @@ func setupCLXHomeForHost(t *testing.T, tools []string) {
 	}
 	policy.ResetCache()
 
-	// First call runs full detection and persists a host-keyed profile.
-	p, err := environment.LoadOrDetect(context.Background())
+	// Seed profile via doctor-style detect (tests only; production uses clx doctor).
+	p, err := environment.Detect(context.Background())
 	if err != nil {
+		t.Fatal(err)
+	}
+	path, err := config.SystemProfilePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := environment.NewProfileStore()
+	store.UpsertProfile(p)
+	if err := environment.SaveStore(context.Background(), path, store); err != nil {
 		t.Fatal(err)
 	}
 	if tools == nil {
 		return
 	}
 
-	path, err := config.SystemProfilePath()
-	if err != nil {
-		t.Fatal(err)
-	}
-	store, err := environment.LoadStore(context.Background(), path)
-	if err != nil {
-		store = environment.NewProfileStore()
-	}
+	store, err = environment.LoadStore(context.Background(), path)
 	p.AvailableTools = tools
 	store.UpsertProfile(p)
 	if err := environment.SaveStore(context.Background(), path, store); err != nil {
@@ -631,22 +633,27 @@ func TestE2EProfileWritten(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := environment.LoadOrDetect(context.Background())
+	p, err := environment.Detect(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 	if p.OS == "" {
 		t.Fatal("expected detect to fill OS")
 	}
+	store := environment.NewProfileStore()
+	store.UpsertProfile(p)
+	if err := environment.SaveStore(context.Background(), path, store); err != nil {
+		t.Fatal(err)
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var store environment.ProfileStore
-	if err := json.Unmarshal(data, &store); err != nil {
+	var profStore environment.ProfileStore
+	if err := json.Unmarshal(data, &profStore); err != nil {
 		t.Fatal(err)
 	}
-	for _, prof := range store.Profiles {
+	for _, prof := range profStore.Profiles {
 		if prof.OS != "" {
 			return
 		}

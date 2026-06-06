@@ -11,14 +11,9 @@ import (
 	"strings"
 
 	"github.com/alibaba40core/clx/internal/cliversion"
-	"github.com/alibaba40core/clx/internal/cache"
 	"github.com/alibaba40core/clx/internal/config"
 	"github.com/alibaba40core/clx/internal/environment"
-	"github.com/alibaba40core/clx/internal/intent"
-	"github.com/alibaba40core/clx/internal/logging"
 	"github.com/alibaba40core/clx/internal/pipeline"
-	"github.com/alibaba40core/clx/internal/providers"
-	providerfactory "github.com/alibaba40core/clx/internal/providers/factory"
 )
 
 func main() {
@@ -68,17 +63,6 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
-
-	logger, cfg, closer, err := initCLX(ctx, *configPath, stderr)
-	if err != nil {
-		return 1
-	}
-	defer closer.Close()
-
-	logger.Debug("clx invoked", "version", cliversion.Version)
-
 	if *showVersion {
 		fmt.Fprintln(stdout, cliversion.Line("clx"))
 		return 0
@@ -89,9 +73,18 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	logger, cfg, closer, err := initMinimal(ctx, *configPath, stderr)
+	if err != nil {
+		return 1
+	}
+	defer closer.Close()
+
+	logger.Debug("clx invoked", "version", cliversion.Version)
+
 	if *providerFlag != "" {
-		// Make the flag authoritative: providers.primary otherwise wins in
-		// EffectivePrimary and would silently ignore the override.
 		cfg.Provider = *providerFlag
 		cfg.Providers.Primary = *providerFlag
 		cfg.Providers.Fallback = ""
@@ -101,84 +94,15 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 	}
 
-	eng, err := intent.NewEngineWithOverlay(ctx, logger)
-	if err != nil {
-		fmt.Fprintf(stderr, "rules: %v\n", err)
-		return 1
-	}
-
-	var aiResolver intent.Resolver
-	var aiProvider providers.Provider
-	p, perr := providerfactory.NewFromConfig(cfg, logger)
-	switch {
-	case perr != nil:
-		aiResolver = providers.ErrorResolver(perr)
-	case p != nil:
-		aiProvider = p
-		timeout := config.ProviderTimeout(cfg)
-		aiResolver = providers.AsResolver(p, eng, logger, providers.AdapterConfig{
-			Timeout: timeout,
-		})
-	default:
-		// provider "none": rules-only mode. Leave aiResolver/aiProvider nil so the
-		// chain is rules (+cache) only and a rule miss reports "no matching rule"
-		// instead of an AI-provider error.
-	}
-
-	var cacheStore *cache.Store
-	var explainStore *cache.ExplainStore
-	var commandStore *cache.CommandStore
-	if cfg.Features.CacheCommands && cfg.Cache.MaxEntries > 0 {
-		cachePath, cerr := config.CacheIntentsPath()
-		if cerr != nil {
-			logger.Warn("cache unavailable", "err", cerr)
-		} else {
-			store, lerr := cache.Load(ctx, cachePath, cfg.Cache, logger)
-			if lerr != nil {
-				logger.Warn("cache unavailable", "err", lerr)
-			} else {
-				cacheStore = store
-			}
-		}
-		explainPath, eerr := config.CacheExplanationsPath()
-		if eerr != nil {
-			logger.Warn("explain cache unavailable", "err", eerr)
-		} else {
-			estore, lerr := cache.LoadExplain(ctx, explainPath, cfg.Cache, logger)
-			if lerr != nil {
-				logger.Warn("explain cache unavailable", "err", lerr)
-			} else {
-				explainStore = estore
-			}
-		}
-		cmdPath, perr := config.CacheCommandsPath()
-		if perr != nil {
-			logger.Warn("command cache unavailable", "err", perr)
-		} else {
-			cstore, lerr := cache.LoadCommands(ctx, cmdPath, cfg.Cache, logger)
-			if lerr != nil {
-				logger.Warn("command cache unavailable", "err", lerr)
-			} else {
-				commandStore = cstore
-			}
-		}
-	}
-
 	rawInput := strings.Join(fs.Args(), " ")
 	skipConfirm := *yes || *yesLong
 	code, err := pipeline.Run(ctx, cfg, rawInput, pipeline.Options{
-		Explain:    *explain,
-		DryRun:     *dryRun,
-		Yes:        skipConfirm,
-		Logger:     logger,
-		Stdout:     stdout,
-		Stderr:     stderr,
-		Engine:       eng,
-		Cache:         cacheStore,
-		ExplainCache:  explainStore,
-		CommandCache:  commandStore,
-		Provider:      aiProvider,
-		AIResolver:   aiResolver,
+		Explain:  *explain,
+		DryRun:   *dryRun,
+		Yes:      skipConfirm,
+		Logger:   logger,
+		Stdout:   stdout,
+		Stderr:   stderr,
 	})
 	if err != nil && code == 0 {
 		return 1
@@ -200,7 +124,7 @@ func runDoctor(args []string, stdout, stderr io.Writer) int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	logger, _, closer, err := initCLX(ctx, *configPath, stderr)
+	logger, _, closer, err := initFull(ctx, *configPath, stderr)
 	if err != nil {
 		return 1
 	}
@@ -216,43 +140,9 @@ func runDoctor(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
+// initCLX is kept for subcommands that still call it during migration.
 func initCLX(ctx context.Context, configPath string, stderr io.Writer) (*slog.Logger, config.Config, io.Closer, error) {
-	result, err := config.Bootstrap(ctx)
-	if err != nil {
-		fmt.Fprintf(stderr, "bootstrap: %v\n", err)
-		return nil, config.Config{}, nil, err
-	}
-	if result.WroteConfig || result.WrotePolicy {
-		fmt.Fprintln(stderr, "CLX: first-run setup complete (~/.clx/)")
-	}
-
-	path := configPath
-	if path == "" {
-		path, err = config.ConfigPath()
-		if err != nil {
-			fmt.Fprintf(stderr, "config path: %v\n", err)
-			return nil, config.Config{}, nil, err
-		}
-	}
-
-	cfg, err := config.Load(ctx, path)
-	if err != nil {
-		fmt.Fprintf(stderr, "load config: %v\n", err)
-		return nil, config.Config{}, nil, err
-	}
-
-	logsDir, err := config.LogsDir()
-	if err != nil {
-		fmt.Fprintf(stderr, "logs dir: %v\n", err)
-		return nil, config.Config{}, nil, err
-	}
-
-	logger, closer, err := logging.New(ctx, cfg.Logging, logsDir)
-	if err != nil {
-		fmt.Fprintf(stderr, "logger: %v\n", err)
-		return nil, config.Config{}, nil, err
-	}
-	return logger, cfg, closer, nil
+	return initFull(ctx, configPath, stderr)
 }
 
 func printHelp(w io.Writer) {
