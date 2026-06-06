@@ -53,10 +53,12 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 		}
 	}
 	if resp == nil {
+		stop := opts.prog.Spin()
 		resp, genErr = gen.GenerateCommand(callCtx, providers.CommandRequest{
 			RawInput: raw,
 			Profile:  profile,
 		})
+		stop()
 		if genErr != nil {
 			return reportAICommandError(cfg, opts, genErr), true, genErr
 		}
@@ -78,11 +80,13 @@ func tryAICommand(ctx context.Context, cfg config.Config, opts Options, profile 
 
 	gcmd, valErr := buildGeneratedFromAI(resp, shellHint, profile, raw)
 	if valErr != nil && isAIValidationError(valErr) && !fromCache {
+		stop := opts.prog.Spin()
 		retryResp, retryErr := gen.GenerateCommand(callCtx, providers.CommandRequest{
 			RawInput: raw,
 			Profile:  profile,
 			Feedback: valErr.Error(),
 		})
+		stop()
 		if retryErr != nil {
 			fmt.Fprintf(opts.Stderr, "AI command rejected as unsafe: %v\n", valErr)
 			return 1, true, valErr

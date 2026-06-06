@@ -17,7 +17,7 @@ import (
 // (success or hard error) wins. ErrNotFound propagates only if every
 // resolver misses. Honors ctx between hops.
 // aiHopIndex is the chain index of the AI resolver, or -1 when AI is not wired.
-func resolveChain(ctx context.Context, req parser.Request, resolvers []intent.Resolver, logger *slog.Logger, aiHopIndex int) (intent.ResolvedIntent, error) {
+func resolveChain(ctx context.Context, req parser.Request, resolvers []intent.Resolver, logger *slog.Logger, aiHopIndex int, prog *progress) (intent.ResolvedIntent, error) {
 	if len(resolvers) == 0 {
 		return intent.ResolvedIntent{}, intent.ErrNotFound
 	}
@@ -27,7 +27,15 @@ func resolveChain(ctx context.Context, req parser.Request, resolvers []intent.Re
 			return intent.ResolvedIntent{}, err
 		}
 		start := time.Now()
-		resolved, err := r.Resolve(ctx, req)
+		var resolved intent.ResolvedIntent
+		var err error
+		if aiHopIndex >= 0 && i == aiHopIndex {
+			stop := prog.Spin()
+			resolved, err = r.Resolve(ctx, req)
+			stop()
+		} else {
+			resolved, err = r.Resolve(ctx, req)
+		}
 		latency := time.Since(start)
 		if logger != nil {
 			logger.Debug("resolver hop",

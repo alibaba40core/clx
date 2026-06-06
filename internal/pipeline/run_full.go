@@ -47,7 +47,7 @@ func runFullResolve(ctx context.Context, cfg config.Config, opts *Options, eng *
 	}
 
 	resolvers := buildResolvers(eng, *opts, cfg)
-	resolved, err := resolveChain(ctx, req, resolvers, opts.Logger, aiResolverIndex(*opts, cfg))
+	resolved, err := resolveChain(ctx, req, resolvers, opts.Logger, aiResolverIndex(*opts, cfg), opts.prog)
 	if err != nil {
 		if isResolverMiss(err) {
 			hintAliasMiss(*opts, aliasLookup, req)

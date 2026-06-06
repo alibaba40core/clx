@@ -53,6 +53,9 @@ type Options struct {
 
 	// WorkerPath overrides clx-ai location in tests (lite build only).
 	WorkerPath string
+
+	// prog is the in-place stdout progress indicator (set by Run).
+	prog *progress
 }
 
 // WithDefaults fills nil writers and stdin.

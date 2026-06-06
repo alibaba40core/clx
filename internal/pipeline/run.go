@@ -24,6 +24,7 @@ import (
 // Returns exit code (0 success) and an error for fatal failures (message may already be printed).
 func Run(ctx context.Context, cfg config.Config, rawInput string, opts Options) (int, error) {
 	opts.WithDefaults()
+	opts.prog = newProgress(opts.Stdout)
 
 	profile := environment.MinimalProfile()
 
@@ -232,6 +233,7 @@ func executePlan(ctx context.Context, cfg config.Config, opts Options, profile e
 	flags := safetyFlagsFromOptions(opts)
 	action := config.DecideSafetyAction(cfg, ra.Level.String(), flags)
 
+	opts.prog.FinishOutput()
 	if shouldShowDisplay(action, opts) {
 		displayGen := gen
 		if shouldEnrichForSafety(action, opts, resolved, gen) {
@@ -252,6 +254,7 @@ func executePlan(ctx context.Context, cfg config.Config, opts Options, profile e
 	}
 
 	if action.Preview || opts.DryRun {
+		opts.prog.FinishOutput()
 		if err := printDryRunLine(opts.Stdout, gen, profile); err != nil {
 			return 1, err
 		}
@@ -261,6 +264,7 @@ func executePlan(ctx context.Context, cfg config.Config, opts Options, profile e
 	}
 
 	if action.ShouldConfirm(cfg, flags) {
+		opts.prog.FinishOutput()
 		ok, err := confirmPrompt(opts.Stdin, opts.Stdout)
 		if err != nil {
 			return 1, err

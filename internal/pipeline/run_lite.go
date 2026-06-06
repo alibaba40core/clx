@@ -43,7 +43,7 @@ func runFullResolveLite(ctx context.Context, cfg config.Config, opts *Options, e
 	applyLazyCaches(opts, lc, ctx)
 
 	resolvers := buildResolvers(eng, *opts, cfg)
-	resolved, err := resolveChain(ctx, req, resolvers, opts.Logger, -1)
+	resolved, err := resolveChain(ctx, req, resolvers, opts.Logger, -1, opts.prog)
 	if err != nil {
 		if isResolverMiss(err) {
 			hintAliasMiss(*opts, aliasLookup, req)
