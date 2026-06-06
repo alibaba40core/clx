@@ -18,7 +18,7 @@ STUBS: dict[str, tuple[str, str]] = {
     ),
     "powershell-exec-nl-ip.png": (
         "PowerShell",
-        "PS C:\\Users> clx -y \"what is my ip\"\n\nWireless LAN adapter Wi-Fi:\n   Connection-specific DNS Suffix  . : example.local\n   IPv4 Address. . . . . . . . . . . : 192.0.2.1",
+        "PS C:\\Users> clx -y \"what is my ip\"\n\nWireless LAN adapter Wi-Fi:\n   Connection-specific DNS Suffix  . : example.local\n   IPv4 Address. . . . . . . . . . . : 203.0.113.1",
     ),
     "powershell-exec-grep-unix.png": (
         "PowerShell",
